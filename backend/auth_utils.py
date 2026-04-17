@@ -4,12 +4,22 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Header, HTTPException
 from passlib.context import CryptContext
 from database import db
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 
 router = APIRouter()
 
 SECRET_KEY = "your_secret_key_here"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
+conf = ConnectionConfig(
+    MAIL_USERNAME="ramkumarram6073@gmail.com",
+    MAIL_PASSWORD="vyxonglmqnooyjxa",
+    MAIL_FROM="ramkumarram6073@gmail.com",
+    MAIL_PORT=587,
+    MAIL_SERVER="smtp.gmail.com",
+    MAIL_STARTTLS=True,
+    MAIL_SSL_TLS=False
+)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -47,8 +57,19 @@ def create_reset_token(email:str):
     data = {"sub" : email, "exp": expire}
     return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
+async def send_reset_email(email: str, reset_link: str):
+    message = MessageSchema(
+        subject="Password Reset Request",
+        recipients=[email],
+        body=f"Click the link to reset your password:\n{reset_link}",
+        subtype="plain"
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
+
 @router.post("/forgot-password")
-def forgot_password(data: dict):
+async def forgot_password(data: dict):
     email = data.get("email")
 
     user = db.users.find_one({"email": email})
@@ -59,8 +80,8 @@ def forgot_password(data: dict):
 
     reset_link = f"http://localhost:8000/reset-password-page/{token}"
 
-    print("Reset Link:", reset_link)
-
+    await send_reset_email(email, reset_link)
+    
     return {
         "message": "Reset link generated.",
         "reset_link": reset_link
