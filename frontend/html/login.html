@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body class="login-background">
 
@@ -19,6 +21,9 @@
         <span>Password</span>
         <div class="input-group">
             <input id="password" type="password" placeholder="Enter your password">
+             <span class="eye-icon" onclick="togglePassword()" >        
+                <i id="eyeIcon" class="fa-solid fa-eye"></i>
+            </span>
         </div>
 
         <div class="options">
