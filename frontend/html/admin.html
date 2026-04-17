@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/admin.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-shell">
+        <aside class="sidebar">
+            <div class="brand-mark" aria-hidden="true">
+                <span class="brand-piece brand-piece-wide"></span>
+                <span class="brand-piece brand-piece-mid"></span>
+                <span class="brand-piece brand-piece-thin"></span>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-section="dashboard" onclick="goToDashboard()">
+                    <i class="fas fa-book"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="nav-item" data-section="projects" onclick="goToProjects()">
+                    <i class="far fa-folder"></i>
+                    <span>Projects</span>
+                </button>
+                <button class="nav-item" data-section="tasks" onclick="goToTasks()">
+                    <i class="far fa-square-check"></i>
+                    <span>Tasks</span>
+                </button>
+                <button class="nav-item" data-section="users" onclick="goToUsers()">
+                    <i class="fas fa-user"></i>
+                    <span>Users</span>
+                </button>
+                <button class="nav-item" data-section="reports" onclick="goToReports()">
+                    <i class="fas fa-chart-simple"></i>
+                    <span>Reports</span>
+                </button>
+                <button class="nav-item" data-section="settings" onclick="goToSettings()">
+                    <i class="fas fa-gear"></i>
+                    <span>Settings</span>
+                </button>
+            </nav>
+        </aside>
+
+        <main class="main-panel">
+            <header class="topbar">
+                <label class="search-box" for="adminSearch">
+                    <i class="fas fa-search"></i>
+                    <input id="adminSearch" type="text" placeholder="Search..." oninput="handleAdminSearch(event)">
+                </label>
+
+                <div class="topbar-actions">
+                    <div class="notification-wrap">
+                        <i class="fas fa-bell notification"></i>
+                        <span class="notification-badge" id="notificationCount">0</span>
+                    </div>
+
+                    <div class="profile-menu">
+                    <button class="profile-wrap" type="button" onclick="toggleAdminProfileMenu(event)" aria-haspopup="true" aria-expanded="false" id="profileMenuButton">
+                        <img id="profileAvatar" src="https://i.pravatar.cc/48?img=12" alt="Admin avatar">
+                        <span id="welcome-user">Admin</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+
+                    <div class="profile-dropdown hidden" id="profileDropdown">
+                        <button type="button" class="profile-option" onclick="goToDashboard()">
+                            <i class="fas fa-house"></i>
+                            <span>Dashboard</span>
+                        </button>
+                        <button type="button" class="profile-option" onclick="goToUsers()">
+                            <i class="fas fa-users"></i>
+                            <span>Manage Users</span>
+                        </button>
+                        <button type="button" class="profile-option" onclick="goToSettings()">
+                            <i class="fas fa-gear"></i>
+                            <span>Settings</span>
+                        </button>
+                        <button type="button" class="profile-option logout-option" onclick="logoutFromAdmin()">
+                            <i class="fas fa-right-from-bracket"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                    </div>
+                </div>
+            </header>
+
+            <section class="content-area" id="mainContent"></section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/javascript/api.js"></script>
+    <script src="/static/javascript/admin.js"></script>
+    <script>
+        const role = localStorage.getItem("role");
+
+        if (role !== "admin") {
+            alert("Access denied");
+            window.location.href = "/";
+        }
+
+        const username = localStorage.getItem("username");
+        if (username) {
+            document.getElementById("welcome-user").innerText = username;
+        }
+
+        initializeAdminDashboard();
+    </script>
+</body>
+</html>

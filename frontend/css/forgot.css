@@ -1,0 +1,105 @@
+/* Forgot Password Page Styles */
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: white;
+}
+
+.forgot-background {
+    margin: 0;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    overflow: hidden;
+
+    background-image: url("/static/images/background.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+/* FORGOT CONTAINER */
+.forgot-container {
+    width: 50%;
+    margin-left: 50%;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: transparent;
+}
+
+/* FORGOT CARD */
+.forgot-card {
+    width: 360px;
+    padding: 40px;
+
+    border-radius: 18px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+
+    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+    text-align: left;
+}
+
+/* TITLE */
+.forgot-card h2 {
+    font-size: 26px;
+    margin-bottom: 5px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+/* LABEL */
+.forgot-card label {
+    display: block;
+    margin-top: 15px;
+    font-size: 14px;
+    color: #333;
+}
+
+/* INPUT */
+.forgot-card input {
+    width: 90%;
+    padding: 10px 10px;
+    margin-top: 6px;
+
+    border-radius: 12px;
+    border: 1px solid #ddd;
+    background: #f9f9f9;
+
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+/* INPUT FOCUS */
+.forgot-card input:focus {
+    border-color: #2d6cdf;
+    background: #fff;
+    box-shadow: 0 0 0 2px rgba(45,108,223,0.15);
+}
+
+/* BUTTON */
+.forgot-card button {
+    width:30%;
+    margin-top: 20px;
+    padding: 5px;
+
+    color: rgb(42, 5, 253);
+
+    border: none;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 11px;
+
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+/* BUTTON HOVER */
+.forgot-card button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}

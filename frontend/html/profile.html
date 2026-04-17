@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div class="profile-page">
+
+    <div class="profile-card">
+
+        <h2 id="profile-name"></h2>
+        <p id="profile-email"></p>
+        <p id="profile-role"></p>
+
+        <button onclick="goBack()">⬅ Back</button>
+
+    </div>
+
+</div>
+
+<script>
+function goToProfile() {
+    const email = localStorage.getItem("email");
+    const role = localStorage.getItem("role");
+    const username = localStorage.getItem("username");
+
+    console.log("Email:", email);
+    console.log("Role:", role);
+    console.log("Username:", username);
+
+
+    if (!email) {
+        alert("No user data found. Please login again.");
+        return;
+    }
+
+    document.getElementById("profile-email").innerText = email;
+    document.getElementById("profile-name").innerText = username;
+    document.getElementById("profile-role").innerText = "Role: " + role;
+}
+
+function goBack() {
+    window.location.href = "/dashboard-page";
+}
+
+window.onload = goToProfile();
+</script>
+
+</body>
+</html>

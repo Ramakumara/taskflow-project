@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Reset Password</title>
+    <link rel="stylesheet" href="/static/css/reset.css">
+</head>
+<body class="reset-background">
+
+<div class="reset-container">
+    <div class="reset-card">
+        <h2>Reset Password</h2>
+
+        <label for="password">New Password</label>
+        <input type="password" id="password" placeholder="New Password">
+        <button onclick="resetPassword()">Update Password</button>
+    </div>
+</div>
+
+<script>
+const token = window.location.pathname.split("/").pop();
+
+function resetPassword() {
+    const password = document.getElementById("password").value;
+
+    fetch(`/reset-password/${token}`, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({new_password: password})
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.message);
+
+        if (data.message === "Password updated successfully") {
+            window.location.href = "/";
+        }
+    })
+    .catch(err => console.error(err));
+}
+</script>
+
+</body>
+</html>

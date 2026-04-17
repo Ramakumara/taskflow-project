@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div class="dashboard">
+    <aside class="dashboard-sidebar">
+        <div class="dashboard-brand" aria-hidden="true">
+            <span class="brand-piece brand-piece-wide"></span>
+            <span class="brand-piece brand-piece-mid"></span>
+            <span class="brand-piece brand-piece-thin"></span>
+        </div>
+
+        <nav class="dashboard-nav">
+            <button class="menu-item" type="button" data-sidebar="dashboard" onclick="dashboard()">
+                <i class="fas fa-house menu-icon"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="menu-item active" type="button" data-sidebar="overview" onclick="setProjectTab('overview')">
+                <i class="far fa-folder menu-icon"></i>
+                <span>Projects</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="tasks" onclick="setProjectTab('tasks')">
+                <i class="far fa-square-check menu-icon"></i>
+                <span>My Tasks</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="team" onclick="setProjectTab('team')">
+                <i class="fas fa-users menu-icon"></i>
+                <span>My Team</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="activity" onclick="setProjectTab('activity')">
+                <i class="far fa-calendar menu-icon"></i>
+                <span>Calendar</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
+                <i class="far fa-folder-open menu-icon"></i>
+                <span>Files</span>
+            </button>
+        </nav>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="topbar">
+            <div class="topbar-left">
+                <label class="search-box" for="projectSearch">
+                    <i class="fas fa-search"></i>
+                    <input id="projectSearch" type="text" placeholder="Search..." oninput="handleProjectSearch(event)">
+                </label>
+            </div>
+
+            <div class="topbar-right">
+                <div class="notification-wrap">
+                    <i class="fas fa-bell notification"></i>
+                </div>
+
+                <div class="profile-menu">
+                    <button id="profile-trigger" class="profile-trigger" type="button" onclick="toggleMenu()">
+                        <div id="avatar">R</div>
+                        <span id="welcome-user"></span>
+                        <span class="profile-caret"><i class="fas fa-chevron-down"></i></span>
+                    </button>
+
+                    <div id="dropdown-menu" class="dropdown hidden">
+                        <button type="button" class="dropdown-item" onclick="goToProfile()">
+                            <i class="fas fa-user dropdown-icon"></i>
+                            <span>My Profile</span>
+                        </button>
+                        <button type="button" class="dropdown-item" onclick="dashboard()">
+                            <i class="fas fa-house dropdown-icon"></i>
+                            <span>Dashboard</span>
+                        </button>
+                        <button type="button" class="dropdown-item" onclick="goToSettings()">
+                            <i class="fas fa-gear dropdown-icon"></i>
+                            <span>Settings</span>
+                        </button>
+                        <button type="button" class="dropdown-item logout-item" onclick="logout()">
+                            <i class="fas fa-right-from-bracket dropdown-icon"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="main-content" id="mainContent">
+            <div id="dashboard-view">
+                <section class="dashboard-summary">
+                    <article class="summary-card blue-card">
+                        <div class="summary-icon"><i class="fas fa-folder"></i></div>
+                        <div>
+                            <p>Total Projects</p>
+                            <h3 id="total-projects">0</h3>
+                        </div>
+                    </article>
+
+                    <article class="summary-card orange-card">
+                        <div class="summary-icon"><i class="fas fa-list-check"></i></div>
+                        <div>
+                            <p>Total Tasks</p>
+                            <h3 id="total-tasks">0</h3>
+                        </div>
+                    </article>
+
+                    <article class="summary-card green-card">
+                        <div class="summary-icon"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <p>Completion Rate</p>
+                            <h3 id="completion-rate">0%</h3>
+                        </div>
+                    </article>
+                </section>
+
+                <div id="create-section" class="hidden">
+                    <div class="create-panel">
+                        <div class="create-panel-header">
+                            <div>
+                                <h3>Create Workspace Items</h3>
+                            </div>
+                            <button class="close-create-btn" type="button" onclick="hideCreate()">
+                                <i class="fas fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <div class="card" id="project-section">
+                            <h3>Create Project</h3>
+                            <form id="project-form">
+                                <input id="project-name" placeholder="Project name" required>
+                                <button class="button-btn" type="button" onclick="createProject()">Create</button>
+                            </form>
+                        </div>
+
+                        <div class="card" id="task-section">
+                            <h3>Create Task</h3>
+                            <select id="project-select"></select>
+                            <input id="task-title" placeholder="Task title">
+                            <select id="assigned-to"></select>
+                            <input id="deadline" type="date" placeholder="Deadline">
+                            <button class="button-btn" type="button" onclick="createTask()">Add Task</button>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="project-section data-panel">
+                    <div class="section-head">
+                        <div>
+                            <h3>Projects</h3>
+                        </div>
+                    </div>
+                    <div id="project-grid" class="project-grid"></div>
+                </section>
+            </div>
+
+            <div id="tasks-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head">
+                        <div>
+                            <h3>My Tasks</h3>
+                        </div>
+                    </div>
+                    <div class="workspace-table-wrap">
+                        <table class="workspace-table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Project</th>
+                                    <th>Assigned To</th>
+                                    <th>Status</th>
+                                    <th>Due Date</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-tasks-list"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <div id="team-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head">
+                        <div>
+                            <h3>My Team</h3>
+                        </div>
+                    </div>
+                    <div id="team-members-list" class="team-grid"></div>
+                </section>
+            </div>
+
+            <div id="calendar-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head calendar-head">
+                        <div>
+                            <h3>Calendar</h3>
+                        </div>
+                        <div class="calendar-top-row">
+                            <div class="calendar-nav-group">
+                                <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(-1)">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <div class="calendar-nav-title" id="calendar-month-year"></div>
+                                <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(1)">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <select id="calendar-year-select" class="calendar-year-select" onchange="onCalendarYearChange(event)" aria-label="Select calendar year"></select>
+                        </div>
+                    </div>
+                    <div id="calendar-container" class="calendar-panel">
+                        <div id="calendar" class="calendar-grid"></div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="files-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head">
+                        <div>
+                            <h3>Files</h3>
+                        </div>
+                    </div>
+                    <div id="files-list" class="files-grid">
+                        <p>Files section - coming soon</p>
+                    </div>
+                </section>
+            </div>
+
+            <div id="project-workspace-view" class="hidden">
+                <section class="project-workspace-main">
+                    <section class="workspace-header">
+                        <div class="workspace-title-row">
+                            <h1 id="project-title">Project</h1>
+                            <div class="workspace-progress-wrap">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="workspace-layout">
+                        <div class="workspace-center">
+
+
+                            <div class="workspace-panel" id="workspacePanel">
+                                <div class="workspace-table-wrap" id="tasksView">
+                                    <table class="workspace-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Task</th>
+                                                <th>Status</th>
+                                                <th>Due Date</th>
+                                                <th>Assigned To</th>
+                                                <th id="action-header">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="task-list"></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </section>
+    </main>
+</div>
+<script src="/static/javascript/api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+
+const token = params.get("token");
+const role = params.get("role");
+const username = params.get("username");
+const email = params.get("email");
+
+if (token) {
+    localStorage.setItem("token", token);
+    localStorage.setItem("role", role || "user");
+    localStorage.setItem("username", username || "");
+    localStorage.setItem("email", email || "");
+
+    // 🔥 remove query params from URL
+    window.history.replaceState({}, document.title, "/dashboard-page");
+}
+
+// THEN: call APIs
+loadProjects();
+getUser();
+</script>
+<script>
+// Hide all views
+function hideAllViews() {
+    document.getElementById('dashboard-view').classList.add('hidden');
+    document.getElementById('tasks-view').classList.add('hidden');
+    document.getElementById('team-view').classList.add('hidden');
+    document.getElementById('calendar-view').classList.add('hidden');
+    document.getElementById('files-view').classList.add('hidden');
+    document.getElementById('project-workspace-view').classList.add('hidden');
+}
+
+// Show specific view
+function showView(viewId) {
+    hideAllViews();
+    const view = document.getElementById(viewId);
+    if (view) {
+        view.classList.remove('hidden');
+    }
+}
+
+// Set active sidebar menu item
+function setActiveMenu(menuName) {
+    document.querySelectorAll('.menu-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    const activeItem = document.querySelector(`[data-sidebar="${menuName}"]`);
+    if (activeItem) {
+        activeItem.classList.add('active');
+    }
+}
+
+function dashboard() {
+    setActiveMenu('dashboard');
+    showView('dashboard-view');
+    loadProjects();
+}
+
+function setProjectTab(tab) {
+    switch(tab) {
+        case 'overview':
+            setActiveMenu('overview');
+            showView('dashboard-view');
+            loadProjects();
+            break;
+        case 'tasks':
+            setActiveMenu('tasks');
+            showView('tasks-view');
+            loadAllTasks();
+            break;
+        case 'team':
+            setActiveMenu('team');
+            showView('team-view');
+            loadTeamMembers();
+            break;
+        case 'activity':
+            setActiveMenu('activity');
+            showView('calendar-view');
+            initializeCalendar();
+            break;
+        case 'files':
+            setActiveMenu('files');
+            showView('files-view');
+            break;
+    }
+}
+
+function goBack() {
+    hideAllViews();
+    document.getElementById('dashboard-view').classList.remove('hidden');
+}
+
+// Load all tasks for user
+async function loadAllTasks() {
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
+    const token = localStorage.getItem("token");
+
+    if (!role || !email || !token) return;
+
+    try {
+        const [projectsRes, tasksRes] = await Promise.all([
+            fetch(`${BASE_URL}/projects`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/tasks`, {
+                headers: { "Authorization": "Bearer " + token }
+            })
+        ]);
+
+        const projects = await projectsRes.json();
+        const tasks = await tasksRes.json();
+
+        const list = document.getElementById("all-tasks-list");
+        list.innerHTML = "";
+
+        if (tasks.length === 0) {
+            list.innerHTML = `<tr><td colspan="5">No tasks assigned</td></tr>`;
+            return;
+        }
+
+        tasks.forEach(t => {
+            const project = projects.find(p => String(p.id) === String(t.project_id));
+            const row = document.createElement("tr");
+            const statusClass = t.status.trim().toLowerCase().replace(/\s+/g, "-");
+            row.innerHTML = `
+                <td>${t.title}</td>
+                <td>${project?.name || "Unknown"}</td>
+                <td>${t.assigned_to}</td>
+                <td><span class="status-pill ${statusClass}">${t.status}</span></td>
+                <td>${t.deadline || "N/A"}</td>
+            `;
+            list.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Failed to load tasks", error);
+    }
+}
+
+// Load team members
+async function loadTeamMembers() {
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
+    const token = localStorage.getItem("token");
+
+    if (!role || !email || !token) return;
+
+    try {
+        const res = await fetch(`${BASE_URL}/projects`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const projects = await res.json();
+
+        const teamList = document.getElementById("team-members-list");
+        teamList.innerHTML = "";
+
+        const teamMembers = new Set();
+        projects.forEach(p => {
+            if (p.created_by) teamMembers.add(p.created_by);
+        });
+
+        if (teamMembers.size === 0) {
+            teamList.innerHTML = "<p>No team members found</p>";
+            return;
+        }
+
+        teamMembers.forEach(member => {
+            const card = document.createElement("div");
+            card.className = "team-member-card";
+            card.innerHTML = `
+                <div style="padding: 15px; background: white; border-radius: 8px; text-align: center;">
+                    <div style="width: 60px; height: 60px; background: #3498db; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">
+                        ${member.charAt(0).toUpperCase()}
+                    </div>
+                    <h4>${member}</h4>
+                </div>
+            `;
+            teamList.appendChild(card);
+        });
+    } catch (error) {
+        console.error("Failed to load team members", error);
+    }
+}
+
+let dashboardCalendarTasks = [];
+let dashboardCalendarMonth = new Date().getMonth();
+let dashboardCalendarYear = new Date().getFullYear();
+
+function initializeCalendar() {
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
+    const token = localStorage.getItem("token");
+
+    if (!role || !email || !token) return;
+
+    fetch(`${BASE_URL}/tasks`, {
+        headers: { "Authorization": "Bearer " + token }
+    })
+        .then(res => res.json())
+        .then(tasks => {
+            dashboardCalendarTasks = tasks || [];
+            renderDashboardCalendar();
+            renderDashboardYearOptions();
+        })
+        .catch(error => console.error("Failed to load calendar", error));
+}
+
+function renderDashboardCalendar() {
+    const calendarMonthYear = document.getElementById("calendar-month-year");
+    const calendarDiv = document.getElementById("calendar");
+
+    if (!calendarMonthYear || !calendarDiv) return;
+
+    const currentMonth = new Date(dashboardCalendarYear, dashboardCalendarMonth);
+    calendarMonthYear.textContent = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+    calendarDiv.innerHTML = generateCalendarDays(dashboardCalendarTasks, dashboardCalendarMonth, dashboardCalendarYear);
+}
+
+function renderDashboardYearOptions() {
+    const yearSelect = document.getElementById("calendar-year-select");
+
+    if (!yearSelect) return;
+
+    const startYear = dashboardCalendarYear - 2;
+    const endYear = dashboardCalendarYear + 2;
+    yearSelect.innerHTML = '';
+
+    for (let year = startYear; year <= endYear; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        yearSelect.appendChild(option);
+    }
+
+    yearSelect.value = dashboardCalendarYear;
+}
+
+function changeCalendarMonth(offset) {
+    dashboardCalendarMonth += offset;
+
+    if (dashboardCalendarMonth < 0) {
+        dashboardCalendarMonth = 11;
+        dashboardCalendarYear -= 1;
+    }
+    if (dashboardCalendarMonth > 11) {
+        dashboardCalendarMonth = 0;
+        dashboardCalendarYear += 1;
+    }
+
+    renderDashboardYearOptions();
+    renderDashboardCalendar();
+}
+
+function onCalendarYearChange(event) {
+    const selectedYear = parseInt(event.target.value, 10);
+    if (!Number.isNaN(selectedYear)) {
+        dashboardCalendarYear = selectedYear;
+        renderDashboardCalendar();
+    }
+}
+
+function generateCalendarDays(tasks, month, year) {
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDayOfWeek = firstDay.getDay();
+
+    let html = '';
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    weekDays.forEach(day => {
+        html += `<div class="calendar-weekday">${day}</div>`;
+    });
+
+    for (let i = 0; i < startingDayOfWeek; i++) {
+        html += '<div class="calendar-day empty"></div>';
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const tasksOnDay = tasks.filter(t => t.deadline === dateStr);
+        const hasTasks = tasksOnDay.length > 0;
+        const today = new Date();
+        const isToday = day === today.getDate() && month === today.getMonth() && year === today.getFullYear();
+
+        html += `
+            <div class="calendar-day ${hasTasks ? 'has-tasks' : ''} ${isToday ? 'today' : ''}">
+                <div class="date-number">${day}</div>
+                ${hasTasks ? `<div class="task-count">${tasksOnDay.length} task${tasksOnDay.length > 1 ? 's' : ''}</div>` : '<div class="task-count">No tasks</div>'}
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+async function loadDashboardSummary() {
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
+    const token = localStorage.getItem("token");
+    const totalProjects = document.getElementById("total-projects");
+    const totalTasks = document.getElementById("total-tasks");
+    const completionRate = document.getElementById("completion-rate");
+
+    if (!role || !email || !token || !totalProjects || !totalTasks || !completionRate) {
+        return;
+    }
+
+    try {
+        const [projectsRes, tasksRes] = await Promise.all([
+            fetch(`${BASE_URL}/projects`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/tasks`, {
+                headers: { "Authorization": "Bearer " + token }
+            })
+        ]);
+
+        const projects = await projectsRes.json();
+        const tasks = await tasksRes.json();
+
+        if (typeof renderSummary === "function") {
+            renderSummary(projects, tasks);
+        }
+    } catch (error) {
+        console.error("Failed to load dashboard summary", error);
+    }
+}
+
+async function loadProjectWorkspace() {
+    const projectId = localStorage.getItem("selectedProjectId");
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
+
+    if (!projectId || !role || !email) {
+        return;
+    }
+
+    if (role !== "manager") {
+        const actionHeader = document.getElementById("action-header");
+        if (actionHeader) actionHeader.style.display = "none";
+    }
+    
+    try {
+        const token = localStorage.getItem("token");
+        // Load project title
+        const projectsRes = await fetch(`${BASE_URL}/projects`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const projects = await projectsRes.json();
+        const project = projects.find(p => String(p.id) === String(projectId));
+        document.getElementById("project-title").innerText = project?.name || "Project";
+
+        // Load project tasks
+        const tasksRes = await fetch(`${BASE_URL}/tasks`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const tasks = await tasksRes.json();
+        
+        const list = document.getElementById("task-list");
+        list.innerHTML = "";
+
+        const projectTasks = tasks.filter(t =>
+            String(t.project_id) === String(projectId)
+        );
+
+        if (projectTasks.length === 0) {
+            list.innerHTML = `
+                <tr>
+                    <td colspan="5">No tasks available</td>
+                </tr>
+            `;
+            return;
+        }
+
+        projectTasks.forEach(t => {
+            const row = document.createElement("tr");
+
+            row.innerHTML = `
+                <td>${t.title}</td>
+                <td>${t.assigned_to}</td>
+                <td>${t.deadline || "N/A"}</td>
+
+                ${
+                    role === "user"
+                    ? `
+                    <td>
+                        <select onchange="updateStatus('${t.id}', this.value)">
+                            <option value="todo" ${t.status === "todo" ? "selected" : ""}>To Do</option>
+                            <option value="in progress" ${t.status === "in progress" ? "selected" : ""}>In Progress</option>
+                            <option value="done" ${t.status === "done" ? "selected" : ""}>Done</option>
+                        </select>
+                    </td>
+                    `
+                    : `
+                    <td>
+                        <span class="status ${t.status.replace(" ", "-")}">
+                            ${t.status}
+                        </span>
+                    </td>
+                    `
+                }
+
+                ${
+                    role === "manager"
+                    ? `
+                    <td>
+                        <button onclick="deleteTask('${t.id}')">Delete</button>
+                    </td>
+                    `
+                    : ""
+                }
+            `;
+
+            list.appendChild(row);
+        });
+    } catch (error) {
+        console.error("Failed to load project workspace", error);
+    }
+}
+
+function showProjectWorkspace() {
+    hideAllViews();
+    document.getElementById('project-workspace-view').classList.remove('hidden');
+}
+
+window.addEventListener("load", loadDashboardSummary);
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</body>
+</html>

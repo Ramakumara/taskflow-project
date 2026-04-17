@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Forgot Password</title>
+    <link rel="stylesheet" href="/static/css/forgot.css">
+</head>
+<body class="forgot-background">
+
+<div class="forgot-container">
+    <div class="forgot-card">
+        <h2>Forgot Password</h2>
+
+        <label for="email">Email</label>
+        <input type="email" id="email" placeholder="Enter your email">
+        <button onclick="sendReset()">Send Reset Link</button>
+    </div>
+</div>
+
+<script>
+function sendReset() {
+    const email = document.getElementById("email").value;
+
+    fetch("/forgot-password", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({email: email})
+    })
+    .then(res => res.json())
+    .then(data => {
+        console.log(data);
+        if (data.reset_link) {
+            alert(`${data.message}\nReset link: ${data.reset_link}`);
+        } else {
+            alert(data.message);
+        }
+    });
+}
+</script>
+
+</body>
+</html>

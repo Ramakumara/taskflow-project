@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Login</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="login-background">
+
+<div class="login-container">
+    <div class="login-card">
+        <h2>Welcome Back</h2>
+        <p class="sub-text">Sign in to continue to your account</p>
+
+        <span>Email</span>
+        <div class="input-group">
+            <input id="email" placeholder="Enter your email">
+        </div>
+
+        <span>Password</span>
+        <div class="input-group">
+            <input id="password" type="password" placeholder="Enter your password">
+        </div>
+
+        <div class="options">
+            <label></label>
+            <a href="/forgot-page">Forgot Password?</a>
+        </div>
+
+        <button onclick="handleLogin()">Login</button>
+
+        
+
+        <p>Don't have account? <a href="/register-page">Register</a></p>
+        <div class="divider">or</div>
+        <div onclick="loginWithGoogle()" class="google-btn">
+            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google">
+            Continue with google
+        </div>
+    </div>
+</div>
+
+<script src="/static/javascript/api.js"></script>
+
+<script>
+function togglePassword() {
+    let input = document.getElementById("password");
+    input.type = input.type === "password" ? "text" : "password";
+}
+
+function loginWithGoogle() {
+    window.location.href = "http://localhost:8000/login/google";
+}
+</script>
+
+</body>
+</html>

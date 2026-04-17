@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Register</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="login-background">
+
+<div class="login-container">
+    <div class="login-card">
+        <h2>Welcome</h2>
+        <p class="sub-text">Create your account to get started</p>
+
+        <span>Username</span>
+        <input id="username" placeholder="Enter your username">
+
+        <span>Email</span>
+        <input id="email" placeholder="Enter your email">
+
+        <span>Password</span>
+        <input id="password" type="password" placeholder="Enter your password">
+
+        <span>Role</span>
+        <select id="role">
+            <option value="user">User</option>
+            <option value="manager">Manager</option>
+        </select>
+
+        <button onclick="handleRegister()">Register</button>
+
+        <div class="divider">or</div>
+
+        <p>Already have account? <a href="/">Login</a></p>
+    </div>
+</div>
+
+<script src="/static/javascript/api.js"></script>
+
+</body>
+</html>
