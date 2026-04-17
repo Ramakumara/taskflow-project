@@ -4,10 +4,12 @@ from datetime import datetime, timedelta, timezone
 from fastapi import Header, HTTPException
 from passlib.context import CryptContext
 from database import db
+import os
+from dotenv import load_dotenv
 
 router = APIRouter()
 
-SECRET_KEY = "your_secret_key_here"
+SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
