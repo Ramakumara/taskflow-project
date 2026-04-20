@@ -19,7 +19,7 @@ def create_project(project: ProjectCreate, current_user: dict = Depends(get_curr
         return {"message": "Access denied"}
 
     new_project = project.model_dump()
-    new_project["owner_email"] = current_user["email"]  # 🔥 important
+    new_project["owner_email"] = current_user["email"]  
 
     db.projects.insert_one(new_project)
     return {"message": "Project created"}
@@ -33,7 +33,7 @@ def get_projects(current_user: dict = Depends(get_current_user)):
     elif current_user["role"] == "admin":
         data = list(db.projects.find())
     else:
-        data = list(db.projects.find())  # or restrict if needed
+        data = list(db.projects.find())  
 
     return [format_mongo(p) for p in data]
 
@@ -46,7 +46,7 @@ def delete_project(project_id: str, current_user: dict = Depends(get_current_use
 
     db.projects.delete_one({"_id": ObjectId(project_id)})
 
-    # 🔥 fix: project_id must be ObjectId
+
     db.tasks.delete_many({"project_id": ObjectId(project_id)})
 
     return {"message": "Project deleted"}

@@ -415,33 +415,69 @@ async function loadTeamMembers() {
     if (!role || !email || !token) return;
 
     try {
-        const res = await fetch(`${BASE_URL}/projects`, {
-            headers: { "Authorization": "Bearer " + token }
-        });
-        const projects = await res.json();
+        const [projectsRes, tasksRes, usersRes] = await Promise.all([
+            fetch(`${BASE_URL}/projects`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/tasks`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/users`, {
+                headers: { "Authorization": "Bearer " + token }
+            })
+        ]);
+
+        const projects = await projectsRes.json();
+        const tasks = await tasksRes.json();
+        const users = await usersRes.json();
 
         const teamList = document.getElementById("team-members-list");
+        if (!teamList) return;
         teamList.innerHTML = "";
 
-        const teamMembers = new Set();
-        projects.forEach(p => {
-            if (p.created_by) teamMembers.add(p.created_by);
+        if (!Array.isArray(projects) || !Array.isArray(tasks) || !Array.isArray(users)) {
+            teamList.innerHTML = "<p>Unable to load team members</p>";
+            return;
+        }
+
+        const managerProjectIds = new Set(projects.map(project => String(project.id)));
+        const assignedEmails = new Set(
+            tasks
+                .filter(task => managerProjectIds.has(String(task.project_id)) && task.assigned_to)
+                .map(task => String(task.assigned_to).trim().toLowerCase())
+        );
+
+        const teamMembers = users.filter(user => {
+            const userEmail = String(user.email || "").trim().toLowerCase();
+            return userEmail && userEmail !== String(email).trim().toLowerCase() && assignedEmails.has(userEmail);
         });
 
-        if (teamMembers.size === 0) {
-            teamList.innerHTML = "<p>No team members found</p>";
+        if (teamMembers.length === 0) {
+            teamList.innerHTML = "<p>No members have been assigned tasks yet</p>";
             return;
         }
 
         teamMembers.forEach(member => {
+            const memberEmail = String(member.email || "").trim().toLowerCase();
+            const memberTasks = tasks.filter(task => String(task.assigned_to || "").trim().toLowerCase() === memberEmail);
             const card = document.createElement("div");
             card.className = "team-member-card";
             card.innerHTML = `
-                <div style="padding: 15px; background: white; border-radius: 8px; text-align: center;">
-                    <div style="width: 60px; height: 60px; background: #3498db; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 24px;">
-                        ${member.charAt(0).toUpperCase()}
+                <div class="team-member-card-inner">
+                    <div class="team-member-avatar">
+                        ${(member.username || member.email || "?").charAt(0).toUpperCase()}
                     </div>
-                    <h4>${member}</h4>
+                    <div class="team-member-body">
+                        <div class="team-member-top">
+                            <div>
+                                <h4>${member.username || member.email}</h4>
+                                <p>${member.email}</p>
+                            </div>
+                        </div>
+                        <div class="team-member-meta">
+                            <span>${memberTasks.length} assigned task${memberTasks.length === 1 ? "" : "s"}</span>
+                        </div>
+                    </div>
                 </div>
             `;
             teamList.appendChild(card);

@@ -21,7 +21,6 @@ body {
     
 }
 
-
 .create-btn {
     background: #2d6cdf;
     color: white;
@@ -1545,6 +1544,101 @@ select option[value="done"] {
     gap: 18px;
 }
 
+.dashboard .team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+}
+
+.dashboard .team-member-card {
+    border: 1px solid #e4e9f3;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+    box-shadow: var(--shell-panel-shadow);
+    overflow: hidden;
+}
+
+.dashboard .team-member-card-inner {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px;
+}
+
+.dashboard .team-member-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    background: linear-gradient(135deg, #4ea7ff, #19d9e8);
+    color: #fff;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 24px rgba(30, 150, 232, 0.22);
+}
+
+.dashboard .team-member-body {
+    min-width: 0;
+    flex: 1;
+}
+
+.dashboard .team-member-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.dashboard .team-member-top h4 {
+    margin: 0;
+    color: var(--shell-heading);
+    font-size: 17px;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.dashboard .team-member-top p {
+    margin: 4px 0 0;
+    color: var(--shell-muted);
+    font-size: 13px;
+    word-break: break-word;
+}
+
+.dashboard .team-role-pill {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #eef6ff;
+    color: #2f6fb0;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.dashboard .team-member-meta {
+    margin-top: 12px;
+    color: var(--shell-body);
+    font-size: 13px;
+}
+
+@media (max-width: 640px) {
+    .dashboard .team-member-card-inner {
+        align-items: flex-start;
+    }
+
+    .dashboard .team-member-top {
+        flex-direction: column;
+    }
+
+    .dashboard .team-role-pill {
+        align-self: flex-start;
+    }
+}
+
 .dashboard .project-card-ui {
     width: auto;
     min-height: 160px;
@@ -2148,4 +2242,3 @@ select option[value="done"] {
 .google-btn:active {
     transform: scale(0.98);
 }
-

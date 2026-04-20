@@ -16,20 +16,17 @@ async def login_google(request: Request):
 @router.get("/auth/google")
 async def auth_google(request: Request):
     try:
-        # ✅ get code manually
         code = request.query_params.get("code")
 
         if not code:
             return {"error": "No code received"}
 
-        # ✅ exchange code manually
         token = await oauth.google.fetch_access_token(
             grant_type="authorization_code",
             code=code,
             redirect_uri="http://localhost:8000/auth/google"
         )
 
-        # ✅ get user info
         user = await oauth.google.userinfo(token=token)
 
         email = user.get("email")

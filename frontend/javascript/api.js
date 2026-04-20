@@ -177,7 +177,7 @@ function openCreate() {
     const section = document.getElementById("create-section");
 
     if (!section) {
-        console.error("create-section not found ❌");
+        console.error("create-section not found ");
         return;
     }
 
@@ -709,7 +709,7 @@ function renderProjectWiseCharts(projects, tasks) {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // 🔥 important
+                maintainAspectRatio: false, 
                 plugins: {
                     legend: {
                         position: "bottom"
@@ -722,15 +722,15 @@ function renderProjectWiseCharts(projects, tasks) {
 
 function loadProjectPage() {
     const projectId = localStorage.getItem("selectedProjectId");
-    const role = localStorage.getItem("role"); // keep for UI only
-    const token = localStorage.getItem("token"); // ✅ added
+    const role = localStorage.getItem("role"); 
+    const token = localStorage.getItem("token"); 
 
     if (role !== "manager") {
         const actionHeader = document.getElementById("action-header");
         if (actionHeader) actionHeader.style.display = "none";
     }
     
-    // ✅ FIXED
+    
     fetch(`${BASE_URL}/projects`, {
         headers: {
             "Authorization": "Bearer " + token
@@ -742,7 +742,7 @@ function loadProjectPage() {
             document.getElementById("project-title").innerText = project?.name || "Project";
         });
 
-    // ✅ FIXED
+
     fetch(`${BASE_URL}/tasks`, {
         headers: {
             "Authorization": "Bearer " + token
@@ -810,7 +810,6 @@ function loadProjectPage() {
         });
 }
 
-// ✅ Search handlers for project and task searches
 function handleProjectSearch(event) {
     const searchValue = event.target.value.toLowerCase();
     const projectCards = document.querySelectorAll(".project-card-ui");

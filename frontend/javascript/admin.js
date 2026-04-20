@@ -456,7 +456,6 @@ function renderSettingsView() {
                         <h4>Account Email</h4>
                         <p>${escapeHtml(email)}</p>
                     </div>
-                    <span class="settings-badge">Live</span>
                 </div>
             </div>
         </div>
