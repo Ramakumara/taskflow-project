@@ -171,6 +171,7 @@
                                     <th>Assigned To</th>
                                     <th>Status</th>
                                     <th>Due Date</th>
+                                    <th>action</th>
                                 </tr>
                             </thead>
                             <tbody id="all-tasks-list"></tbody>
@@ -280,7 +281,6 @@ if (token) {
     localStorage.setItem("username", username || "");
     localStorage.setItem("email", email || "");
 
-    // 🔥 remove query params from URL
     window.history.replaceState({}, document.title, "/dashboard-page");
 }
 
@@ -359,6 +359,7 @@ function goBack() {
     document.getElementById('dashboard-view').classList.remove('hidden');
 }
 
+
 // Load all tasks for user
 async function loadAllTasks() {
     const role = localStorage.getItem("role");
@@ -398,6 +399,9 @@ async function loadAllTasks() {
                 <td>${t.assigned_to}</td>
                 <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                 <td>${t.deadline || "N/A"}</td>
+                <td>
+                    <button onclick="deleteTask('${t.id}')">Delete</button>
+                </td>
             `;
             list.appendChild(row);
         });

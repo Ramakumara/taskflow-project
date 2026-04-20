@@ -810,6 +810,7 @@ function loadProjectPage() {
         });
 }
 
+
 function handleProjectSearch(event) {
     const searchValue = event.target.value.toLowerCase();
     const projectCards = document.querySelectorAll(".project-card-ui");
