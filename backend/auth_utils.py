@@ -83,8 +83,7 @@ async def forgot_password(data: dict):
     await send_reset_email(email, reset_link)
     
     return {
-        "message": "Reset link generated.",
-        "reset_link": reset_link
+        "message": "Reset link sent to your email"
     }
 
 @router.post("/reset-password/{token}")
