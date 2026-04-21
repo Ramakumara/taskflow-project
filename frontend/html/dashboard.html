@@ -241,8 +241,6 @@
 
                     <section class="workspace-layout">
                         <div class="workspace-center">
-
-
                             <div class="workspace-panel" id="workspacePanel">
                                 <div class="workspace-table-wrap" id="tasksView">
                                     <table class="workspace-table">
@@ -257,6 +255,19 @@
                                         </thead>
                                         <tbody id="task-list"></tbody>
                                     </table>
+                                </div>
+                            </div>
+                            <div class="workspace-panel collaboration-panel">
+                                <div class="section-head">
+                                    <div>
+                                        <h3>Task Discussion</h3>
+                                        <p id="discussion-task-label">Select a task to view comments</p>
+                                    </div>
+                                </div>
+                                <div id="task-comments-list" class="comments-list"></div>
+                                <div class="comment-form">
+                                    <textarea id="task-comment-input" placeholder="Write a message to your team..."></textarea>
+                                    <button type="button" onclick="addTaskComment()">Send</button>
                                 </div>
                             </div>
                         </div>
@@ -359,6 +370,7 @@ function goBack() {
     document.getElementById('dashboard-view').classList.remove('hidden');
 }
 
+let activeTaskId = null;
 
 // Load all tasks for user
 async function loadAllTasks() {
@@ -723,9 +735,40 @@ async function loadProjectWorkspace() {
 
             list.appendChild(row);
         });
+
     } catch (error) {
         console.error("Failed to load project workspace", error);
     }
+}
+
+async function addTaskComment() {
+    const token = localStorage.getItem("token");
+    const input = document.getElementById("task-comment-input");
+    if (!activeTaskId || !input) return;
+
+    const content = input.value.trim();
+    if (!content) {
+        alert("Write a comment first");
+        return;
+    }
+
+    const res = await fetch(`${BASE_URL}/tasks/${activeTaskId}/comments`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ content })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        alert(data.detail || data.message || "Unable to post comment");
+        return;
+    }
+
+    input.value = "";
+    loadTaskComments(activeTaskId);
 }
 
 function showProjectWorkspace() {
