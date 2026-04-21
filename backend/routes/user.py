@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from database import db
 from models.users import UserRegister, UserLogin
 from passlib.context import CryptContext
@@ -14,6 +14,10 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 @router.post("/register")
 def register(user: UserRegister):
+    existing_user = db.users.find_one({"email": user.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     hashed_password = pwd_context.hash(user.password)
 
     new_user = {
@@ -33,9 +37,17 @@ def login(user: UserLogin):
     found = db.users.find_one({"email": user.email})
     
     if not found:
-        return {"message": "Invalid email"}
+        raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    if pwd_context.verify(user.password, found["password"]):
+    stored_password = found.get("password")
+
+    if not stored_password:
+        raise HTTPException(
+            status_code=400,
+            detail="This account was created with Google login. Set a password first to sign in with email and password."
+        )
+
+    if pwd_context.verify(user.password, stored_password):
 
         token = create_access_token({
             "email": found.get("email"),
@@ -52,7 +64,7 @@ def login(user: UserLogin):
             "role": found.get("role")
         }
 
-    return {"message": "Invalid password"}
+    raise HTTPException(status_code=401, detail="Invalid email or password")
 
 
 @router.get("/users")

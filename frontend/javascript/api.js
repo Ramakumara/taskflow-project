@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8000";
+const BASE_URL = window.location.origin;
 
 async function handleLogin() {
     const email = document.getElementById("email").value;
@@ -12,9 +12,16 @@ async function handleLogin() {
             body: JSON.stringify({ email, password })
         });
 
-        const data = await res.json();
+        const raw = await res.text();
+        let data = {};
 
-        if (data.message === "Login success") {
+        try {
+            data = raw ? JSON.parse(raw) : {};
+        } catch {
+            data = { detail: raw };
+        }
+
+        if (res.ok && data.message === "Login success") {
             localStorage.setItem("token", data.access_token);
             localStorage.setItem("username", data.username || "");
             localStorage.setItem("email", data.email || email);
@@ -25,13 +32,13 @@ async function handleLogin() {
             } else {
                 window.location.href = "/dashboard-page";
             }
-        } else {
-            alert(data.message);
-        }
+            } else {
+                alert(data.message || data.detail || "Login failed");
+            }
 
     } catch (err) {
         console.error(err);
-        alert("Something went wrong");
+        alert(err?.message || "Something went wrong");
     }
 }
 
@@ -47,13 +54,20 @@ async function handleRegister() {
         body: JSON.stringify({ username, email, password, role })
     });
 
-    const data = await res.json();
+    const raw = await res.text();
+    let data = {};
 
-    if (data.message === "User registered") {
+    try {
+        data = raw ? JSON.parse(raw) : {};
+    } catch {
+        data = { detail: raw };
+    }
+
+    if (res.ok && data.message === "User registered") {
         alert("Registration successful");
         window.location.href = "/";
     } else {
-        alert("Error registering");
+        alert(data.message || data.detail || "Error registering");
     }
 }
 
