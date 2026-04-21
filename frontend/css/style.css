@@ -657,14 +657,6 @@ tr:nth-child(even) {
     background: white;
 }
 
-.profile-page {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-
-
 @media (max-width: 900px) {
     .analytics-grid {
         flex-direction: column;
