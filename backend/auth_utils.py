@@ -5,6 +5,7 @@ from fastapi import Header, HTTPException
 from passlib.context import CryptContext
 from database import db
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+import re
 
 router = APIRouter()
 
@@ -23,6 +24,14 @@ conf = ConnectionConfig(
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def validate_password(password:str):
+    pattern = r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).{8,}$"
+
+    if not re.match(pattern, password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 character,\ninclude at least 1 number,\ninclude at least1 letter, \ninclude at least 1 symbol"
+        )
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -102,6 +111,7 @@ def reset_password(token: str, data: dict):
     if pwd_context.verify(new_password, user["password"]):
         return {"message": "New password cannot be same as old password"}
 
+    validate_password(new_password)
     hashed_password = pwd_context.hash(new_password)
 
     db.users.update_one(

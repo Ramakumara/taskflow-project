@@ -29,7 +29,7 @@ function resetPassword() {
     })
     .then(res => res.json())
     .then(data => {
-        alert(data.message);
+        alert(data.detail || data.message);
 
         if (data.message === "Password updated successfully") {
             window.location.href = "/";

@@ -51,5 +51,5 @@ async def auth_google(request: Request):
         )
 
     except Exception as e:
-        print("🔥 ERROR:", str(e))
+        print(" ERROR:", str(e))
         return {"error": str(e)}

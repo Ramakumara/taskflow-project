@@ -6,11 +6,20 @@ from auth_utils import create_access_token
 from fastapi import Depends
 from auth_utils import get_current_user
 from jose import JWTError, jwt
+import re
 
 router = APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def validate_password(password:str):
+    pattern = r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).{8,}$"
+
+    if not re.match(pattern, password):
+        raise HTTPException(
+            status_code=400,
+            detail="Password must be at least 8 character,\ninclude at least 1 number,\ninclude at least1 letter, \ninclude at least 1 symbol"
+        )
 
 @router.post("/register")
 def register(user: UserRegister):
@@ -18,6 +27,7 @@ def register(user: UserRegister):
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    validate_password(user.password)
     hashed_password = pwd_context.hash(user.password)
 
     new_user = {
