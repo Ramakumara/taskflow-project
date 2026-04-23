@@ -172,7 +172,7 @@
                                 <tr>
                                     <th>Task</th>
                                     <th>Project</th>
-                                    <th>Assigned To</th>
+                                    <th >Assigned To</th>                                    
                                     <th>Status</th>
                                     <th>Due Date</th>
                                     <th>action</th>
@@ -292,7 +292,7 @@
                                         <th><input type="checkbox" aria-label="Select all"></th>
                                         <th>Name <i class="fas fa-sort"></i></th>
                                         <th>Owner</th>
-                                        <th>Assigned To</th>
+                                        <th id="assigned-header">Assigned To</th>
                                         <th>Size</th>
                                         <th>Last Modified</th>
                                         <th>Actions</th>
@@ -956,6 +956,11 @@ function renderFiles() {
 
     tbody.innerHTML = "";
     const role = localStorage.getItem("role");
+
+    const header = document.getElementById("assigned-header");
+    if (header) {
+        header.style.display = role === "user" ? "none" : "";
+    }
     const currentEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
     pageItems.forEach(file => {
         const row = document.createElement("tr");
@@ -979,9 +984,13 @@ function renderFiles() {
             <td><input type="checkbox" aria-label="Select ${file.name}"></td>
             <td><span class="file-icon ${getFileIconClass(file)}"><i class="${getFileIcon(file)}"></i></span>${file.name}</td>
             <td>${file.owner_name || file.owner_email || localStorage.getItem("username") || "Unknown"}</td>
+
+            ${role !== "user" ? `
             <td>
-                ${canAssign ? renderAssignedControl(file) : `<span class="assigned-pill">${assignedLabel}</span>`}
+                 ${renderAssignedControl(file)}
             </td>
+            ` : ""}
+           
             <td>${file.size_label || formatSize(file.size)}</td>
             <td>${formatDateTime(file.uploaded_at)}</td>
             <td>${actionButtons.length ? actionButtons.join(" ") : `<span class="file-lock"><i class="fas fa-lock"></i></span>`}</td>
