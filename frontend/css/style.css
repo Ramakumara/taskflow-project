@@ -2759,7 +2759,7 @@ select option[value="done"] {
 .files-table-card {
     min-width: 0;
     padding: 0;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .files-table {
@@ -2922,8 +2922,8 @@ select option[value="done"] {
 }
 
 .inline-assign-menu {
-    position: absolute;
-    top: calc(100% + 4px);
+    position: fixed;
+    top: 0;
     left: 0;
     width: 100%;
     min-width: 220px;
@@ -2935,7 +2935,7 @@ select option[value="done"] {
     border-radius: 18px;
     box-shadow: 0 26px 60px rgba(12, 18, 32, 0.18);
     padding: 14px;
-    z-index: 999;
+    z-index: 10000;
 }
 
 .inline-assign-search input {

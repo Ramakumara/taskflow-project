@@ -1133,7 +1133,8 @@ window.addEventListener("click", function(event) {
 
     const assignMenus = document.querySelectorAll(".inline-assign-menu");
     assignMenus.forEach(menu => {
-        const button = menu.previousElementSibling;
+        const key = menu.id?.replace(/^assign-menu-/, "");
+        const button = key ? document.querySelector(`[data-assign-key="${key}"]`) : null;
         if (menu && !menu.classList.contains("hidden") && !menu.contains(target) && !button?.contains(target)) {
             menu.classList.add("hidden");
         }
@@ -1199,7 +1200,7 @@ function renderAssignedControl(file) {
 
     return `
         <div class="inline-assign">
-            <button class="assign-btn" type="button" onclick="toggleInlineAssign('${key}')">
+            <button class="assign-btn" type="button" data-assign-key="${key}" onclick="toggleInlineAssign('${key}')">
                 <span>${assignedLabel}</span>
                 <i class="fas fa-chevron-down assign-caret"></i>
             </button>
@@ -1263,25 +1264,57 @@ async function loadAssignableUsers() {
     assignableUsersLoaded = true;
 }
 
+function positionInlineAssignMenu(button, menu) {
+    const rect = button.getBoundingClientRect();
+    const menuWidth = Math.min(Math.max(rect.width, 220), 320);
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const menuHeight = parseInt(getComputedStyle(menu).maxHeight, 10) || 340;
+
+    menu.style.width = `${menuWidth}px`;
+    menu.style.left = `${Math.min(Math.max(rect.left, 12), viewportWidth - menuWidth - 12)}px`;
+
+    const openBelowTop = rect.bottom + 8;
+    const openAboveTop = rect.top - menuHeight - 8;
+    menu.style.top = `${(viewportHeight - openBelowTop < menuHeight && openAboveTop > 12 ? openAboveTop : openBelowTop)}px`;
+}
+
 function toggleInlineAssign(key) {
     const menu = document.getElementById(`assign-menu-${key}`);
+    const button = document.querySelector(`[data-assign-key="${key}"]`);
+    if (!menu || !button) return;
 
     const isOpen = !menu.classList.contains("hidden");
 
-    // Close all first
     document.querySelectorAll(".inline-assign-menu").forEach(m => {
         m.classList.add("hidden");
     });
 
-    // Open only if it was closed
     if (!isOpen) {
+        if (menu.parentNode !== document.body) {
+            menu.__originalParent = menu.parentNode;
+            menu.__originalNextSibling = menu.nextSibling;
+            document.body.appendChild(menu);
+        }
         menu.classList.remove("hidden");
+        positionInlineAssignMenu(button, menu);
     }
 }
 
 function closeInlineAssign(key) {
     const menu = document.getElementById(`assign-menu-${key}`);
-    if (menu) menu.classList.add("hidden");
+    if (!menu) return;
+
+    menu.classList.add("hidden");
+
+    if (menu.__originalParent) {
+        const parent = menu.__originalParent;
+        const nextSibling = menu.__originalNextSibling;
+        if (parent && parent.insertBefore) {
+            parent.insertBefore(menu, nextSibling);
+        }
+    }
+
     if (inlineAssignTarget === key) inlineAssignTarget = "";
 }
 
@@ -1322,6 +1355,7 @@ async function saveInlineAssign(key) {
     });
 
     if (res.ok) {
+        closeInlineAssign(key);
         loadFiles();
     } else {
         alert("Error assigning users");
