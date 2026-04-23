@@ -2890,11 +2890,7 @@ select option[value="done"] {
 
 
 .inline-assign {
-    position: relative;
-    display: inline-block;
-    width: fit-content;
-    min-width: 190px;
-    z-index: 999;
+    position: relative;   /* 🔥 important */
 }
 
 .assign-btn {
@@ -2922,20 +2918,14 @@ select option[value="done"] {
 }
 
 .inline-assign-menu {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    min-width: 220px;
-    max-width: 320px;
-    max-height: 340px;
+    max-height: 260px;   /* 🔥 important */
     overflow: hidden;
     background: #fff;
-    border: 1px solid #e5ebf4;
-    border-radius: 18px;
-    box-shadow: 0 26px 60px rgba(12, 18, 32, 0.18);
-    padding: 14px;
-    z-index: 10000;
+    z-index: 9999;
+}
+
+.files-table-card {
+    overflow: visible !important;
 }
 
 .inline-assign-search input {
@@ -2953,7 +2943,8 @@ select option[value="done"] {
 }
 
 .inline-assign-search {
-    margin-bottom: 12px;
+    padding: 10px;
+    border-bottom: 1px solid #eee;
 }
 
 .inline-assign-options {
@@ -2967,27 +2958,16 @@ select option[value="done"] {
 }
 
 .assign-list {
-    max-height: 240px;
+    max-height: 140px;
     overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-top: 10px;
-    padding-right: 4px;
 }
 
 .assign-option {
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 10px;
-    padding: 10px 12px;
-    border-radius: 12px;
+    padding: 6px 4px;
     cursor: pointer;
-    border: 1px solid transparent;
-    transition: background 0.2s ease, border-color 0.2s ease;
-    min-width: 100%;
-    box-sizing: border-box;
 }
 
 .assign-option:hover {
@@ -3009,9 +2989,12 @@ select option[value="done"] {
 
 .inline-assign-actions {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 12px;
+    justify-content: space-between;
+    padding: 10px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    position: sticky;
+    bottom: 0;
 }
 
 .inline-assign-actions button {
@@ -3031,7 +3014,10 @@ select option[value="done"] {
 
 .assign-save {
     background: #2f7bff;
-    color: #fff;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
 }
 
 .assign-cancel:hover,
@@ -3065,6 +3051,9 @@ select option[value="done"] {
     flex: 1;
 }
 
+.files-table tr {
+    background: white;
+}
 .pagination {
     gap: 14px;
     flex-wrap: nowrap;
@@ -3202,9 +3191,11 @@ select option[value="done"] {
     padding: 0 16px;
 }
 
-.assign-cancel {
-    background: #f1f4f9;
-    color: #24324b;
+.assign-cancel { 
+    background: #eee;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
 }
 
 .assign-save {

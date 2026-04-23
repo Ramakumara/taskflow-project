@@ -1196,36 +1196,41 @@ async function assignFileToUser(filename, email) {
 function renderAssignedControl(file) {
     const key = encodeURIComponent(file.name);
     const selected = Array.isArray(file.shared_with) ? file.shared_with : [];
-    const assignedLabel = selected.length ? `${selected.length} user${selected.length === 1 ? "" : "s"}` : "Unassigned";
+
+    const assignedLabel = selected.length
+        ? `${selected.length} user${selected.length === 1 ? "" : "s"}`
+        : "Unassigned";
 
     return `
         <div class="inline-assign">
-            <button class="assign-btn" type="button" data-assign-key="${key}" onclick="toggleInlineAssign('${key}')">
-                <span>${assignedLabel}</span>
-                <i class="fas fa-chevron-down assign-caret"></i>
+            <button class="assign-btn"
+                data-assign-key="${key}"
+                onclick="toggleInlineAssign('${key}', event)">
+                ${assignedLabel}
+                <i class="fas fa-chevron-down"></i>
             </button>
 
             <div id="assign-menu-${key}" class="inline-assign-menu hidden">
-                <div class="inline-assign-search">
-                    <input type="text" placeholder="Search user..."
-                        oninput="filterInlineAssign('${key}', this.value)">
-                </div>
+                
+                <input type="text" placeholder="Search user..."
+                    oninput="filterInlineAssign('${key}', this.value)">
 
                 <div class="assign-list">
-                    ${assignableUsers.length ? assignableUsers.map(user => `
+                    ${assignableUsers.map(user => `
                         <label class="assign-option">
-                            <input type="checkbox" value="${user.email}"
-                                ${selected.includes(user.email) ? "checked" : ""}
-                                onchange="syncInlineAssign('${key}')">
-                            <span>${user.email}</span>
+                            <input type="checkbox"
+                                value="${user.email}"
+                                ${selected.includes(user.email) ? "checked" : ""}>
+                            ${user.email}
                         </label>
-                    `).join("") : `<div class="assign-empty">No users available</div>`}
+                    `).join("")}
                 </div>
 
                 <div class="inline-assign-actions">
-                    <button type="button" class="assign-cancel" onclick="closeInlineAssign('${key}')">Cancel</button>
-                    <button type="button" class="assign-save" onclick="saveInlineAssign('${key}')">Save</button>
+                    <button onclick="closeInlineAssign('${key}')">Cancel</button>
+                    <button onclick="saveInlineAssign('${key}')">Save</button>
                 </div>
+
             </div>
         </div>
     `;
@@ -1266,38 +1271,26 @@ async function loadAssignableUsers() {
 
 function positionInlineAssignMenu(button, menu) {
     const rect = button.getBoundingClientRect();
-    const menuWidth = Math.min(Math.max(rect.width, 220), 320);
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const menuHeight = parseInt(getComputedStyle(menu).maxHeight, 10) || 340;
 
-    menu.style.width = `${menuWidth}px`;
-    menu.style.left = `${Math.min(Math.max(rect.left, 12), viewportWidth - menuWidth - 12)}px`;
-
-    const openBelowTop = rect.bottom + 8;
-    const openAboveTop = rect.top - menuHeight - 8;
-    menu.style.top = `${(viewportHeight - openBelowTop < menuHeight && openAboveTop > 12 ? openAboveTop : openBelowTop)}px`;
+    menu.style.position = "fixed";
+    menu.style.top = (rect.bottom + 6) + "px";
+    menu.style.left = rect.left + "px";
+    menu.style.width = rect.width + "px";
 }
 
 function toggleInlineAssign(key) {
     const menu = document.getElementById(`assign-menu-${key}`);
-    const button = document.querySelector(`[data-assign-key="${key}"]`);
-    if (!menu || !button) return;
+    if (!menu) return;
 
     const isOpen = !menu.classList.contains("hidden");
 
+    // close all
     document.querySelectorAll(".inline-assign-menu").forEach(m => {
         m.classList.add("hidden");
     });
 
     if (!isOpen) {
-        if (menu.parentNode !== document.body) {
-            menu.__originalParent = menu.parentNode;
-            menu.__originalNextSibling = menu.nextSibling;
-            document.body.appendChild(menu);
-        }
         menu.classList.remove("hidden");
-        positionInlineAssignMenu(button, menu);
     }
 }
 
