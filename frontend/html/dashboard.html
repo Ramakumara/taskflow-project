@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -22,24 +22,28 @@
                 <span>Dashboard</span>
             </button>
             <button class="menu-item active" type="button" data-sidebar="overview" onclick="setProjectTab('overview')">
-                <i class="far fa-folder menu-icon"></i>
+                <i class="fas fa-folder-open menu-icon"></i>
                 <span>Projects</span>
             </button>
             <button class="menu-item" type="button" data-sidebar="tasks" onclick="setProjectTab('tasks')">
-                <i class="far fa-square-check menu-icon"></i>
-                <span>My Tasks</span>
+                <i class="fas fa-square-check menu-icon"></i>
+                <span>Tasks</span>
             </button>
             <button class="menu-item" type="button" data-sidebar="team" onclick="setProjectTab('team')">
                 <i class="fas fa-users menu-icon"></i>
-                <span>My Team</span>
+                <span>Users</span>
             </button>
             <button class="menu-item" type="button" data-sidebar="activity" onclick="setProjectTab('activity')">
-                <i class="far fa-calendar menu-icon"></i>
+                <i class="fas fa-chart-column menu-icon"></i>
                 <span>Calendar</span>
             </button>
             <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
                 <i class="far fa-folder-open menu-icon"></i>
                 <span>Files</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="settings" onclick="goToSettings()">
+                <i class="fas fa-gear menu-icon"></i>
+                <span>Settings</span>
             </button>
         </nav>
     </aside>
@@ -217,14 +221,93 @@
             </div>
 
             <div id="files-view" class="hidden">
-                <section class="dashboard-section">
-                    <div class="section-head">
+                <section class="files-page">
+                    <div class="files-top-row">
                         <div>
-                            <h3>Files</h3>
+                            <h1 class="files-title">Files</h1>
+                            <p class="files-subtitle">Store, manage and share your files efficiently.</p>
+                        </div>
+                        <div class="files-actions">
+                            <button class="files-action-btn primary" type="button" onclick="document.getElementById('file-input').click()">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload File</span>
+                            </button>
+                            <input id="file-input" type="file" class="hidden" multiple onchange="handleFileUpload(event)">
                         </div>
                     </div>
-                    <div id="files-list" class="files-grid">
-                        <p>Files section - coming soon</p>
+
+                    <div class="files-toolbar">
+                        <div class="files-tabs">
+                            <button class="files-tab active" type="button" data-files-tab="all" onclick="setFilesTab('all')"><i class="fas fa-folder"></i>All Files</button>
+                            <button class="files-tab" type="button" data-files-tab="my" onclick="setFilesTab('my')"><i class="fas fa-user"></i>My Files</button>
+                            <button class="files-tab" type="button" data-files-tab="shared" onclick="setFilesTab('shared')"><i class="fas fa-users"></i>Shared with Me</button>
+                        </div>
+                        <div class="files-toolbar-right">
+                            <div class="files-category-dropdown">
+                                <button class="category-dropdown-btn" type="button" onclick="toggleCategoryDropdown()">
+                                    Categories: <span id="selected-category-label">All Files</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="category-dropdown-menu hidden" id="files-category-dropdown-menu">
+                                    <div id="category-list" class="category-list">
+                                        <button class="category-item active" type="button" data-category="all" onclick="setFilesCategory('all')"><span><i class="fas fa-folder-open"></i>All Files</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="documents" onclick="setFilesCategory('documents')"><span><i class="far fa-file-lines"></i>Documents</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="images" onclick="setFilesCategory('images')"><span><i class="far fa-image"></i>Images</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="videos" onclick="setFilesCategory('videos')"><span><i class="far fa-circle-play"></i>Videos</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="archives" onclick="setFilesCategory('archives')"><span><i class="far fa-archive"></i>Archives</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="others" onclick="setFilesCategory('others')"><span><i class="far fa-folder"></i>Others</span><strong>0</strong></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="files-storage-dropdown">
+                                <button class="storage-dropdown-btn" type="button" onclick="toggleStorageDropdown()">
+                                    Storage Usage
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="storage-dropdown-menu hidden" id="storage-dropdown-menu">
+                                    <div class="storage-summary-dropdown-card">
+                                        <h3>Storage Usage</h3>
+                                        <p class="storage-copy" id="storage-copy">Loading storage...</p>
+                                        <div class="storage-meter">
+                                            <div class="storage-meter-fill" id="storage-meter-fill"></div>
+                                        </div>
+                                        <div class="storage-row">
+                                            <span id="storage-percent">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="files-sort" type="button" onclick="toggleFilesSort()">
+                                <span>Sort by: Name (A-Z)</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="files-content-grid">
+                        <section class="files-table-card">
+                            <table class="files-table">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" aria-label="Select all"></th>
+                                        <th>Name <i class="fas fa-sort"></i></th>
+                                        <th>Owner</th>
+                                        <th>Assigned To</th>
+                                        <th>Size</th>
+                                        <th>Last Modified</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="files-table-body">
+                                    <tr><td colspan="7" class="empty-table">Loading files...</td></tr>
+                                </tbody>
+                            </table>
+
+                            <div class="files-table-footer">
+                                <p id="files-footer-copy">Showing 0 files</p>
+                                <div class="pagination" id="files-pagination"></div>
+                            </div>
+                        </section>
                     </div>
                 </section>
             </div>
@@ -283,8 +366,13 @@ if (token) {
 }
 
 // THEN: call APIs
-loadProjects();
-getUser();
+(async () => {
+    loadProjects();
+    getUser();
+    setProjectTab('files');
+    await loadAssignableUsers();
+    await loadFiles();
+})();
 </script>
 <script>
     
@@ -349,6 +437,7 @@ function setProjectTab(tab) {
         case 'files':
             setActiveMenu('files');
             showView('files-view');
+            loadFiles();
             break;
     }
 }
@@ -359,6 +448,18 @@ function goBack() {
 }
 
 let activeTaskId = null;
+let filesCache = [];
+let filesTab = "all";
+let filesCategory = "all";
+let filesSort = "name-asc";
+let filesLayout = "grid";
+let filesPage = 1;
+const filesPageSize = 10;
+let assignableUsers = [];
+let inlineAssignState = {};
+let inlineAssignTarget = "";
+let teamMemberCache = [];
+let allUsersCache = [];
 
 // Load all tasks for user
 async function loadAllTasks() {
@@ -451,10 +552,13 @@ async function loadTeamMembers() {
                 .map(task => String(task.assigned_to).trim().toLowerCase())
         );
 
+        allUsersCache = Array.isArray(users) ? users.slice() : [];
+
         const teamMembers = users.filter(user => {
             const userEmail = String(user.email || "").trim().toLowerCase();
             return userEmail && userEmail !== String(email).trim().toLowerCase() && assignedEmails.has(userEmail);
         });
+        teamMemberCache = teamMembers.slice();
 
         if (teamMembers.length === 0) {
             teamList.innerHTML = "<p>No members have been assigned tasks yet</p>";
@@ -764,8 +868,591 @@ function showProjectWorkspace() {
     document.getElementById('project-workspace-view').classList.remove('hidden');
 }
 
+async function loadFiles() {
+    const token = localStorage.getItem("token");
+    const tbody = document.getElementById("files-table-body");
+    const footer = document.getElementById("files-footer-copy");
+    const storageCopy = document.getElementById("storage-copy");
+    const storagePercent = document.getElementById("storage-percent");
+    const storageFill = document.getElementById("storage-meter-fill");
+
+    if (!tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-table">Loading files...</td></tr>`;
+
+    try {
+        if (!Array.isArray(assignableUsers) || !assignableUsers.length) {
+            await loadAssignableUsers();
+        }
+
+        const res = await fetch(`${BASE_URL}/files`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        const files = await res.json();
+        filesCache = Array.isArray(files) ? files : [];
+        const totalBytes = filesCache.reduce((sum, file) => sum + (Number(file.size) || 0), 0);
+        const percent = Math.min(100, Math.round((totalBytes / (100 * 1024 * 1024 * 1024)) * 100));
+
+        if (storageCopy) storageCopy.textContent = `${formatSize(totalBytes)} used of 100 GB`;
+        if (storagePercent) storagePercent.textContent = `${percent}%`;
+        if (storageFill) storageFill.style.width = `${Math.max(percent, 2)}%`;
+        renderFiles();
+    } catch (error) {
+        console.error(error);
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-table">Unable to load files</td></tr>`;
+    }
+}
+
+function renderFiles() {
+    const tbody = document.getElementById("files-table-body");
+    const footer = document.getElementById("files-footer-copy");
+    if (!tbody) return;
+
+    let items = [...filesCache];
+
+    updateCategoryCounts();
+
+    if (filesTab === "my") {
+        const email = (localStorage.getItem("email") || "").trim().toLowerCase();
+        items = items.filter(file => String(file.owner_email || file.owner || "").trim().toLowerCase() === email);
+    } else if (filesTab === "shared") {
+        const email = (localStorage.getItem("email") || "").trim().toLowerCase();
+        items = items.filter(file => {
+            const sharedWith = Array.isArray(file.shared_with) ? file.shared_with : [];
+            return sharedWith.some(value => String(value || "").trim().toLowerCase() === email);
+        });
+    }
+
+    if (filesCategory !== "all") {
+        items = items.filter(file => getFileCategory(file) === filesCategory);
+    }
+
+    if (filesSort === "name-desc") {
+        items.sort((a, b) => String(b.name || "").localeCompare(String(a.name || "")));
+    } else if (filesSort === "date-desc") {
+        items.sort((a, b) => new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0));
+    } else {
+        items.sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    }
+
+    const total = items.length;
+    const totalPages = Math.max(1, Math.ceil(total / filesPageSize));
+    filesPage = Math.min(filesPage, totalPages);
+    const start = (filesPage - 1) * filesPageSize;
+    const pageItems = items.slice(start, start + filesPageSize);
+
+    if (footer) {
+        const startItem = total === 0 ? 0 : start + 1;
+        const endItem = Math.min(start + pageItems.length, total);
+        footer.textContent = total
+            ? `Showing ${startItem} to ${endItem} of ${total} files`
+            : `Showing 0 files`;
+    }
+
+    if (!pageItems.length) {
+        tbody.innerHTML = `<tr><td colspan="7" class="empty-table">No files uploaded yet</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = "";
+    const role = localStorage.getItem("role");
+    const currentEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
+    pageItems.forEach(file => {
+        const row = document.createElement("tr");
+        const fileOwnerEmail = String(file.owner_email || "").trim().toLowerCase();
+        const sharedWith = Array.isArray(file.shared_with) ? file.shared_with : [];
+        const canDelete = role === "admin" || role === "manager" || fileOwnerEmail === currentEmail;
+        const canDownload = role === "admin" || role === "manager" || fileOwnerEmail === currentEmail || sharedWith.some(value => String(value || "").trim().toLowerCase() === currentEmail);
+        const canAssign = role === "admin" || role === "manager";
+        const assignedTo = sharedWith;
+        const assignedLabel = assignedTo.length ? `${assignedTo.length} user${assignedTo.length === 1 ? "" : "s"}` : "Unassigned";
+        const actionButtons = [];
+
+        if (canDownload) {
+            actionButtons.push(`<button class="action-btn" type="button" onclick="downloadFile('${encodeURIComponent(file.name)}')"><i class="fas fa-download"></i></button>`);
+        }
+        if (canDelete) {
+            actionButtons.push(`<button class="action-btn" type="button" onclick="deleteFile('${encodeURIComponent(file.name)}')"><i class="fas fa-trash"></i></button>`);
+        }
+
+        row.innerHTML = `
+            <td><input type="checkbox" aria-label="Select ${file.name}"></td>
+            <td><span class="file-icon ${getFileIconClass(file)}"><i class="${getFileIcon(file)}"></i></span>${file.name}</td>
+            <td>${file.owner_name || file.owner_email || localStorage.getItem("username") || "Unknown"}</td>
+            <td>
+                ${canAssign ? renderAssignedControl(file) : `<span class="assigned-pill">${assignedLabel}</span>`}
+            </td>
+            <td>${file.size_label || formatSize(file.size)}</td>
+            <td>${formatDateTime(file.uploaded_at)}</td>
+            <td>${actionButtons.length ? actionButtons.join(" ") : `<span class="file-lock"><i class="fas fa-lock"></i></span>`}</td>
+        `;
+        tbody.appendChild(row);
+    });
+
+    updatePagination(totalPages);
+}
+
+function updateCategoryCounts() {
+    const counts = {
+        all: filesCache.length,
+        documents: 0,
+        images: 0,
+        videos: 0,
+        archives: 0,
+        others: 0
+    };
+
+    filesCache.forEach(file => {
+        counts[getFileCategory(file)] += 1;
+    });
+
+    document.querySelectorAll("#category-list .category-item").forEach(item => {
+        const category = item.dataset.category;
+        const count = item.querySelector("strong");
+        if (count) {
+            count.textContent = String(counts[category] || 0);
+        }
+        item.classList.toggle("active", category === filesCategory);
+        item.style.color = category === filesCategory ? "#2f7bff" : "#2f3a52";
+    });
+}
+
+function updatePagination(totalPages) {
+    const pagination = document.getElementById("files-pagination");
+    if (!pagination) return;
+
+    const buttons = [];
+    const addPageButton = (label, page, active = false, disabled = false) => {
+        buttons.push(`
+            <button type="button" class="page-btn${active ? " active" : ""}${disabled ? " dots" : ""}" ${disabled ? "disabled" : ""} ${page ? `data-page="${page}" onclick="setFilesPage(${page})"` : ""}>${label}</button>
+        `);
+    };
+
+    pagination.innerHTML = "";
+    addPageButton('<i class="fas fa-chevron-left"></i>', Math.max(1, filesPage - 1), false, filesPage <= 1);
+
+    if (totalPages <= 5) {
+        for (let page = 1; page <= totalPages; page++) {
+            addPageButton(String(page), page, page === filesPage);
+        }
+    } else {
+        const pages = new Set([1, totalPages, filesPage, filesPage - 1, filesPage + 1]);
+        const ordered = Array.from(pages)
+            .filter(page => page >= 1 && page <= totalPages)
+            .sort((a, b) => a - b);
+
+        let last = 0;
+        ordered.forEach(page => {
+            if (page - last > 1) {
+                buttons.push('<button type="button" class="page-btn dots" disabled>...</button>');
+            }
+            addPageButton(String(page), page, page === filesPage);
+            last = page;
+        });
+    }
+
+    addPageButton('<i class="fas fa-chevron-right"></i>', Math.min(totalPages, filesPage + 1), false, filesPage >= totalPages);
+    pagination.innerHTML = buttons.join("");
+}
+
+function setFilesTab(tab) {
+    filesTab = tab;
+    filesPage = 1;
+
+    document.querySelectorAll(".files-tab").forEach(btn => btn.classList.remove("active"));
+    const active = document.querySelector(`.files-tab[data-files-tab="${tab}"]`);
+    if (active) active.classList.add("active");
+
+    renderFiles();
+}
+
+function setFilesCategory(category) {
+    filesCategory = category;
+    filesPage = 1;
+
+    const labelMap = {
+        all: "All Files",
+        documents: "Documents",
+        images: "Images",
+        videos: "Videos",
+        archives: "Archives",
+        others: "Others"
+    };
+
+    const label = labelMap[category] || category;
+    const labelEl = document.getElementById("selected-category-label");
+    if (labelEl) labelEl.textContent = label;
+
+    closeCategoryDropdown();
+    renderFiles();
+}
+
+function toggleCategoryDropdown() {
+    const menu = document.getElementById("files-category-dropdown-menu");
+    if (menu) menu.classList.toggle("hidden");
+}
+
+function closeCategoryDropdown() {
+    const menu = document.getElementById("files-category-dropdown-menu");
+    if (menu && !menu.classList.contains("hidden")) {
+        menu.classList.add("hidden");
+    }
+}
+
+function toggleStorageDropdown() {
+    const menu = document.getElementById("storage-dropdown-menu");
+    if (!menu) return;
+    const categoryMenu = document.getElementById("files-category-dropdown-menu");
+    if (categoryMenu && !categoryMenu.classList.contains("hidden")) {
+        categoryMenu.classList.add("hidden");
+    }
+    menu.classList.toggle("hidden");
+}
+
+function closeStorageDropdown() {
+    const menu = document.getElementById("storage-dropdown-menu");
+    if (menu && !menu.classList.contains("hidden")) {
+        menu.classList.add("hidden");
+    }
+}
+
+window.addEventListener("click", function(event) {
+    const target = event.target;
+
+    const categoryMenu = document.getElementById("files-category-dropdown-menu");
+    const categoryButton = document.querySelector(".category-dropdown-btn");
+    if (categoryMenu && categoryButton && !categoryMenu.classList.contains("hidden") && !categoryMenu.contains(target) && !categoryButton.contains(target)) {
+        categoryMenu.classList.add("hidden");
+    }
+
+    const storageMenu = document.getElementById("storage-dropdown-menu");
+    const storageButton = document.querySelector(".storage-dropdown-btn");
+    if (storageMenu && storageButton && !storageMenu.classList.contains("hidden") && !storageMenu.contains(target) && !storageButton.contains(target)) {
+        storageMenu.classList.add("hidden");
+    }
+
+    const assignMenus = document.querySelectorAll(".inline-assign-menu");
+    assignMenus.forEach(menu => {
+        const button = menu.previousElementSibling;
+        if (menu && !menu.classList.contains("hidden") && !menu.contains(target) && !button?.contains(target)) {
+            menu.classList.add("hidden");
+        }
+    });
+});
+
+function toggleFilesSort() {
+    filesSort = filesSort === "name-asc" ? "name-desc" : filesSort === "name-desc" ? "date-desc" : "name-asc";
+    const label = document.querySelector(".files-sort span");
+    if (label) {
+        label.textContent = filesSort === "name-asc" ? "Sort by: Name (A-Z)" : filesSort === "name-desc" ? "Sort by: Name (Z-A)" : "Sort by: Date (Newest)";
+    }
+    renderFiles();
+}
+
+function setFilesLayout(layout) {
+    filesLayout = layout;
+    document.querySelectorAll(".files-icon-btn").forEach(btn => btn.classList.remove("active"));
+    const buttons = Array.from(document.querySelectorAll(".files-icon-btn"));
+    if (layout === "list" && buttons[0]) buttons[0].classList.add("active");
+    if (layout === "grid" && buttons[1]) buttons[1].classList.add("active");
+}
+
+function setFilesPage(page) {
+    filesPage = page;
+    renderFiles();
+}
+
+function changeFilesPage(delta) {
+    const totalPages = Math.max(1, Math.ceil(filesCache.length / filesPageSize));
+    filesPage = Math.min(totalPages, Math.max(1, filesPage + delta));
+    renderFiles();
+}
+
+function createFolder() {
+    alert("Folder creation is not connected yet.");
+}
+
+async function assignFileToUser(filename, email) {
+    const target = email === "__unassigned__" ? [] : [email];
+    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(filename)}/share`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem("token")
+        },
+        body: JSON.stringify({ shared_with: target })
+    });
+
+    if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.detail || data.message || "Could not assign file");
+        return;
+    }
+
+    await loadFiles();
+}
+
+function renderAssignedControl(file) {
+    const key = encodeURIComponent(file.name);
+    const selected = Array.isArray(file.shared_with) ? file.shared_with : [];
+    const assignedLabel = selected.length ? `${selected.length} user${selected.length === 1 ? "" : "s"}` : "Unassigned";
+
+    return `
+        <div class="inline-assign">
+            <button class="assign-btn" type="button" onclick="toggleInlineAssign('${key}')">
+                <span>${assignedLabel}</span>
+                <i class="fas fa-chevron-down assign-caret"></i>
+            </button>
+
+            <div id="assign-menu-${key}" class="inline-assign-menu hidden">
+                <div class="inline-assign-search">
+                    <input type="text" placeholder="Search user..."
+                        oninput="filterInlineAssign('${key}', this.value)">
+                </div>
+
+                <div class="assign-list">
+                    ${assignableUsers.length ? assignableUsers.map(user => `
+                        <label class="assign-option">
+                            <input type="checkbox" value="${user.email}"
+                                ${selected.includes(user.email) ? "checked" : ""}
+                                onchange="syncInlineAssign('${key}')">
+                            <span>${user.email}</span>
+                        </label>
+                    `).join("") : `<div class="assign-empty">No users available</div>`}
+                </div>
+
+                <div class="inline-assign-actions">
+                    <button type="button" class="assign-cancel" onclick="closeInlineAssign('${key}')">Cancel</button>
+                    <button type="button" class="assign-save" onclick="saveInlineAssign('${key}')">Save</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function loadAssignableUsers() {
+    const token = localStorage.getItem("token");
+    try {
+        if (!Array.isArray(allUsersCache) || !allUsersCache.length) {
+            const usersRes = await fetch(`${BASE_URL}/users`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            allUsersCache = await usersRes.json().catch(() => []);
+        }
+
+        const source = Array.isArray(allUsersCache) ? allUsersCache.slice() : [];
+
+        if (!Array.isArray(source)) {
+            assignableUsers = [];
+            assignableUsersLoaded = true;
+            return;
+        }
+
+        assignableUsers = source
+            .map(user => ({
+                ...user,
+                email: String(user.email || "").trim(),
+                username: String(user.username || user.name || user.email || "").trim(),
+                role: String(user.role || "").toLowerCase()
+            }))
+            .filter(user => user.email && user.role === "user")
+            .sort((a, b) => a.email.localeCompare(b.email));
+    } catch {
+        assignableUsers = Array.isArray(allUsersCache) ? allUsersCache.slice() : [];
+    }
+    assignableUsersLoaded = true;
+}
+
+function toggleInlineAssign(key) {
+    const menu = document.getElementById(`assign-menu-${key}`);
+
+    const isOpen = !menu.classList.contains("hidden");
+
+    // Close all first
+    document.querySelectorAll(".inline-assign-menu").forEach(m => {
+        m.classList.add("hidden");
+    });
+
+    // Open only if it was closed
+    if (!isOpen) {
+        menu.classList.remove("hidden");
+    }
+}
+
+function closeInlineAssign(key) {
+    const menu = document.getElementById(`assign-menu-${key}`);
+    if (menu) menu.classList.add("hidden");
+    if (inlineAssignTarget === key) inlineAssignTarget = "";
+}
+
+function filterInlineAssign(key, value) {
+    const menu = document.getElementById(`assign-menu-${key}`);
+    if (!menu) return;
+    const query = (value || "").trim().toLowerCase();
+    menu.querySelectorAll(".assign-option").forEach(row => {
+        row.style.display = !query || row.textContent.toLowerCase().includes(query) ? "" : "none";
+    });
+}
+
+function syncInlineAssign(key) {
+    const menu = document.getElementById(`assign-menu-${key}`);
+    if (!menu) return;
+    const selectedValues = Array.from(menu.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+    inlineAssignState[key] = selectedValues;
+}
+
+async function saveInlineAssign(key) {
+    const menu = document.getElementById(`assign-menu-${key}`);
+
+    const selectedValues = Array.from(
+        menu.querySelectorAll('input[type="checkbox"]:checked')
+    ).map(cb => cb.value);
+
+    const filename = decodeURIComponent(key);
+
+    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(filename)}/share`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + localStorage.getItem("token")
+        },
+        body: JSON.stringify({
+            shared_with: selectedValues   // 🔥 MULTIPLE USERS
+        })
+    });
+
+    if (res.ok) {
+        loadFiles();
+    } else {
+        alert("Error assigning users");
+    }
+}
+
+function getFileCategory(file) {
+    const ext = (file.extension || "").toLowerCase();
+    if (["doc", "docx", "pdf", "txt", "rtf", "odt"].includes(ext)) return "documents";
+    if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "images";
+    if (["mp4", "mov", "avi", "mkv", "webm"].includes(ext)) return "videos";
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archives";
+    return "others";
+}
+
+async function handleFileUpload(event) {
+    const token = localStorage.getItem("token");
+    const selected = Array.from(event.target.files || []);
+    if (!selected.length) return;
+
+    try {
+        for (const file of selected) {
+            const formData = new FormData();
+            formData.append("file", file);
+            await fetch(`${BASE_URL}/files/upload`, {
+                method: "POST",
+                headers: { "Authorization": "Bearer " + token },
+                body: formData
+            });
+        }
+        event.target.value = "";
+        loadFiles();
+    } catch (error) {
+        console.error(error);
+        alert("Upload failed");
+    }
+}
+
+async function downloadFile(filename) {
+    const token = localStorage.getItem("token");
+    const decoded = decodeURIComponent(filename);
+
+    try {
+        const res = await fetch(`${BASE_URL}/files/download/${encodeURIComponent(decoded)}`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            throw new Error(data.detail || data.message || "Download failed");
+        }
+
+        const blob = await res.blob();
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.href = url;
+        link.download = decoded;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error(error);
+        alert(error.message || "Could not download file");
+    }
+}
+
+async function deleteFile(filename) {
+    const token = localStorage.getItem("token");
+    const decoded = decodeURIComponent(filename);
+    if (!confirm(`Delete ${decoded}?`)) return;
+
+    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(decoded)}`, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+    });
+
+    if (res.ok) {
+        loadFiles();
+    } else {
+        alert("Could not delete file");
+    }
+}
+
+function getFileIconClass(file) {
+    const ext = (file.extension || "").toLowerCase();
+    if (ext === "pdf") return "pdf";
+    if (ext === "doc" || ext === "docx") return "doc";
+    if (ext === "xls" || ext === "xlsx") return "xls";
+    if (ext === "ppt" || ext === "pptx") return "ppt";
+    if (["png", "jpg", "jpeg", "gif"].includes(ext)) return "img";
+    if (["zip", "rar", "7z"].includes(ext)) return "zip";
+    return "folder";
+}
+
+function getFileIcon(file) {
+    const map = {
+        pdf: "fas fa-file-pdf",
+        doc: "fas fa-file-word",
+        xls: "fas fa-file-excel",
+        ppt: "fas fa-file-powerpoint",
+        img: "fas fa-image",
+        zip: "fas fa-file-zipper",
+        folder: "fas fa-folder"
+    };
+    return map[getFileIconClass(file)] || "fas fa-file";
+}
+
+function formatSize(bytes) {
+    const value = Number(bytes) || 0;
+    if (!value) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let size = value;
+    let unitIndex = 0;
+    while (size >= 1024 && unitIndex < units.length - 1) {
+        size /= 1024;
+        unitIndex += 1;
+    }
+    return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function formatDateTime(value) {
+    if (!value) return "—";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "—";
+    return date.toLocaleString("en-US", { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+
 window.addEventListener("load", loadDashboardSummary);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
 </html>
+

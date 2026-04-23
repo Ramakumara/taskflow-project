@@ -39,7 +39,7 @@ app.mount("/static", StaticFiles(directory=os.path.join(os.path.dirname(__file__
 app.include_router(user.router)
 app.include_router(project.router)
 app.include_router(task.router)
-app.include_router(file.router)
+app.include_router(file.router, prefix="/files")
 app.include_router(auth_router)
 app.include_router(google_router)
 
