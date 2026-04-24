@@ -175,7 +175,7 @@
                                     <th >Assigned To</th>                                    
                                     <th>Status</th>
                                     <th>Due Date</th>
-                                    <th>action</th>
+                                    <th id="task-action-header">action</th>
                                 </tr>
                             </thead>
                             <tbody id="all-tasks-list"></tbody>
@@ -500,9 +500,11 @@ async function loadAllTasks() {
                 <td>${t.assigned_to}</td>
                 <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                 <td>${t.deadline || "N/A"}</td>
-                <td>
-                    <button onclick="deleteTask('${t.id}')">Delete</button>
-                </td>
+                ${role === "admin" || role === "manager" ? `
+                    <td>
+                        <button onclick="deleteTask('${t.id}')">Delete</button>
+                    </td>
+                ` : ""}
             `;
             list.appendChild(row);
         });
@@ -510,6 +512,21 @@ async function loadAllTasks() {
         console.error("Failed to load tasks", error);
     }
 }
+
+window.addEventListener("load", () => {
+    const role = localStorage.getItem("role");
+
+    if (role === "user") {
+        // Hide header
+        const header = document.getElementById("task-action-header");
+        if (header) header.style.display = "none";
+
+        // Hide all action column cells
+        document.querySelectorAll("#all-tasks-list td:last-child").forEach(td => {
+            td.style.display = "none";
+        });
+    }
+});
 
 // Load team members
 async function loadTeamMembers() {
@@ -1487,6 +1504,8 @@ function formatDateTime(value) {
 }
 
 window.addEventListener("load", loadDashboardSummary);
+
+
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
