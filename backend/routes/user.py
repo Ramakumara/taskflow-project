@@ -7,10 +7,23 @@ from fastapi import Depends
 from auth_utils import get_current_user
 from jose import JWTError, jwt
 import re
+import requests
 
 router = APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+RECAPTCHA_SECRET = "6Lc9rccsAAAAAFG2z_Pact48pcv13I3sRu6-VDHV"
+
+def verify_recaptcha(token):
+    url = "https://www.google.com/recaptcha/api/siteverify"
+    data = {
+        "secret": RECAPTCHA_SECRET,
+        "response": token
+    }
+    response = requests.post(url, data=data)
+    result = response.json()
+    return result.get("success", False)
 
 def validate_password(password:str):
     pattern = r"^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*#?&]).{8,}$"
@@ -44,6 +57,10 @@ def register(user: UserRegister):
 
 @router.post("/login")
 def login(user: UserLogin):
+
+    if not verify_recaptcha(user.recaptcha_token):
+        raise HTTPException(status_code=400, detail="reCAPTCHA verification failed")
+
     found = db.users.find_one({"email": user.email})
     
     if not found:

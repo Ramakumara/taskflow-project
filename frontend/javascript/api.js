@@ -4,12 +4,22 @@ async function handleLogin() {
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    
+    const recaptchaToken = grecaptcha.getResponse();
+
+    if (!recaptchaToken) {
+        alert("Please complete the reCAPTCHA");
+        return;
+    }
+
     try {
         const res = await fetch(`${BASE_URL}/login`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ 
+                email, 
+                password,
+                recaptcha_token: recaptchaToken
+            })
         });
 
         const raw = await res.text();
@@ -35,6 +45,8 @@ async function handleLogin() {
             } else {
                 alert(data.message || data.detail || "Login failed");
             }
+
+            grecaptcha.reset(); 
 
     } catch (err) {
         console.error(err);
