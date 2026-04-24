@@ -411,7 +411,7 @@ window.onload = function () {
 
     const welcome = document.getElementById("welcome-user");
     if (welcome && username) {
-        welcome.innerText = "Welcome, " + username;
+        welcome.innerText = username;
     }
 
     if (role !== "manager") {
