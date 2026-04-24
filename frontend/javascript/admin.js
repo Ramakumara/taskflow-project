@@ -87,6 +87,9 @@ function renderCurrentSection() {
         case "reports":
             renderReportsView();
             break;
+        case "files":
+            renderFilesView();
+            break;
         case "settings":
             renderSettingsView();
             break;
@@ -124,6 +127,12 @@ function goToReports() {
     closeAdminProfileMenu();
     setActiveNav("reports");
     renderReportsView();
+}
+
+function goToFiles() {
+    closeAdminProfileMenu();
+    setActiveNav("files");
+    renderFilesView();
 }
 
 function goToSettings() {
@@ -430,6 +439,98 @@ function renderReportsView() {
             </div>
         </div>
     `;
+}
+
+async function renderFilesView() {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${BASE_URL}/files`, {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const files = await res.json();
+
+    document.getElementById("mainContent").innerHTML = `
+        <div class="list-view">
+            <div class="view-header">
+                <h3>All Files</h3>
+            </div>
+
+            <div class="data-panel">
+                <div class="data-table-wrap">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Owner</th>
+                                <th>Size</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${files.length ? files.map(file => `
+                                <tr>
+                                    <td>${file.name}</td>
+                                    <td>${file.owner_email || "Unknown"}</td>
+                                    <td>${formatSize(file.size)}</td>
+                                    <td>
+                                        <button onclick="adminDownloadFile('${file.name}')">
+                                            <i class="fas fa-download"></i>
+                                        </button>
+                                        <button onclick="adminDeleteFile('${file.name}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `).join("") : `
+                                <tr><td colspan="4">No files found</td></tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function adminDownloadFile(name) {
+    const token = localStorage.getItem("token");
+
+    const res = await fetch(`${BASE_URL}/files/download/${encodeURIComponent(name)}`, {
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = name;
+    a.click();
+}
+async function adminDeleteFile(name) {
+    const token = localStorage.getItem("token");
+
+    if (!confirm(`Delete ${name}?`)) return;
+
+    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(name)}`, {
+        method: "DELETE",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    });
+
+    if (res.ok) {
+        alert("Deleted successfully");
+        renderFilesView();
+    } else {
+        const data = await res.json();
+        alert(data.detail || "Delete failed");
+    }
 }
 
 function renderSettingsView() {
@@ -883,6 +984,13 @@ function escapeHtml(value) {
         .replace(/'/g, "&#39;");
 }
 
+function formatSize(size) {
+    if (!size) return "-";
+    if (size < 1024) return size + " B";
+    if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
+    return (size / (1024 * 1024)).toFixed(1) + " MB";
+}
+
 window.initializeAdminDashboard = initializeAdminDashboard;
 window.handleAdminSearch = handleAdminSearch;
 window.goToDashboard = goToDashboard;
@@ -890,4 +998,5 @@ window.goToProjects = goToProjects;
 window.goToTasks = goToTasks;
 window.goToUsers = goToUsers;
 window.goToReports = goToReports;
+window.goToFiles = goToFiles;
 window.goToSettings = goToSettings;
