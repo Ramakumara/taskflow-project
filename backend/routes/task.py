@@ -4,7 +4,7 @@ from models.tasks import TaskCreate, TaskUpdate
 from bson import ObjectId
 from fastapi import Depends
 from auth_utils import get_current_user
-
+from auth_utils import send_task_email
 router = APIRouter()
 
 def format_mongo(doc):
@@ -18,7 +18,7 @@ def format_mongo(doc):
 
 
 @router.post("/tasks")
-def create_task(task: TaskCreate, current_user: dict = Depends(get_current_user)):
+async def create_task(task: TaskCreate, current_user: dict = Depends(get_current_user)):
 
     if current_user["role"] != "manager":
         return {"message": "Only manager can create tasks"}
@@ -36,7 +36,14 @@ def create_task(task: TaskCreate, current_user: dict = Depends(get_current_user)
 
     db.tasks.insert_one(new_task)
 
-    return {"message": "Task created"}
+    # 🔥 EMAIL TRIGGER
+    await send_task_email(
+        email=user["email"],
+        task_title=new_task.get("title"),
+        assigned_by=current_user["email"]   # 👈 manager email here
+    )
+
+    return {"message": "Task created and email sent"}
 
 
 @router.get("/tasks")

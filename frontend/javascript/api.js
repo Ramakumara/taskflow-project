@@ -322,16 +322,30 @@ async function createTask() {
 async function updateStatus(id, status) {
     const token = localStorage.getItem("token");
 
-    await fetch(`${BASE_URL}/tasks/${id}`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({ status })
-    });
+    try {
+        const res = await fetch(`${BASE_URL}/tasks/${id}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ status })
+        });
 
-    loadProjects();
+        const data = await res.json();
+
+        if (res.ok) {
+            alert("Status updated to: " + status);
+        } else {
+            alert("Failed to update status");
+        }
+
+        loadProjects();
+
+    } catch (err) {
+        console.error(err);
+        alert("Something went wrong");
+    }
 }
 
 async function deleteProject(id) {

@@ -120,3 +120,54 @@ def reset_password(token: str, data: dict):
     )
 
     return {"message": "Password updated successfully"}
+
+async def send_task_email(email: str, task_title: str, assigned_by: str):
+    message = MessageSchema(
+        subject="📌 New Task Assigned",
+        recipients=[email],
+        body=f"""
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: #2c3e50;">New Task Assigned</h2>
+            
+            <p>Hello,</p>
+            
+            <p>You have been assigned a new task:</p>
+            
+            <div style="
+                background-color: #f4f6f7;
+                padding: 15px;
+                border-left: 5px solid #3498db;
+                margin: 10px 0;
+                font-size: 16px;
+            ">
+                <b>{task_title}</b>
+            </div>
+            <p><b>Assigned by:</b> {assigned_by}</p>
+
+            <p>Please log in to your dashboard to complete the task.</p>
+
+            <br>
+
+            <a href="http://127.0.0.1:8000/" 
+               style="
+                   background-color: #3498db;
+                   color: white;
+                   padding: 10px 15px;
+                   text-decoration: none;
+                   border-radius: 5px;
+               ">
+               Go to Dashboard
+            </a>
+
+            <br><br>
+
+            <p style="color: gray; font-size: 12px;">
+                This is an automated message from TaskFlow System.
+            </p>
+        </div>
+        """,
+        subtype="html"
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
