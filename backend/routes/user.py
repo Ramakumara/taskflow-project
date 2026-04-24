@@ -8,12 +8,13 @@ from auth_utils import get_current_user
 from jose import JWTError, jwt
 import re
 import requests
+import os
 
 router = APIRouter()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-RECAPTCHA_SECRET = "6Lc9rccsAAAAAFG2z_Pact48pcv13I3sRu6-VDHV"
+RECAPTCHA_SECRET = os.getenv("RECAPTCHA_SECRET")
 
 def verify_recaptcha(token):
     url = "https://www.google.com/recaptcha/api/siteverify"
