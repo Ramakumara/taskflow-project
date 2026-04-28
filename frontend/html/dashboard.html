@@ -21,10 +21,6 @@
                 <i class="fas fa-house menu-icon"></i>
                 <span>Dashboard</span>
             </button>
-            <button class="menu-item active" type="button" data-sidebar="overview" onclick="setProjectTab('overview')">
-                <i class="fas fa-folder-open menu-icon"></i>
-                <span>Projects</span>
-            </button>
             <button class="menu-item" type="button" data-sidebar="tasks" onclick="setProjectTab('tasks')">
                 <i class="fas fa-square-check menu-icon"></i>
                 <span>Tasks</span>
@@ -185,13 +181,25 @@
             </div>
 
             <div id="team-view" class="hidden">
-                <section class="dashboard-section">
-                    <div class="section-head">
-                        <div>
-                            <h3>My Team</h3>
+                <section class="team-page">
+                    <div class="team-toolbar">
+                        <label class="team-search" for="teamSearchInput">
+                            <i class="fas fa-search"></i>
+                            <input id="teamSearchInput" type="text" placeholder="Search projects or members..." oninput="renderTeamWorkspace()">
+                        </label>
+
+                        <div class="team-toolbar-actions">
+                            <select id="teamProjectFilter" class="team-filter-select" onchange="renderTeamWorkspace()" aria-label="Filter team projects">
+                                <option value="all">All Projects</option>
+                            </select>
+                            <button class="team-new-project-btn" type="button" onclick="openTeamCreateProject()">
+                                <i class="fas fa-plus"></i>
+                                <span>New Project</span>
+                            </button>
                         </div>
                     </div>
-                    <div id="team-members-list" class="team-grid"></div>
+
+                    <div id="team-members-list" class="team-project-list"></div>
                 </section>
             </div>
 
@@ -335,16 +343,6 @@
                             <h2 id="dashboard-profile-name">Your Name</h2>
                             <p id="dashboard-profile-role-text">User</p>
 
-                            <div class="profile-stat-row">
-                                <div>
-                                    <span>Projects</span>
-                                    <strong id="profile-project-count">0</strong>
-                                </div>
-                                <div>
-                                    <span>Tasks</span>
-                                    <strong id="profile-task-count">0</strong>
-                                </div>
-                            </div>
                         </section>
 
                         <section class="dashboard-profile-card profile-details-card">
@@ -424,7 +422,6 @@
                                 <small data-settings-text="notificationsCopy">Manage your notification preferences.</small>
                             </span>
                             <span class="settings-status-pill" id="settings-notification-state">On</span>
-                            <i class="fas fa-chevron-right settings-row-chevron"></i>
                         </button>
 
                         <button class="settings-row" type="button" onclick="window.location.href='/forgot-page'">
@@ -458,7 +455,6 @@
                             <select id="settings-language-select" class="settings-select" onchange="saveSettingsPreference('language', this.value)" aria-label="Choose language">
                                 <option value="english">English</option>
                                 <option value="hindi">Hindi</option>
-                                <option value="spanish">Spanish</option>
                             </select>
                         </div>
                     </section>
@@ -657,11 +653,7 @@ async function loadDashboardProfile() {
         ]);
         const projects = await projectsRes.json();
         const tasks = await tasksRes.json();
-        const projectCount = document.getElementById("profile-project-count");
-        const taskCount = document.getElementById("profile-task-count");
-
-        if (projectCount) projectCount.textContent = Array.isArray(projects) ? String(projects.length) : "0";
-        if (taskCount) taskCount.textContent = Array.isArray(tasks) ? String(tasks.length) : "0";
+        
     } catch (error) {
         console.error("Failed to load profile summary", error);
     }
@@ -739,20 +731,6 @@ function updateSettingsLanguage(language) {
             appearanceCopy: "अपनी पसंदीदा थीम चुनें.",
             languageTitle: "भाषा",
             languageCopy: "अपनी पसंदीदा भाषा चुनें."
-        },
-        spanish: {
-            title: "Configuración",
-            subtitle: "Administra tu cuenta y preferencias.",
-            profileTitle: "Perfil",
-            profileCopy: "Consulta y actualiza tu información personal.",
-            notificationsTitle: "Notificaciones",
-            notificationsCopy: "Administra tus preferencias de notificación.",
-            securityTitle: "Seguridad",
-            securityCopy: "Cambia tu contraseña y ajustes de seguridad.",
-            appearanceTitle: "Apariencia",
-            appearanceCopy: "Elige tu tema preferido.",
-            languageTitle: "Idioma",
-            languageCopy: "Selecciona tu idioma preferido."
         }
     };
 
@@ -781,6 +759,11 @@ let inlineAssignState = {};
 let inlineAssignTarget = "";
 let teamMemberCache = [];
 let allUsersCache = [];
+let teamWorkspaceCache = {
+    projects: [],
+    tasks: [],
+    users: []
+};
 
 // Load all tasks for user
 async function loadAllTasks() {
@@ -872,65 +855,195 @@ async function loadTeamMembers() {
 
         const projects = await projectsRes.json();
         const tasks = await tasksRes.json();
-        const users = await usersRes.json();
+        const usersPayload = await usersRes.json();
+        const users = Array.isArray(usersPayload) ? usersPayload : [];
 
         const teamList = document.getElementById("team-members-list");
         if (!teamList) return;
-        teamList.innerHTML = "";
 
-        if (!Array.isArray(projects) || !Array.isArray(tasks) || !Array.isArray(users)) {
-            teamList.innerHTML = "<p>Unable to load team members</p>";
+        if (!Array.isArray(projects) || !Array.isArray(tasks)) {
+            teamList.innerHTML = `<div class="team-empty-state">Unable to load team members</div>`;
             return;
         }
 
-        const managerProjectIds = new Set(projects.map(project => String(project.id)));
-        const assignedEmails = new Set(
-            tasks
-                .filter(task => managerProjectIds.has(String(task.project_id)) && task.assigned_to)
-                .map(task => String(task.assigned_to).trim().toLowerCase())
-        );
-
+        teamWorkspaceCache = { projects, tasks, users };
         allUsersCache = Array.isArray(users) ? users.slice() : [];
-
-        const teamMembers = users.filter(user => {
-            const userEmail = String(user.email || "").trim().toLowerCase();
-            return userEmail && userEmail !== String(email).trim().toLowerCase() && assignedEmails.has(userEmail);
-        });
-        teamMemberCache = teamMembers.slice();
-
-        if (teamMembers.length === 0) {
-            teamList.innerHTML = "<p>No members have been assigned tasks yet</p>";
-            return;
-        }
-
-        teamMembers.forEach(member => {
-            const memberEmail = String(member.email || "").trim().toLowerCase();
-            const memberTasks = tasks.filter(task => String(task.assigned_to || "").trim().toLowerCase() === memberEmail);
-            const card = document.createElement("div");
-            card.className = "team-member-card";
-            card.innerHTML = `
-                <div class="team-member-card-inner">
-                    <div class="team-member-avatar">
-                        ${(member.username || member.email || "?").charAt(0).toUpperCase()}
-                    </div>
-                    <div class="team-member-body">
-                        <div class="team-member-top">
-                            <div>
-                                <h4>${member.username || member.email}</h4>
-                                <p>${member.email}</p>
-                            </div>
-                        </div>
-                        <div class="team-member-meta">
-                            <span>${memberTasks.length} assigned task${memberTasks.length === 1 ? "" : "s"}</span>
-                        </div>
-                    </div>
-                </div>
-            `;
-            teamList.appendChild(card);
-        });
+        teamMemberCache = users.slice();
+        populateTeamProjectFilter(projects);
+        renderTeamWorkspace();
     } catch (error) {
         console.error("Failed to load team members", error);
     }
+}
+
+function populateTeamProjectFilter(projects) {
+    const filter = document.getElementById("teamProjectFilter");
+    if (!filter) return;
+
+    const currentValue = filter.value || "all";
+    filter.innerHTML = `<option value="all">All Projects</option>`;
+    projects.forEach(project => {
+        const option = document.createElement("option");
+        option.value = String(project.id);
+        option.textContent = project.name || "Untitled Project";
+        filter.appendChild(option);
+    });
+    filter.value = Array.from(filter.options).some(option => option.value === currentValue) ? currentValue : "all";
+}
+
+function renderTeamWorkspace() {
+    const list = document.getElementById("team-members-list");
+    if (!list) return;
+
+    const role = localStorage.getItem("role");
+    const newProjectBtn = document.querySelector(".team-new-project-btn");
+    if (newProjectBtn) {
+        newProjectBtn.style.display = role === "manager" || role === "admin" ? "" : "none";
+    }
+
+    const query = (document.getElementById("teamSearchInput")?.value || "").trim().toLowerCase();
+    const selectedProject = document.getElementById("teamProjectFilter")?.value || "all";
+    const { projects, tasks, users } = teamWorkspaceCache;
+    const userMap = new Map(
+        users.map(user => [String(user.email || "").trim().toLowerCase(), user])
+    );
+
+    let visibleProjects = projects.filter(project => selectedProject === "all" || String(project.id) === String(selectedProject));
+
+    const sections = visibleProjects.map((project, index) => {
+        let projectTasks = tasks.filter(task => String(task.project_id) === String(project.id));
+
+        if (query) {
+            projectTasks = projectTasks.filter(task => {
+                const member = userMap.get(String(task.assigned_to || "").trim().toLowerCase());
+                return [
+                    project.name,
+                    task.title,
+                    task.assigned_to,
+                    member?.username,
+                    normalizeTeamStatus(task.status)
+                ].some(value => String(value || "").toLowerCase().includes(query));
+            });
+        }
+
+        const projectNameMatches = !query || String(project.name || "").toLowerCase().includes(query);
+        if (!projectNameMatches && !projectTasks.length) return "";
+
+        const memberCount = new Set(
+            projectTasks
+                .map(task => String(task.assigned_to || "").trim().toLowerCase())
+                .filter(Boolean)
+        ).size;
+
+        return `
+            <section class="team-project-card">
+                <div class="team-project-head">
+                    <div class="team-project-title">
+                        <span class="team-project-icon ${teamProjectColorClass(index)}">
+                            <i class="fas fa-folder"></i>
+                        </span>
+                        <h3>${escapeTeamHtml(project.name || "Untitled Project")}</h3>
+                        <span class="team-member-count">${memberCount} Member${memberCount === 1 ? "" : "s"}</span>
+                    </div>
+                    <button class="team-more-btn" type="button" aria-label="Project options">
+                        <i class="fas fa-ellipsis-vertical"></i>
+                    </button>
+                </div>
+
+                <div class="team-table-wrap">
+                    <table class="team-table">
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Email</th>
+                                <th>Task</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${projectTasks.length ? projectTasks.map(task => renderTeamTaskRow(task, userMap)).join("") : `
+                                <tr>
+                                    <td colspan="4" class="team-empty-row">No matching assigned tasks</td>
+                                </tr>
+                            `}
+                        </tbody>
+                    </table>
+                </div>
+
+                ${role === "manager" ? `
+                    <button class="team-add-member-btn" type="button" onclick="openTeamAddMember('${project.id}')">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Member</span>
+                    </button>
+                ` : ""}
+            </section>
+        `;
+    }).filter(Boolean);
+
+    list.innerHTML = sections.length ? sections.join("") : `<div class="team-empty-state">No members found for this view</div>`;
+}
+
+function renderTeamTaskRow(task, userMap) {
+    const email = String(task.assigned_to || "").trim();
+    const member = userMap.get(email.toLowerCase()) || {};
+    const name = member.username || email || "Unassigned";
+    const status = normalizeTeamStatus(task.status);
+
+    return `
+        <tr>
+            <td>
+                <span class="team-member-cell">
+                    <span class="team-avatar">${escapeTeamHtml(name.charAt(0).toUpperCase() || "?")}</span>
+                    <span>${escapeTeamHtml(name)}</span>
+                </span>
+            </td>
+            <td>${escapeTeamHtml(email || "Unassigned")}</td>
+            <td>${escapeTeamHtml(task.title || "Untitled Task")}</td>
+            <td><span class="team-status ${teamStatusClass(status)}">${escapeTeamHtml(status)}</span></td>
+        </tr>
+    `;
+}
+
+function normalizeTeamStatus(status) {
+    const value = String(status || "Pending").trim().toLowerCase();
+    if (value === "done" || value === "completed") return "Completed";
+    if (value === "in progress" || value === "progress") return "In Progress";
+    return "Pending";
+}
+
+function teamStatusClass(status) {
+    return String(status || "").toLowerCase().replace(/\s+/g, "-");
+}
+
+function teamProjectColorClass(index) {
+    return ["blue", "pink", "green"][index % 3];
+}
+
+function openTeamAddMember(projectId) {
+    localStorage.setItem("selectedProjectId", projectId);
+    setActiveMenu("overview");
+    showView("dashboard-view");
+    openCreate();
+    const projectSelect = document.getElementById("project-select");
+    if (projectSelect) projectSelect.value = projectId;
+}
+
+function openTeamCreateProject() {
+    setActiveMenu("overview");
+    showView("dashboard-view");
+    openCreate();
+    const projectName = document.getElementById("project-name");
+    if (projectName) projectName.focus();
+}
+
+function escapeTeamHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
 }
 
 let dashboardCalendarTasks = [];
