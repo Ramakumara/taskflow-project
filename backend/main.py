@@ -64,12 +64,6 @@ def dashboard_page():
         os.path.join(BASE_DIR, "..", "frontend", "html", "dashboard.html")
     )
 
-@app.get("/profile-page")               
-def profile_page():
-    return FileResponse(
-        os.path.join(BASE_DIR, "..", "frontend", "html", "profile.html")
-    )
-
 @app.get("/status-overview-page")
 def status_overview_page():
     return FileResponse(

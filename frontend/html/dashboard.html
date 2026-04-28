@@ -225,7 +225,6 @@
                     <div class="files-top-row">
                         <div>
                             <h1 class="files-title">Files</h1>
-                            <p class="files-subtitle">Store, manage and share your files efficiently.</p>
                         </div>
                         <div class="files-actions">
                             <button class="files-action-btn primary" type="button" onclick="document.getElementById('file-input').click()">
@@ -312,6 +311,160 @@
                 </section>
             </div>
 
+            <div id="profile-view" class="hidden">
+                <section class="dashboard-profile-page">
+                    <div class="profile-page-head">
+                        <div>
+                            <h1 class="profile-page-title">My Profile</h1>
+                        </div>
+                        <button class="profile-action-btn" type="button" onclick="goToSettings()">
+                            <i class="fas fa-gear"></i>
+                            <span>Settings</span>
+                        </button>
+                    </div>
+
+                    <div class="dashboard-profile-grid">
+                        <section class="dashboard-profile-card profile-identity-card">
+                            <div class="profile-avatar-wrap">
+                                <div id="dashboard-profile-avatar-large" class="dashboard-profile-avatar-large">R</div>
+                                <button type="button" class="profile-camera-btn" aria-label="Change photo">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                            </div>
+
+                            <h2 id="dashboard-profile-name">Your Name</h2>
+                            <p id="dashboard-profile-role-text">User</p>
+
+                            <div class="profile-stat-row">
+                                <div>
+                                    <span>Projects</span>
+                                    <strong id="profile-project-count">0</strong>
+                                </div>
+                                <div>
+                                    <span>Tasks</span>
+                                    <strong id="profile-task-count">0</strong>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="dashboard-profile-card profile-details-card">
+                            <div class="profile-card-head">
+                                <div class="profile-card-icon"><i class="fas fa-id-card"></i></div>
+                                <div>
+                                    <h3>Profile Details</h3>
+                                    <p>Account information used across TaskFlow.</p>
+                                </div>
+                            </div>
+
+                            <div class="profile-detail-list">
+                                <div class="profile-detail-row">
+                                    <span>Full Name</span>
+                                    <strong id="dashboard-profile-username">-</strong>
+                                </div>
+                                <div class="profile-detail-row">
+                                    <span>Email</span>
+                                    <strong id="dashboard-profile-email">-</strong>
+                                </div>
+                                <div class="profile-detail-row">
+                                    <span>Role</span>
+                                    <strong id="dashboard-profile-role">-</strong>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="dashboard-profile-card profile-details-card">
+                            <div class="profile-card-head">
+                                <div class="profile-card-icon"><i class="fas fa-shield-halved"></i></div>
+                                <div>
+                                    <h3>Account Access</h3>
+                                    <p>Manage security and active session actions.</p>
+                                </div>
+                            </div>
+
+                            <div class="profile-action-list">
+                                <button class="profile-list-button" type="button" onclick="window.location.href='/forgot-page'">
+                                    <span><i class="fas fa-key"></i>Reset password</span>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button class="profile-list-button" type="button" onclick="goToSettings()">
+                                    <span><i class="fas fa-sliders"></i>Dashboard preferences</span>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button class="profile-list-button danger" type="button" onclick="logout()">
+                                    <span><i class="fas fa-right-from-bracket"></i>Logout</span>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+            </div>
+
+            <div id="settings-view" class="hidden">
+                <section class="settings-page">
+                    <div class="settings-heading">
+                        <h1 class="settings-title" data-settings-text="title">Settings</h1>
+                        <p data-settings-text="subtitle">Manage your account and preferences.</p>
+                    </div>
+
+                    <section class="settings-list-card">
+                        <button class="settings-row" type="button" onclick="goToProfile()">
+                            <span class="settings-row-icon"><i class="far fa-user"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="profileTitle">Profile</strong>
+                                <small data-settings-text="profileCopy">View and update your personal information.</small>
+                            </span>
+                            <i class="fas fa-chevron-right settings-row-chevron"></i>
+                        </button>
+
+                        <button class="settings-row" type="button" onclick="toggleQuietNotifications()">
+                            <span class="settings-row-icon"><i class="far fa-bell"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="notificationsTitle">Notifications</strong>
+                                <small data-settings-text="notificationsCopy">Manage your notification preferences.</small>
+                            </span>
+                            <span class="settings-status-pill" id="settings-notification-state">On</span>
+                            <i class="fas fa-chevron-right settings-row-chevron"></i>
+                        </button>
+
+                        <button class="settings-row" type="button" onclick="window.location.href='/forgot-page'">
+                            <span class="settings-row-icon"><i class="fas fa-lock"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="securityTitle">Security</strong>
+                                <small data-settings-text="securityCopy">Change your password and security settings.</small>
+                            </span>
+                            <i class="fas fa-chevron-right settings-row-chevron"></i>
+                        </button>
+
+                        <div class="settings-row">
+                            <span class="settings-row-icon"><i class="fas fa-palette"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="appearanceTitle">Appearance</strong>
+                                <small data-settings-text="appearanceCopy">Choose your preferred theme.</small>
+                            </span>
+                            <select id="settings-theme-select" class="settings-select" onchange="saveSettingsPreference('theme', this.value)" aria-label="Choose appearance theme">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                                <option value="system">System</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-row">
+                            <span class="settings-row-icon"><i class="fas fa-globe"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="languageTitle">Language</strong>
+                                <small data-settings-text="languageCopy">Select your preferred language.</small>
+                            </span>
+                            <select id="settings-language-select" class="settings-select" onchange="saveSettingsPreference('language', this.value)" aria-label="Choose language">
+                                <option value="english">English</option>
+                                <option value="hindi">Hindi</option>
+                                <option value="spanish">Spanish</option>
+                            </select>
+                        </div>
+                    </section>
+                </section>
+            </div>
+
             <div id="project-workspace-view" class="hidden">
                 <section class="project-workspace-main">
                     <section class="workspace-header">
@@ -369,7 +522,10 @@ if (token) {
 (async () => {
     loadProjects();
     getUser();
-    setProjectTab('files');
+    if (typeof applySettingsPreferences === "function") {
+        applySettingsPreferences();
+    }
+    setProjectTab(localStorage.getItem("settings.defaultView") || 'files');
     await loadAssignableUsers();
     await loadFiles();
 })();
@@ -383,6 +539,8 @@ function hideAllViews() {
     document.getElementById('team-view').classList.add('hidden');
     document.getElementById('calendar-view').classList.add('hidden');
     document.getElementById('files-view').classList.add('hidden');
+    document.getElementById('profile-view').classList.add('hidden');
+    document.getElementById('settings-view').classList.add('hidden');
     document.getElementById('project-workspace-view').classList.add('hidden');
 }
 
@@ -439,7 +597,170 @@ function setProjectTab(tab) {
             showView('files-view');
             loadFiles();
             break;
+        case 'settings':
+            goToSettings();
+            break;
     }
+}
+
+function goToSettings() {
+    setActiveMenu('settings');
+    showView('settings-view');
+    loadSettingsView();
+}
+
+async function goToProfile() {
+    setActiveMenu('');
+    showView('profile-view');
+    await loadDashboardProfile();
+}
+
+async function loadDashboardProfile() {
+    const username = localStorage.getItem("username") || "User";
+    const email = localStorage.getItem("email") || "";
+    const role = localStorage.getItem("role") || "user";
+    const token = localStorage.getItem("token");
+
+    if (!email) {
+        alert("No user data found. Please login again.");
+        window.location.href = "/";
+        return;
+    }
+
+    const initial = (username || email).charAt(0).toUpperCase();
+    const roleText = role.charAt(0).toUpperCase() + role.slice(1);
+
+    const binds = {
+        "dashboard-profile-avatar-large": initial,
+        "dashboard-profile-name": username,
+        "dashboard-profile-role-text": roleText,
+        "dashboard-profile-username": username,
+        "dashboard-profile-email": email,
+        "dashboard-profile-role": roleText
+    };
+
+    Object.entries(binds).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    });
+
+    if (!token) return;
+
+    try {
+        const [projectsRes, tasksRes] = await Promise.all([
+            fetch(`${BASE_URL}/projects`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/tasks`, {
+                headers: { "Authorization": "Bearer " + token }
+            })
+        ]);
+        const projects = await projectsRes.json();
+        const tasks = await tasksRes.json();
+        const projectCount = document.getElementById("profile-project-count");
+        const taskCount = document.getElementById("profile-task-count");
+
+        if (projectCount) projectCount.textContent = Array.isArray(projects) ? String(projects.length) : "0";
+        if (taskCount) taskCount.textContent = Array.isArray(tasks) ? String(tasks.length) : "0";
+    } catch (error) {
+        console.error("Failed to load profile summary", error);
+    }
+}
+
+function loadSettingsView() {
+    const themeSelect = document.getElementById("settings-theme-select");
+    const languageSelect = document.getElementById("settings-language-select");
+    if (themeSelect) themeSelect.value = localStorage.getItem("settings.theme") || "light";
+    if (languageSelect) languageSelect.value = localStorage.getItem("settings.language") || "english";
+    applySettingsPreferences();
+}
+
+function saveSettingsPreference(key, value) {
+    localStorage.setItem(`settings.${key}`, String(value));
+    applySettingsPreferences();
+}
+
+function toggleQuietNotifications() {
+    const nextValue = localStorage.getItem("settings.quietNotifications") !== "true";
+    saveSettingsPreference("quietNotifications", nextValue);
+}
+
+function applySettingsPreferences() {
+    const compactTables = localStorage.getItem("settings.compactTables") === "true";
+    const quietNotifications = localStorage.getItem("settings.quietNotifications") === "true";
+    const theme = localStorage.getItem("settings.theme") || "light";
+    const language = localStorage.getItem("settings.language") || "english";
+    document.body.classList.toggle("compact-dashboard-tables", compactTables);
+    document.body.classList.toggle("quiet-dashboard-notifications", quietNotifications);
+    document.body.classList.toggle("dashboard-theme-dark", getResolvedDashboardTheme(theme) === "dark");
+
+    const notificationState = document.getElementById("settings-notification-state");
+    if (notificationState) {
+        notificationState.textContent = quietNotifications ? "Muted" : "On";
+        notificationState.classList.toggle("muted", quietNotifications);
+    }
+
+    updateSettingsLanguage(language);
+}
+
+function getResolvedDashboardTheme(theme) {
+    if (theme === "system") {
+        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    return theme;
+}
+
+function updateSettingsLanguage(language) {
+    const copy = {
+        english: {
+            title: "Settings",
+            subtitle: "Manage your account and preferences.",
+            profileTitle: "Profile",
+            profileCopy: "View and update your personal information.",
+            notificationsTitle: "Notifications",
+            notificationsCopy: "Manage your notification preferences.",
+            securityTitle: "Security",
+            securityCopy: "Change your password and security settings.",
+            appearanceTitle: "Appearance",
+            appearanceCopy: "Choose your preferred theme.",
+            languageTitle: "Language",
+            languageCopy: "Select your preferred language."
+        },
+        hindi: {
+            title: "सेटिंग्स",
+            subtitle: "अपना खाता और पसंद प्रबंधित करें.",
+            profileTitle: "प्रोफाइल",
+            profileCopy: "अपनी व्यक्तिगत जानकारी देखें और अपडेट करें.",
+            notificationsTitle: "सूचनाएं",
+            notificationsCopy: "अपनी सूचना पसंद प्रबंधित करें.",
+            securityTitle: "सुरक्षा",
+            securityCopy: "अपना पासवर्ड और सुरक्षा सेटिंग्स बदलें.",
+            appearanceTitle: "रूप",
+            appearanceCopy: "अपनी पसंदीदा थीम चुनें.",
+            languageTitle: "भाषा",
+            languageCopy: "अपनी पसंदीदा भाषा चुनें."
+        },
+        spanish: {
+            title: "Configuración",
+            subtitle: "Administra tu cuenta y preferencias.",
+            profileTitle: "Perfil",
+            profileCopy: "Consulta y actualiza tu información personal.",
+            notificationsTitle: "Notificaciones",
+            notificationsCopy: "Administra tus preferencias de notificación.",
+            securityTitle: "Seguridad",
+            securityCopy: "Cambia tu contraseña y ajustes de seguridad.",
+            appearanceTitle: "Apariencia",
+            appearanceCopy: "Elige tu tema preferido.",
+            languageTitle: "Idioma",
+            languageCopy: "Selecciona tu idioma preferido."
+        }
+    };
+
+    const selectedCopy = copy[language] || copy.english;
+    document.querySelectorAll("[data-settings-text]").forEach(node => {
+        const key = node.dataset.settingsText;
+        if (selectedCopy[key]) node.textContent = selectedCopy[key];
+    });
 }
 
 function goBack() {
@@ -1504,6 +1825,7 @@ function formatDateTime(value) {
 }
 
 window.addEventListener("load", loadDashboardSummary);
+window.addEventListener("load", applySettingsPreferences);
 
 
 </script>

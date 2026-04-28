@@ -477,7 +477,14 @@ function goToIndex() {
 }
 
 function goToProfile() {
-    window.location.href = "/profile-page";
+    const profileView = document.getElementById("profile-view");
+    if (profileView && typeof showView === "function" && typeof loadDashboardProfile === "function") {
+        if (typeof setActiveMenu === "function") setActiveMenu("");
+        showView("profile-view");
+        loadDashboardProfile();
+        return;
+    }
+    window.location.href = "/dashboard-page";
 }
 
 let chartInstance = null;
