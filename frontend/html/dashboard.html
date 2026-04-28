@@ -880,15 +880,33 @@ function populateTeamProjectFilter(projects) {
     const filter = document.getElementById("teamProjectFilter");
     if (!filter) return;
 
+    const role = localStorage.getItem("role");
+    const userEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
+    const { tasks } = teamWorkspaceCache;
+
+    // ✅ Filter projects for user role
+    const filteredProjects = role === "user"
+        ? projects.filter(project =>
+            tasks.some(task =>
+                String(task.project_id) === String(project.id) &&
+                String(task.assigned_to || "").trim().toLowerCase() === userEmail
+            )
+        )
+        : projects;
+
     const currentValue = filter.value || "all";
     filter.innerHTML = `<option value="all">All Projects</option>`;
-    projects.forEach(project => {
+
+    filteredProjects.forEach(project => {
         const option = document.createElement("option");
         option.value = String(project.id);
         option.textContent = project.name || "Untitled Project";
         filter.appendChild(option);
     });
-    filter.value = Array.from(filter.options).some(option => option.value === currentValue) ? currentValue : "all";
+
+    filter.value = Array.from(filter.options).some(option => option.value === currentValue)
+        ? currentValue
+        : "all";
 }
 
 function renderTeamWorkspace() {
@@ -904,15 +922,36 @@ function renderTeamWorkspace() {
     const query = (document.getElementById("teamSearchInput")?.value || "").trim().toLowerCase();
     const selectedProject = document.getElementById("teamProjectFilter")?.value || "all";
     const { projects, tasks, users } = teamWorkspaceCache;
+
     const userMap = new Map(
         users.map(user => [String(user.email || "").trim().toLowerCase(), user])
     );
 
-    let visibleProjects = projects.filter(project => selectedProject === "all" || String(project.id) === String(selectedProject));
+    const userEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
+
+    let visibleProjects = projects.filter(project => {
+    const matchesFilter =
+        selectedProject === "all" || String(project.id) === String(selectedProject);
+
+    if (role === "user") {
+        const isAssigned = tasks.some(task =>
+            String(task.project_id) === String(project.id) &&
+            String(task.assigned_to || "").trim().toLowerCase() === userEmail
+        );
+
+        return matchesFilter && isAssigned;
+    }
+
+    return matchesFilter;
+});
 
     const sections = visibleProjects.map((project, index) => {
-        let projectTasks = tasks.filter(task => String(task.project_id) === String(project.id));
 
+        let projectTasks = tasks.filter(task =>
+            String(task.project_id) === String(project.id)
+        );
+
+        // Search filter
         if (query) {
             projectTasks = projectTasks.filter(task => {
                 const member = userMap.get(String(task.assigned_to || "").trim().toLowerCase());
@@ -927,13 +966,18 @@ function renderTeamWorkspace() {
         }
 
         const projectNameMatches = !query || String(project.name || "").toLowerCase().includes(query);
-        if (!projectNameMatches && !projectTasks.length) return "";
 
-        const memberCount = new Set(
+        // ✅ FIX: Always show project (even if no tasks)
+        if (!projectNameMatches) return "";
+
+        // ✅ Members from tasks (current system)
+        const members = Array.from(new Set(
             projectTasks
                 .map(task => String(task.assigned_to || "").trim().toLowerCase())
                 .filter(Boolean)
-        ).size;
+        ));
+
+        const memberCount = members.length;
 
         return `
             <section class="team-project-card">
@@ -945,9 +989,6 @@ function renderTeamWorkspace() {
                         <h3>${escapeTeamHtml(project.name || "Untitled Project")}</h3>
                         <span class="team-member-count">${memberCount} Member${memberCount === 1 ? "" : "s"}</span>
                     </div>
-                    <button class="team-more-btn" type="button" aria-label="Project options">
-                        <i class="fas fa-ellipsis-vertical"></i>
-                    </button>
                 </div>
 
                 <div class="team-table-wrap">
@@ -961,11 +1002,17 @@ function renderTeamWorkspace() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${projectTasks.length ? projectTasks.map(task => renderTeamTaskRow(task, userMap)).join("") : `
+                            ${
+                                projectTasks.length
+                                ? projectTasks.map(task => renderTeamTaskRow(task, userMap)).join("")
+                                : `
                                 <tr>
-                                    <td colspan="4" class="team-empty-row">No matching assigned tasks</td>
+                                    <td colspan="4" class="team-empty-row">
+                                        No members yet (assign tasks to users)
+                                    </td>
                                 </tr>
-                            `}
+                                `
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -980,7 +1027,9 @@ function renderTeamWorkspace() {
         `;
     }).filter(Boolean);
 
-    list.innerHTML = sections.length ? sections.join("") : `<div class="team-empty-state">No members found for this view</div>`;
+    list.innerHTML = sections.length
+        ? sections.join("")
+        : `<div class="team-empty-state">No members found</div>`;
 }
 
 function renderTeamTaskRow(task, userMap) {

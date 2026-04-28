@@ -113,7 +113,8 @@ async function createProject() {
         },
         body: JSON.stringify({
             name,
-            description: "Sample project"
+            description: "Sample project",
+            
         })
     });
 

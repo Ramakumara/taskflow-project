@@ -34,7 +34,7 @@ def get_projects(current_user: dict = Depends(get_current_user)):
         data = list(db.projects.find())
     else:
         data = list(db.projects.find())  
-
+        
     return [format_mongo(p) for p in data]
 
 

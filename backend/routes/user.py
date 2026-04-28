@@ -98,9 +98,10 @@ def login(user: UserLogin):
 @router.get("/users")
 def get_users(current_user: dict = Depends(get_current_user)):
 
-    if current_user["role"] not in ("admin", "manager"):
-        return {"message": "Access denied"}
-
+    # Allow all logged-in users
+    if not current_user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    
     users = []
 
     for u in db.users.find():

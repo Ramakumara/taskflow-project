@@ -4,3 +4,4 @@ from typing import Optional
 class ProjectCreate(BaseModel):
     name: str
     description: Optional[str] = None
+    
