@@ -3191,7 +3191,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 .files-actions {
     display: flex;
-    gap: 16px;
+    gap: 10px;
 }
 
 .files-action-btn,
@@ -3206,7 +3206,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 }
 
 .files-action-btn {
-    height: 44px;
+    height: 35px;
     padding: 0 18px;
     display: inline-flex;
     align-items: center;
@@ -3236,27 +3236,32 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 .files-tabs {
     display: flex;
-    gap: 28px;
+    gap: 30px;
+    height: 40px;
 }
 
 .files-tab {
     border: none;
-    background: transparent;
+    background: transparent !important;   /* 🔥 force remove red */
     color: #51607c;
     font-size: 17px;
-    padding: 16px 0;
+    padding: 10px 14px;
     border-bottom: 2px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
 .files-tab.active {
-    color: #2f7bff;
-    border-bottom-color: #2f7bff;
+    background: #2f7bff !important;   /* 🔥 active color */
+    color: white;
+    border-bottom: none;
 }
+
 
 .files-toolbar-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
     position: relative;
 }
 
@@ -3270,7 +3275,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    min-width: 220px;
+    min-width: 150px;
     padding: 12px 16px;
     border-radius: 14px;
     border: 1px solid #dfe7f3;
@@ -3509,18 +3514,6 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     font-size: 16px;
 }
 
-.upgrade-btn {
-    width: 100%;
-    margin-top: 18px;
-    height: 42px;
-    color: #2f7bff;
-    background: #fff;
-    font-size: 16px;
-}
-
-.upgrade-btn i {
-    margin-right: 8px;
-}
 
 .files-table-card {
     min-width: 0;
@@ -3665,7 +3658,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     padding: 10px 14px;
     border: 1px solid #d8e0ec;
     border-radius: 14px;
-    background: #fff;
+    background: #fff !important;
     color: #2a3650;
     cursor: pointer;
     font-size: 14px;
@@ -3681,6 +3674,21 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     border-color: #c8d5ee;
     box-shadow: 0 10px 20px rgba(47, 92, 177, 0.08);
     transform: translateY(-1px);
+}
+
+.btn-blue {
+    background: white; /* blue */
+    color:black;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: 0.2s;
+}
+
+.btn-blue:hover {
+    background: rgb(212, 211, 211);   /* darker blue */
 }
 
 .inline-assign-menu {

@@ -27,7 +27,7 @@
             </button>
             <button class="menu-item" type="button" data-sidebar="team" onclick="setProjectTab('team')">
                 <i class="fas fa-users menu-icon"></i>
-                <span>Users</span>
+                <span>My Team</span>
             </button>
             <button class="menu-item" type="button" data-sidebar="activity" onclick="setProjectTab('activity')">
                 <i class="fas fa-chart-column menu-icon"></i>
@@ -296,8 +296,8 @@
                             <table class="files-table">
                                 <thead>
                                     <tr>
-                                        <th><input type="checkbox" aria-label="Select all"></th>
-                                        <th>Name <i class="fas fa-sort"></i></th>
+                                        <th></th>
+                                        <th>Name </th>
                                         <th>Owner</th>
                                         <th id="assigned-header">Assigned To</th>
                                         <th>Size</th>
@@ -884,7 +884,7 @@ function populateTeamProjectFilter(projects) {
     const userEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
     const { tasks } = teamWorkspaceCache;
 
-    // ✅ Filter projects for user role
+    // Filter projects for user role
     const filteredProjects = role === "user"
         ? projects.filter(project =>
             tasks.some(task =>
@@ -967,10 +967,8 @@ function renderTeamWorkspace() {
 
         const projectNameMatches = !query || String(project.name || "").toLowerCase().includes(query);
 
-        // ✅ FIX: Always show project (even if no tasks)
         if (!projectNameMatches) return "";
 
-        // ✅ Members from tasks (current system)
         const members = Array.from(new Set(
             projectTasks
                 .map(task => String(task.assigned_to || "").trim().toLowerCase())
@@ -1481,8 +1479,13 @@ function renderFiles() {
         }
 
         row.innerHTML = `
-            <td><input type="checkbox" aria-label="Select ${file.name}"></td>
-            <td><span class="file-icon ${getFileIconClass(file)}"><i class="${getFileIcon(file)}"></i></span>${file.name}</td>
+            <td><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
+            <td>
+                <span class="file-icon ${getFileIconClass(file)}">
+                    <i class="${getFileIcon(file)}"></i>
+                </span>
+                ${shortenFileName(file.name)}
+            </td>            
             <td>${file.owner_name || file.owner_email || localStorage.getItem("username") || "Unknown"}</td>
 
             ${role !== "user" ? `
@@ -1499,6 +1502,11 @@ function renderFiles() {
     });
 
     updatePagination(totalPages);
+}
+
+function shortenFileName(name) {
+    const base = name.split('.')[0]; // remove .pdf
+    return base.length > 13 ? base.substring(0, 16) + "..." : base;
 }
 
 function updateCategoryCounts() {
@@ -1736,8 +1744,8 @@ function renderAssignedControl(file) {
                 </div>
 
                 <div class="inline-assign-actions">
-                    <button onclick="closeInlineAssign('${key}')">Cancel</button>
-                    <button onclick="saveInlineAssign('${key}')">Save</button>
+                    <button class="btn-blue" onclick="closeInlineAssign('${key}')">Cancel</button>
+                    <button class="btn-blue" onclick="saveInlineAssign('${key}')">Save</button>
                 </div>
 
             </div>
