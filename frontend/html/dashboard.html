@@ -235,7 +235,7 @@
                             <h1 class="files-title">Files</h1>
                         </div>
                         <div class="files-actions">
-                            <button class="files-action-btn primary" type="button" onclick="document.getElementById('file-input').click()">
+                            <button id="uploadBtn" class="files-action-btn primary" type="button" onclick="document.getElementById('file-input').click()">
                                 <i class="fas fa-upload"></i>
                                 <span>Upload File</span>
                             </button>
@@ -1373,6 +1373,12 @@ async function loadFiles() {
     const storageCopy = document.getElementById("storage-copy");
     const storagePercent = document.getElementById("storage-percent");
     const storageFill = document.getElementById("storage-meter-fill");
+
+    const role = localStorage.getItem("role");
+
+    if (role === "user") {
+        document.getElementById("uploadBtn").style.display = "none";
+    }
 
     if (!tbody) return;
 
