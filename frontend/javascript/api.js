@@ -394,7 +394,6 @@ async function deleteTask(id) {
     const data = await res.json();
     alert(data.message);
 
-    // 🔥 IMPORTANT FIX
     loadAllTasks();          // refresh tasks page
     loadProjectWorkspace();  // refresh project workspace (optional but best)
 }

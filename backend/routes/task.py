@@ -36,11 +36,10 @@ async def create_task(task: TaskCreate, current_user: dict = Depends(get_current
 
     db.tasks.insert_one(new_task)
 
-    # 🔥 EMAIL TRIGGER
     await send_task_email(
         email=user["email"],
         task_title=new_task.get("title"),
-        assigned_by=current_user["email"]   # 👈 manager email here
+        assigned_by=current_user["email"]   
     )
 
     return {"message": "Task created and email sent"}

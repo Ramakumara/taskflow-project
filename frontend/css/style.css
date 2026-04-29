@@ -607,11 +607,11 @@ tr:nth-child(even) {
 .eye-icon {
     position: absolute;
     right: 70px;   
-    top: 38%;
+    top: 37%;
     transform: translateY(-50%);
     cursor: pointer;
-    font-size: 16px;
-    color: #5c5b5b;
+    color: #000000;
+    font-size: 18px !important;
 }
 
 
@@ -996,7 +996,7 @@ select option[value="done"] {
 /* LOGIN CARD */
 .login-card {
     width: 400px;
-    padding: 30px;
+    padding: 25px;
 
     border-radius: 18px;
     background: rgba(255,255,255,0.92);
@@ -1009,17 +1009,17 @@ select option[value="done"] {
 /* TITLE */
 .login-card h2 {
     font-size: 26px;
-    margin-bottom: 5px;
-    margin-top: 10px;
+    margin-bottom: 2px !important;
+    margin-top: 5px;
     text-align: center;
 }
 
 /* SUB TEXT */
 .login-card p {
     text-align: center;
-    font-size: 14px;
-    color: gray;
-    margin-bottom: 20px;
+    font-size: 15px;
+    color: rgb(124, 124, 124);
+    margin-bottom: 10px;
 }
 
 /* LABEL */
@@ -1077,11 +1077,12 @@ select option[value="done"] {
     align-items: center;
     font-size: 13px;
     margin-top: 10px;
+    margin-right: 20px;
 }
 
 /* BUTTON */
 .login-card button {
-    width: 100%;
+    width: 96%;
     margin-top: 20px;
     padding: 10px;
 
