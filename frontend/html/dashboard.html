@@ -192,10 +192,6 @@
                             <select id="teamProjectFilter" class="team-filter-select" onchange="renderTeamWorkspace()" aria-label="Filter team projects">
                                 <option value="all">All Projects</option>
                             </select>
-                            <button class="team-new-project-btn" type="button" onclick="openTeamCreateProject()">
-                                <i class="fas fa-plus"></i>
-                                <span>New Project</span>
-                            </button>
                         </div>
                     </div>
 
@@ -841,21 +837,14 @@ async function loadTeamMembers() {
     if (!role || !email || !token) return;
 
     try {
-        const [projectsRes, tasksRes, usersRes] = await Promise.all([
-            fetch(`${BASE_URL}/projects`, {
-                headers: { "Authorization": "Bearer " + token }
-            }),
-            fetch(`${BASE_URL}/tasks`, {
-                headers: { "Authorization": "Bearer " + token }
-            }),
-            fetch(`${BASE_URL}/users`, {
-                headers: { "Authorization": "Bearer " + token }
-            })
-        ]);
+        const workspaceRes = await fetch(`${BASE_URL}/projects/team-workspace`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
 
-        const projects = await projectsRes.json();
-        const tasks = await tasksRes.json();
-        const usersPayload = await usersRes.json();
+        const workspace = await workspaceRes.json();
+        const projects = workspace.projects;
+        const tasks = workspace.tasks;
+        const usersPayload = workspace.users;
         const users = Array.isArray(usersPayload) ? usersPayload : [];
 
         const teamList = document.getElementById("team-members-list");
@@ -884,14 +873,8 @@ function populateTeamProjectFilter(projects) {
     const userEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
     const { tasks } = teamWorkspaceCache;
 
-    // Filter projects for user role
     const filteredProjects = role === "user"
-        ? projects.filter(project =>
-            tasks.some(task =>
-                String(task.project_id) === String(project.id) &&
-                String(task.assigned_to || "").trim().toLowerCase() === userEmail
-            )
-        )
+        ? projects.filter(project => userBelongsToTeamProject(project, tasks, userEmail))
         : projects;
 
     const currentValue = filter.value || "all";
@@ -930,26 +913,22 @@ function renderTeamWorkspace() {
     const userEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
 
     let visibleProjects = projects.filter(project => {
-    const matchesFilter =
-        selectedProject === "all" || String(project.id) === String(selectedProject);
+        const matchesFilter =
+            selectedProject === "all" || String(project.id) === String(selectedProject);
 
-    if (role === "user") {
-        const isAssigned = tasks.some(task =>
-            String(task.project_id) === String(project.id) &&
-            String(task.assigned_to || "").trim().toLowerCase() === userEmail
-        );
+        if (role === "user") {
+            return matchesFilter && userBelongsToTeamProject(project, tasks, userEmail);
+        }
 
-        return matchesFilter && isAssigned;
-    }
-
-    return matchesFilter;
-});
+        return matchesFilter;
+    });
 
     const sections = visibleProjects.map((project, index) => {
 
-        let projectTasks = tasks.filter(task =>
+        const allProjectTasks = tasks.filter(task =>
             String(task.project_id) === String(project.id)
         );
+        let projectTasks = allProjectTasks;
 
         // Search filter
         if (query) {
@@ -966,16 +945,10 @@ function renderTeamWorkspace() {
         }
 
         const projectNameMatches = !query || String(project.name || "").toLowerCase().includes(query);
+        const memberRows = buildTeamMemberRows(projectTasks, userMap);
+        const memberCount = buildTeamMemberRows(allProjectTasks, userMap).length;
 
-        if (!projectNameMatches) return "";
-
-        const members = Array.from(new Set(
-            projectTasks
-                .map(task => String(task.assigned_to || "").trim().toLowerCase())
-                .filter(Boolean)
-        ));
-
-        const memberCount = members.length;
+        if (!projectNameMatches && !projectTasks.length) return "";
 
         return `
             <section class="team-project-card">
@@ -995,21 +968,37 @@ function renderTeamWorkspace() {
                             <tr>
                                 <th>Member</th>
                                 <th>Email</th>
-                                <th>Task</th>
-                                <th>Status</th>
+                                ${role === "user" ? "" : `
+                                    <th>Task</th>
+                                    <th>Status</th>
+                                `}
                             </tr>
                         </thead>
                         <tbody>
                             ${
-                                projectTasks.length
-                                ? projectTasks.map(task => renderTeamTaskRow(task, userMap)).join("")
-                                : `
-                                <tr>
-                                    <td colspan="4" class="team-empty-row">
-                                        No members yet (assign tasks to users)
-                                    </td>
-                                </tr>
-                                `
+                                role === "user"
+                                ? (
+                                    memberRows.length
+                                    ? memberRows.map(member => renderTeamMemberRow(member)).join("")
+                                    : `
+                                    <tr>
+                                        <td colspan="2" class="team-empty-row">
+                                            No members yet
+                                        </td>
+                                    </tr>
+                                    `
+                                )
+                                : (
+                                    projectTasks.length
+                                    ? projectTasks.map(task => renderTeamTaskRow(task, userMap)).join("")
+                                    : `
+                                    <tr>
+                                        <td colspan="4" class="team-empty-row">
+                                            No members yet (assign tasks to users)
+                                        </td>
+                                    </tr>
+                                    `
+                                )
                             }
                         </tbody>
                     </table>
@@ -1028,6 +1017,45 @@ function renderTeamWorkspace() {
     list.innerHTML = sections.length
         ? sections.join("")
         : `<div class="team-empty-state">No members found</div>`;
+}
+
+function userBelongsToTeamProject(project, tasks, userEmail) {
+    return tasks.some(task =>
+        String(task.project_id) === String(project.id) &&
+        String(task.assigned_to || "").trim().toLowerCase() === userEmail
+    );
+}
+
+function buildTeamMemberRows(tasks, userMap) {
+    const members = new Map();
+
+    tasks.forEach(task => {
+        const email = String(task.assigned_to || "").trim().toLowerCase();
+        if (!email || members.has(email)) return;
+
+        const member = userMap.get(email) || {};
+        const name = member.username || task.assigned_to || email;
+        members.set(email, {
+            email: task.assigned_to || email,
+            name
+        });
+    });
+
+    return Array.from(members.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function renderTeamMemberRow(member) {
+    return `
+        <tr>
+            <td>
+                <span class="team-member-cell">
+                    <span class="team-avatar">${escapeTeamHtml(member.name.charAt(0).toUpperCase() || "?")}</span>
+                    <span>${escapeTeamHtml(member.name)}</span>
+                </span>
+            </td>
+            <td>${escapeTeamHtml(member.email || "Unassigned")}</td>
+        </tr>
+    `;
 }
 
 function renderTeamTaskRow(task, userMap) {
