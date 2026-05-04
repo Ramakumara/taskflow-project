@@ -37,6 +37,10 @@
                 <i class="fas fa-clock-rotate-left menu-icon"></i>
                 <span>Activity Log</span>
             </button>
+            <button class="menu-item" type="button" data-sidebar="report" onclick="setProjectTab('report')">
+                <i class="fas fa-chart-pie menu-icon"></i>
+                <span>Reports</span>
+            </button>
             <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
                 <i class="far fa-folder-open menu-icon"></i>
                 <span>Files</span>
@@ -257,6 +261,46 @@
                     </div>
                 </section>
             </div>
+
+            <div id="report-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head calendar-head">
+                        <div>
+                            <h3>Project Reports</h3>
+                            <p>Analyze project performance and team productivity.</p>
+                        </div>
+                    </div>
+                   <div id="report-content">
+
+                    <!-- Top Bar -->
+                    <div class="report-header">
+                        <h2>Reports</h2>
+                        <div class="report-actions">
+                        <input type="date" >
+                        <input type="date">
+                        <button onclick="exportCSV()">Export</button>
+                        </div>
+                    </div>
+
+                    <!-- Cards -->
+                    <div class="report-cards" id="report-cards"></div>
+
+                    <!-- Charts -->
+                    <div class="report-grid">
+                        <canvas id="statusChart"></canvas>
+                        <canvas id="lineChart"></canvas>
+                        <canvas id="priorityChart"></canvas>
+                    </div>
+
+                    <!-- Tables -->
+                    <div class="report-tables">
+                        <div id="project-summary"></div>
+                        <div id="team-summary"></div>
+                    </div>
+
+                    </div>
+                    </section>
+                </div>
 
             <div id="files-view" class="hidden">
                 <section class="files-page">
@@ -569,6 +613,7 @@ function hideAllViews() {
     document.getElementById('profile-view').classList.add('hidden');
     document.getElementById('settings-view').classList.add('hidden');
     document.getElementById('project-workspace-view').classList.add('hidden');
+    document.getElementById('report-view').classList.add('hidden');
 }
 
 // Show specific view
@@ -623,6 +668,11 @@ function setProjectTab(tab) {
             setActiveMenu('activity-log');
             showView('activity-view');
             loadActivityLog();
+            break;
+        case 'report':
+            setActiveMenu('report');
+            showView('report-view');
+            loadReports();
             break;
         case 'files':
             setActiveMenu('files');
@@ -1432,6 +1482,152 @@ async function addTaskComment() {
 function showProjectWorkspace() {
     hideAllViews();
     document.getElementById('project-workspace-view').classList.remove('hidden');
+}
+
+async function loadReports() {
+  const token = localStorage.getItem("token");
+
+  const [projectsRes, tasksRes] = await Promise.all([
+    fetch(`${BASE_URL}/projects`, { headers: { Authorization: "Bearer " + token } }),
+    fetch(`${BASE_URL}/tasks`, { headers: { Authorization: "Bearer " + token } })
+  ]);
+
+  const projects = await projectsRes.json();
+  const tasks = await tasksRes.json();
+
+  const totalProjects = projects.length;
+  const totalTasks = tasks.length;
+
+  const completed = tasks.filter(t => t.status === "done").length;
+  const inProgress = tasks.filter(t => t.status === "in progress").length;
+
+  const today = new Date();
+  const overdue = tasks.filter(t =>
+    t.deadline && new Date(t.deadline) < today && t.status !== "done"
+  ).length;
+
+  const completedPercent = ((completed / totalTasks) * 100).toFixed(1);
+  const progressPercent = ((inProgress / totalTasks) * 100).toFixed(1);
+  const overduePercent = ((overdue / totalTasks) * 100).toFixed(1);
+
+  renderCards(totalProjects, totalTasks, completed, inProgress, overdue, completedPercent, progressPercent, overduePercent);
+  renderCharts(tasks, completed, inProgress, overdue);
+  renderProjectSummary(projects, tasks);
+  renderTeamSummary(tasks);
+}
+
+function renderCards(p, t, c, i, o, cp, ip, op) {
+  document.getElementById("report-cards").innerHTML = `
+    <div class="card"><h4>Total Projects</h4><h2>${p}</h2></div>
+    <div class="card"><h4>Total Tasks</h4><h2>${t}</h2></div>
+    <div class="card"><h4>Completed</h4><h2>${c}</h2><small>${cp}%</small></div>
+    <div class="card"><h4>In Progress</h4><h2>${i}</h2><small>${ip}%</small></div>
+    <div class="card"><h4>Overdue</h4><h2>${o}</h2><small style="color:red">${op}%</small></div>
+  `;
+}
+
+function renderCharts(tasks, completed, inProgress, overdue) {
+
+  new Chart(statusChart, {
+    type: "doughnut",
+    data: {
+      labels: ["Completed", "In Progress", "Overdue"],
+      datasets: [{
+        data: [completed, inProgress, overdue],
+        backgroundColor: ["#22c55e", "#f59e0b", "#ef4444"]
+      }]
+    }
+  });
+
+  // Line chart (by date)
+  const map = {};
+  tasks.forEach(t => {
+    if (t.status === "done") {
+      const d = t.deadline;
+      map[d] = (map[d] || 0) + 1;
+    }
+  });
+
+  new Chart(lineChart, {
+    type: "line",
+    data: {
+      labels: Object.keys(map),
+      datasets: [{
+        label: "Completed Tasks",
+        data: Object.values(map)
+      }]
+    }
+  });
+
+  // Priority (mock or add later)
+  new Chart(priorityChart, {
+    type: "bar",
+    data: {
+      labels: ["High", "Medium", "Low"],
+      datasets: [{ data: [10, 15, 5] }]
+    }
+  });
+}
+
+function renderProjectSummary(projects, tasks) {
+  let html = `<h3>Project Summary</h3><table>
+  <tr><th>Project</th><th>Total</th><th>Done</th><th>%</th></tr>`;
+
+  projects.forEach(p => {
+    const pt = tasks.filter(t => t.project_id == p.id);
+    const done = pt.filter(t => t.status === "done").length;
+    const percent = pt.length ? (done / pt.length * 100).toFixed(0) : 0;
+
+    html += `
+    <tr>
+      <td>${p.name}</td>
+      <td>${pt.length}</td>
+      <td>${done}</td>
+      <td>
+        <div style="background:#eee;height:6px;border-radius:5px">
+          <div style="width:${percent}%;background:#22c55e;height:6px;border-radius:5px"></div>
+        </div>
+        ${percent}%
+      </td>
+    </tr>`;
+  });
+
+  html += "</table>";
+  document.getElementById("project-summary").innerHTML = html;
+}
+
+function renderTeamSummary(tasks) {
+  const map = {};
+
+  tasks.forEach(t => {
+    const u = t.assigned_to;
+    if (!map[u]) map[u] = { total: 0, done: 0 };
+
+    map[u].total++;
+    if (t.status === "done") map[u].done++;
+  });
+
+  let html = `<h3>Team Performance</h3><table>
+  <tr><th>User</th><th>Total</th><th>Done</th><th>%</th></tr>`;
+
+  for (let u in map) {
+    const percent = (map[u].done / map[u].total * 100).toFixed(0);
+
+    html += `
+    <tr>
+      <td>${u}</td>
+      <td>${map[u].total}</td>
+      <td>${map[u].done}</td>
+      <td>${percent}%</td>
+    </tr>`;
+  }
+
+  html += "</table>";
+  document.getElementById("team-summary").innerHTML = html;
+}
+
+function exportCSV() {
+  window.open(`${BASE_URL}/activities/export`);
 }
 
 async function loadFiles() {
