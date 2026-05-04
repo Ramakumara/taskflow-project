@@ -1010,33 +1010,39 @@ function renderTeamWorkspace() {
                                 <th>Email</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            ${
-                                role === "user"
-                                ? (
-                                    memberRows.length
-                                    ? memberRows.map(member => renderTeamMemberRow(member)).join("")
-                                    : `
-                                    <tr>
-                                        <td colspan="2" class="team-empty-row">
-                                            No members yet
-                                        </td>
-                                    </tr>
-                                    `
-                                )
-                                : (
-                                    projectTasks.length
-                                    ? projectTasks.map(task => renderTeamTaskRow(task, userMap)).join("")
-                                    : `
-                                    <tr>
-                                        <td colspan="4" class="team-empty-row">
-                                            No members yet (assign tasks to users)
-                                        </td>
-                                    </tr>
-                                    `
-                                )
-                            }
-                        </tbody>
+                       <tbody>
+                        ${
+                            (() => {
+                                const uniqueMembers = Array.from(
+                                    new Map(memberRows.map(m => [m.email, m])).values()
+                                );
+
+                                return role === "user"
+                                    ? (
+                                        uniqueMembers.length
+                                        ? uniqueMembers.map(member => renderTeamMemberRow(member)).join("")
+                                        : `
+                                        <tr>
+                                            <td colspan="2" class="team-empty-row">
+                                                No members yet
+                                            </td>
+                                        </tr>
+                                        `
+                                    )
+                                    : (
+                                        uniqueMembers.length
+                                        ? uniqueMembers.map(member => renderTeamMemberRow(member)).join("")
+                                        : `
+                                        <tr>
+                                            <td colspan="2" class="team-empty-row">
+                                                No members yet
+                                            </td>
+                                        </tr>
+                                        `
+                                    );
+                            })()
+                        }
+                    </tbody>
                     </table>
                 </div>
 
