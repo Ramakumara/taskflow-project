@@ -741,9 +741,7 @@ button {
     cursor: pointer;
 }
 
-button:hover {
-    background: #c0392b;
-}
+
 
 select {
     padding: 6px;
