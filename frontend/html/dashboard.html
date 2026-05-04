@@ -29,9 +29,13 @@
                 <i class="fas fa-users menu-icon"></i>
                 <span>My Team</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="activity" onclick="setProjectTab('activity')">
+            <button class="menu-item" type="button" data-sidebar="calendar" onclick="setProjectTab('calendar')">
                 <i class="fas fa-chart-column menu-icon"></i>
                 <span>Calendar</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="activity-log" onclick="setProjectTab('activity-log')">
+                <i class="fas fa-clock-rotate-left menu-icon"></i>
+                <span>Activity Log</span>
             </button>
             <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
                 <i class="far fa-folder-open menu-icon"></i>
@@ -220,6 +224,36 @@
                     </div>
                     <div id="calendar-container" class="calendar-panel">
                         <div id="calendar" class="calendar-grid"></div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="activity-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head calendar-head">
+                        <div>
+                            <h3>Team Activity Log</h3>
+                            <p>Review recent activity for your team members.</p>
+                        </div>
+                        <button class="files-action-btn primary" type="button" onclick="exportActivityLog()">
+                            <i class="fas fa-file-export"></i>
+                            Export CSV
+                        </button>
+                    </div>
+                    <div class="workspace-table-wrap">
+                        <table class="workspace-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-log-body">
+                                <tr><td colspan="4">Loading activity log...</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </section>
             </div>
@@ -475,9 +509,9 @@
                                         <thead>
                                             <tr>
                                                 <th>Task</th>
-                                                <th>Status</th>
-                                                <th>Due Date</th>
                                                 <th>Assigned To</th>
+                                                <th>Due Date</th>
+                                                <th>Status</th>
                                                 <th id="action-header">Action</th>
                                             </tr>
                                         </thead>
@@ -530,6 +564,7 @@ function hideAllViews() {
     document.getElementById('tasks-view').classList.add('hidden');
     document.getElementById('team-view').classList.add('hidden');
     document.getElementById('calendar-view').classList.add('hidden');
+    document.getElementById('activity-view').classList.add('hidden');
     document.getElementById('files-view').classList.add('hidden');
     document.getElementById('profile-view').classList.add('hidden');
     document.getElementById('settings-view').classList.add('hidden');
@@ -579,10 +614,15 @@ function setProjectTab(tab) {
             showView('team-view');
             loadTeamMembers();
             break;
-        case 'activity':
-            setActiveMenu('activity');
+        case 'calendar':
+            setActiveMenu('calendar');
             showView('calendar-view');
             initializeCalendar();
+            break;
+        case 'activity-log':
+            setActiveMenu('activity-log');
+            showView('activity-view');
+            loadActivityLog();
             break;
         case 'files':
             setActiveMenu('files');
@@ -968,10 +1008,6 @@ function renderTeamWorkspace() {
                             <tr>
                                 <th>Member</th>
                                 <th>Email</th>
-                                ${role === "user" ? "" : `
-                                    <th>Task</th>
-                                    <th>Status</th>
-                                `}
                             </tr>
                         </thead>
                         <tbody>
@@ -1073,8 +1109,6 @@ function renderTeamTaskRow(task, userMap) {
                 </span>
             </td>
             <td>${escapeTeamHtml(email || "Unassigned")}</td>
-            <td>${escapeTeamHtml(task.title || "Untitled Task")}</td>
-            <td><span class="team-status ${teamStatusClass(status)}">${escapeTeamHtml(status)}</span></td>
         </tr>
     `;
 }
@@ -1667,6 +1701,17 @@ function closeStorageDropdown() {
     }
 }
 
+window.addEventListener("load", () => {
+    const role = localStorage.getItem("role");
+
+    if (role === "user") {
+        const activityMenu = document.querySelector('[data-sidebar="activity-log"]');
+        if (activityMenu) {
+            activityMenu.style.display = "none";
+        }
+    }
+});
+
 window.addEventListener("click", function(event) {
     const target = event.target;
 
@@ -2023,9 +2068,17 @@ function formatSize(bytes) {
 
 function formatDateTime(value) {
     if (!value) return "—";
+
     const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "—";
-    return date.toLocaleString("en-US", { month: "short", day: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+
+    return date.toLocaleString("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    });
 }
 
 window.addEventListener("load", loadDashboardSummary);

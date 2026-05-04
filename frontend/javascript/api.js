@@ -398,6 +398,80 @@ async function deleteTask(id) {
     loadProjectWorkspace();  // refresh project workspace (optional but best)
 }
 
+async function loadActivityLog() {
+    const token = localStorage.getItem("token");
+    const body = document.getElementById("activity-log-body");
+    if (!body) return;
+
+    body.innerHTML = `<tr><td colspan="4">Loading activity log...</td></tr>`;
+
+    try {
+        const res = await fetch(`${BASE_URL}/activities`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
+            body.innerHTML = `<tr><td colspan="4">${error.message || error.detail || "Unable to load activity log."}</td></tr>`;
+            return;
+        }
+
+        const logs = await res.json();
+        if (!Array.isArray(logs) || logs.length === 0) {
+            body.innerHTML = `<tr><td colspan="4">No activity records found.</td></tr>`;
+            return;
+        }
+
+        body.innerHTML = "";
+        logs.slice(0, 30).forEach(log => {
+            const timestamp = log.timestamp ? new Date(log.timestamp).toLocaleString() : "-";
+            const userText = log.user_email || "-";
+            const details = [log.target, log.details].filter(Boolean).join(" — ") || "-";
+
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${formatDateTime(log.timestamp)}</td>                
+                <td>${userText}</td>
+                <td>${log.action}</td>
+                <td>${details}</td>
+            `;
+            body.appendChild(row);
+        });
+    } catch (err) {
+        console.error(err);
+        body.innerHTML = `<tr><td colspan="4">Unable to load activity log.</td></tr>`;
+    }
+}
+
+async function exportActivityLog() {
+    const token = localStorage.getItem("token");
+
+    try {
+        const res = await fetch(`${BASE_URL}/activities/export`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
+            alert(error.message || error.detail || "Failed to export activity log.");
+            return;
+        }
+
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "taskflow-activity-log.csv";
+        document.body.appendChild(anchor);
+        anchor.click();
+        anchor.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error(err);
+        alert("Failed to export activity log.");
+    }
+}
+
 window.onload = function () {
     const role = localStorage.getItem("role");
     const username = localStorage.getItem("username");
@@ -433,6 +507,22 @@ window.onload = function () {
         setAvatar();
     }
 };
+
+function formatDateTime(value) {
+    if (!value) return "—";
+
+    const date = new Date(value);
+
+    return date.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata", 
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    });
+}
 
 function setAvatar() {
     const email = localStorage.getItem("email");

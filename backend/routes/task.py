@@ -5,6 +5,7 @@ from bson import ObjectId
 from fastapi import Depends
 from auth_utils import get_current_user
 from auth_utils import send_task_email
+from routes.activity import record_activity
 router = APIRouter()
 
 def format_mongo(doc):
@@ -35,6 +36,13 @@ async def create_task(task: TaskCreate, current_user: dict = Depends(get_current
     new_task["project_id"] = ObjectId(task.project_id)
 
     db.tasks.insert_one(new_task)
+
+    record_activity(
+        current_user,
+        "Task created",
+        f"Task: {new_task.get('title')}",
+        f"Assigned to: {new_task.get('assigned_to')}"
+    )
 
     await send_task_email(
         email=user["email"],
@@ -80,6 +88,13 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
     db.tasks.update_one(
         {"_id": ObjectId(task_id)},
         {"$set": {"status": update.status}}
+    )
+
+    record_activity(
+        current_user,
+        "Task updated",
+        f"Task: {task.get('title')}",
+        f"New status: {update.status}"
     )
 
     return {"message": "Task updated"}

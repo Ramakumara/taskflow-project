@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 from auth_utils import create_access_token
 from fastapi import Depends
 from auth_utils import get_current_user
+from routes.activity import record_activity
 from jose import JWTError, jwt
 import re
 import requests
@@ -52,6 +53,7 @@ def register(user: UserRegister):
     }
 
     db.users.insert_one(new_user)
+    record_activity(new_user, "User registered", "Account", f"Role: {new_user['role']}")
 
     return {"message": "User registered"}
 
@@ -82,6 +84,8 @@ def login(user: UserLogin):
             "role": found.get("role"),
             "username": found.get("username")
         })
+
+        record_activity(found, "User logged in", "Authentication", "Successful login")
 
         return {
             "message": "Login success",

@@ -4070,3 +4070,8 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 .g-recaptcha {
     width: 5%;
 }
+
+.workspace-table td,
+.workspace-table th{
+    text-align: left;
+}

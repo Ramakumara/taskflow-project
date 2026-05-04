@@ -4,6 +4,7 @@ from models.projects import ProjectCreate
 from bson import ObjectId
 from fastapi import Depends
 from auth_utils import get_current_user
+from routes.activity import record_activity
 
 router = APIRouter()
 
@@ -38,6 +39,12 @@ def create_project(project: ProjectCreate, current_user: dict = Depends(get_curr
     new_project["owner_email"] = current_user["email"]  
 
     db.projects.insert_one(new_project)
+    record_activity(
+        current_user,
+        "Project created",
+        "Project",
+        f"Name: {new_project['name']}"
+    )
     return {"message": "Project created"}
 
 
@@ -89,9 +96,17 @@ def delete_project(project_id: str, current_user: dict = Depends(get_current_use
     if current_user["role"] != "manager":
         return {"message": "Not allowed"}
 
+    project = db.projects.find_one({"_id": ObjectId(project_id)})
+    project_name = project.get("name") if project else "Unknown project"
+
     db.projects.delete_one({"_id": ObjectId(project_id)})
-
-
     db.tasks.delete_many({"project_id": ObjectId(project_id)})
+
+    record_activity(
+        current_user,
+        "Project deleted",
+        "Project",
+        f"Name: {project_name}"
+    )
 
     return {"message": "Project deleted"}
