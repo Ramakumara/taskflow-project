@@ -34,6 +34,7 @@ async def create_task(task: TaskCreate, current_user: dict = Depends(get_current
 
     new_task = task.model_dump()
     new_task["project_id"] = ObjectId(task.project_id)
+    new_task["assigned_by"] = current_user["email"]
 
     db.tasks.insert_one(new_task)
 

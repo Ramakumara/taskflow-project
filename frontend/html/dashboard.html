@@ -176,7 +176,7 @@
                                 <tr>
                                     <th>Task</th>
                                     <th>Project</th>
-                                    <th >Assigned To</th>                                    
+                                    <th id="all-tasks-assigned-header">Assigned To</th>
                                     <th>Status</th>
                                     <th>Due Date</th>
                                     <th id="task-action-header">action</th>
@@ -861,7 +861,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Task</th>
-                                                <th>Assigned To</th>
+                                                <th id="workspace-assigned-header">Assigned To</th>
                                                 <th>Due Date</th>
                                                 <th>Status</th>
                                                 <th id="action-header">Action</th>
@@ -941,6 +941,11 @@ function dashboard() {
 }
 
 function setProjectTab(tab) {
+    if (tab === 'activity-log' && localStorage.getItem("role") === "user") {
+        dashboard();
+        return;
+    }
+
     switch(tab) {
         case 'overview':
             setActiveMenu('overview');
@@ -1054,6 +1059,10 @@ function loadSettingsView() {
 function saveSettingsPreference(key, value) {
     localStorage.setItem(`settings.${key}`, String(value));
     applySettingsPreferences();
+}
+
+function getTaskAssignedBy(task, project) {
+    return task.assigned_by || project?.owner_email || "Unknown";
 }
 
 function toggleQuietNotifications() {
@@ -1172,6 +1181,10 @@ async function loadAllTasks() {
 
         const list = document.getElementById("all-tasks-list");
         list.innerHTML = "";
+        const assignedHeader = document.getElementById("all-tasks-assigned-header");
+        if (assignedHeader) {
+            assignedHeader.textContent = role === "user" ? "Assigned By" : "Assigned To";
+        }
 
         if (tasks.length === 0) {
             list.innerHTML = `<tr><td colspan="5">No tasks assigned</td></tr>`;
@@ -1182,10 +1195,11 @@ async function loadAllTasks() {
             const project = projects.find(p => String(p.id) === String(t.project_id));
             const row = document.createElement("tr");
             const statusClass = t.status.trim().toLowerCase().replace(/\s+/g, "-");
+            const assignedDisplay = role === "user" ? getTaskAssignedBy(t, project) : t.assigned_to;
             row.innerHTML = `
                 <td>${t.title}</td>
                 <td>${project?.name || "Unknown"}</td>
-                <td>${t.assigned_to}</td>
+                <td>${assignedDisplay || "Unknown"}</td>
                 <td><span class="status-pill ${statusClass}">${t.status}</span></td>
                 <td>${t.deadline || "N/A"}</td>
                 ${role === "admin" || role === "manager" ? `
@@ -1704,6 +1718,10 @@ async function loadProjectWorkspace() {
         
         const list = document.getElementById("task-list");
         list.innerHTML = "";
+        const assignedHeader = document.getElementById("workspace-assigned-header");
+        if (assignedHeader) {
+            assignedHeader.textContent = role === "user" ? "Assigned By" : "Assigned To";
+        }
 
         const projectTasks = tasks.filter(t =>
             String(t.project_id) === String(projectId)
@@ -1720,10 +1738,11 @@ async function loadProjectWorkspace() {
 
         projectTasks.forEach(t => {
             const row = document.createElement("tr");
+            const assignedDisplay = role === "user" ? getTaskAssignedBy(t, project) : t.assigned_to;
 
             row.innerHTML = `
                 <td>${t.title}</td>
-                <td>${t.assigned_to}</td>
+                <td>${assignedDisplay || "Unknown"}</td>
                 <td>${t.deadline || "N/A"}</td>
 
                 ${
@@ -1991,6 +2010,25 @@ let exportModalState = {
 
 let showAllProjects = false;
 let showAllTeam = false;
+
+function applyDashboardRoleVisibility() {
+    const role = localStorage.getItem("role");
+    const isUser = role === "user";
+    const activityMenu = document.querySelector('[data-sidebar="activity-log"]');
+    const activityExportCard = document.querySelector('[data-export-section="activity"]');
+
+    if (activityMenu) {
+        activityMenu.style.display = isUser ? "none" : "";
+    }
+
+    if (activityExportCard) {
+        activityExportCard.style.display = isUser ? "none" : "";
+    }
+
+    if (isUser) {
+        exportModalState.sections.delete("activity");
+    }
+}
 
 function normalizeReportStatus(status) {
     return String(status || "").trim().toLowerCase();
@@ -2505,6 +2543,7 @@ function openExportModal() {
     const modal = document.getElementById("export-report-modal");
     if (!modal) return;
 
+    applyDashboardRoleVisibility();
     syncExportModalUI();
     modal.classList.remove("hidden");
     document.body.classList.add("export-modal-open");
@@ -2560,6 +2599,10 @@ async function exportCSV(options = {}) {
     const { filteredProjects, filteredTasks, startDate, endDate } = reportState;
     const sections = new Set(options.sections || ["projects", "overview", "tasks", "team"]);
     const format = options.format || "csv";
+
+    if (localStorage.getItem("role") === "user") {
+        sections.delete("activity");
+    }
 
     if (!Array.isArray(filteredTasks) || !filteredTasks.length) {
         alert("No report data available to export.");
@@ -3019,14 +3062,7 @@ function closeStorageDropdown() {
 }
 
 window.addEventListener("load", () => {
-    const role = localStorage.getItem("role");
-
-    if (role === "user") {
-        const activityMenu = document.querySelector('[data-sidebar="activity-log"]');
-        if (activityMenu) {
-            activityMenu.style.display = "none";
-        }
-    }
+    applyDashboardRoleVisibility();
 });
 
 window.addEventListener("click", function(event) {
@@ -3125,7 +3161,7 @@ function renderAssignedControl(file) {
 
             <div id="assign-menu-${key}" class="inline-assign-menu hidden">
                 
-                <input type="text" placeholder="Search user..."
+                <input class="inline-assign-search-input" type="text" placeholder="Search user..."
                     oninput="filterInlineAssign('${key}', this.value)">
 
                 <div class="assign-list">
@@ -3184,26 +3220,40 @@ async function loadAssignableUsers() {
 
 function positionInlineAssignMenu(button, menu) {
     const rect = button.getBoundingClientRect();
+    const menuWidth = Math.max(rect.width, 260);
+    const spaceBelow = window.innerHeight - rect.bottom - 12;
+    const spaceAbove = rect.top - 12;
+    const openUp = spaceBelow < 260 && spaceAbove > spaceBelow;
 
     menu.style.position = "fixed";
-    menu.style.top = (rect.bottom + 6) + "px";
-    menu.style.left = rect.left + "px";
-    menu.style.width = rect.width + "px";
+    menu.style.left = Math.min(rect.left, window.innerWidth - menuWidth - 12) + "px";
+    menu.style.width = menuWidth + "px";
+    menu.style.maxHeight = Math.max(220, Math.min(320, openUp ? spaceAbove : spaceBelow)) + "px";
+    menu.style.top = openUp ? "" : (rect.bottom + 8) + "px";
+    menu.style.bottom = openUp ? (window.innerHeight - rect.top + 8) + "px" : "";
 }
 
 function toggleInlineAssign(key) {
     const menu = document.getElementById(`assign-menu-${key}`);
     if (!menu) return;
+    const button = document.querySelector(`[data-assign-key="${key}"]`);
+    if (!button) return;
 
     const isOpen = !menu.classList.contains("hidden");
 
-    // close all
     document.querySelectorAll(".inline-assign-menu").forEach(m => {
-        m.classList.add("hidden");
+        closeInlineAssign(m.id?.replace(/^assign-menu-/, ""));
     });
 
     if (!isOpen) {
+        if (!menu.__originalParent) {
+            menu.__originalParent = menu.parentNode;
+            menu.__originalNextSibling = menu.nextSibling;
+        }
+        document.body.appendChild(menu);
+        positionInlineAssignMenu(button, menu);
         menu.classList.remove("hidden");
+        button.classList.add("open");
     }
 }
 
@@ -3212,6 +3262,10 @@ function closeInlineAssign(key) {
     if (!menu) return;
 
     menu.classList.add("hidden");
+    menu.removeAttribute("style");
+
+    const button = document.querySelector(`[data-assign-key="${key}"]`);
+    if (button) button.classList.remove("open");
 
     if (menu.__originalParent) {
         const parent = menu.__originalParent;
@@ -3242,6 +3296,7 @@ function syncInlineAssign(key) {
 
 async function saveInlineAssign(key) {
     const menu = document.getElementById(`assign-menu-${key}`);
+    if (!menu) return;
 
     const selectedValues = Array.from(
         menu.querySelectorAll('input[type="checkbox"]:checked')
@@ -3403,7 +3458,12 @@ async function initializeDashboardPage() {
         applySettingsPreferences();
     }
 
-    const defaultView = localStorage.getItem("settings.defaultView") || "files";
+    applyDashboardRoleVisibility();
+
+    let defaultView = localStorage.getItem("settings.defaultView") || "files";
+    if (defaultView === "activity-log" && localStorage.getItem("role") === "user") {
+        defaultView = "files";
+    }
     setProjectTab(defaultView);
 
     if (typeof loadAssignableUsers === "function") {

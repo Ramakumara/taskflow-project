@@ -3648,7 +3648,8 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 
 .inline-assign {
-    position: relative;   /* 🔥 important */
+    position: relative;
+    width: min(260px, 100%);
 }
 
 .assign-btn {
@@ -3669,10 +3670,10 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 
-.assign-btn:hover {
+.assign-btn:hover,
+.assign-btn.open {
     border-color: #c8d5ee;
     box-shadow: 0 10px 20px rgba(47, 92, 177, 0.08);
-    transform: translateY(-1px);
 }
 
 .btn-blue {
@@ -3691,19 +3692,24 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 }
 
 .inline-assign-menu {
-    max-height: 260px;   /* 🔥 important */
+    max-height: 320px;
     overflow: hidden;
     background: #fff;
-    z-index: 9999;
+    z-index: 99999;
     display: flex;
     flex-direction: column;
+    border: 1px solid #d8e0ec;
+    border-radius: 14px;
+    box-shadow: 0 24px 54px rgba(16, 28, 49, 0.18);
+    padding: 10px;
 }
 
 .files-table-card {
     overflow: visible !important;
 }
 
-.inline-assign-search input {
+.inline-assign-search input,
+.inline-assign-search-input {
     width: 100%;
     border: 1px solid #dbe3f0;
     border-radius: 12px;
@@ -3713,7 +3719,8 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     background: #f8fbff;
 }
 
-.inline-assign-search input::placeholder {
+.inline-assign-search input::placeholder,
+.inline-assign-search-input::placeholder {
     color: #7f8895;
 }
 
@@ -3733,26 +3740,32 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 }
 
 .assign-list {
-    max-height: 150px;   
-    overflow-y: auto;    
+    max-height: 170px;
+    overflow-y: auto;
+    padding: 6px 2px;
 }
 
 .assign-option {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 6px 4px;
+    min-height: 34px;
+    padding: 7px 8px;
+    border-radius: 8px;
     cursor: pointer;
+    color: #2a3650;
+    font-size: 14px;
 }
 
 .assign-option:hover {
     background: #f4f7fb;
-    border-color: #d8e0ec;
 }
 
 .assign-option input[type="checkbox"] {
     width: 16px;
     height: 16px;
+    margin: 0;
+    flex: 0 0 16px;
 }
 
 .assign-empty {
@@ -3764,8 +3777,9 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 .inline-assign-actions {
     display: flex;
-    justify-content: space-between;
-    padding: 10px;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px 0 0;
     background: #fff;
     border-top: 1px solid #eee;
     position: sticky;
@@ -3774,8 +3788,8 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 .inline-assign-actions button {
     border: none;
-    border-radius: 12px;
-    height: 38px;
+    border-radius: 8px;
+    height: 34px;
     padding: 0 14px;
     cursor: pointer;
     font-weight: 600;
@@ -4090,8 +4104,14 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 #report-content *::before,
 #report-content *::after {
     box-sizing: border-box;
-    font-family: inherit;
     letter-spacing: 0;
+}
+
+#report-content button,
+#report-content input,
+#report-content select,
+#report-content textarea {
+    font-family: inherit;
 }
 
 /* HEADER */
