@@ -283,19 +283,100 @@
                     </div>
 
                     <!-- Cards -->
-                    <div class="report-cards" id="report-cards"></div>
+                    <div class="report-cards">
+
+                        <div class="report-card blue">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-folder"></i></div>
+                                <span>Total Projects</span>
+                            </div>
+                            <h2 id="report-total-projects">0</h2>
+                            <p class="link-text">All projects</p>
+                        </div>
+
+                        <div class="report-card green">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-list-check"></i></div>
+                                <span>Total Tasks</span>
+                            </div>
+                            <h2 id="report-total-tasks">0</h2>
+                            <p class="link-text">All tasks</p>
+                        </div>
+
+                        <div class="report-card purple">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-circle-check"></i></div>
+                                <span>Completed Tasks</span>
+                            </div>
+                            <h2 id="report-completed-tasks">0</h2>
+                            <p class="percent blue-text" id="report-completed-percent">0%</p>
+                        </div>
+
+                        <div class="report-card orange">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-hourglass-half"></i></div>
+                                <span>In Progress Tasks</span>
+                            </div>
+                            <h2 id="report-inprogress-tasks">0</h2>
+                            <p class="percent orange-text" id="report-progress-percent">0%</p>
+                        </div>
+
+                        <div class="report-card red">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-triangle-exclamation"></i></div>
+                                <span>Overdue Tasks</span>
+                            </div>
+                            <h2 id="report-overdue-tasks">0</h2>
+                            <p class="percent red-text" id="report-overdue-percent">0%</p>
+                        </div>
+
+                    </div>
 
                     <!-- Charts -->
                     <div class="report-grid">
-                        <canvas id="statusChart"></canvas>
-                        <canvas id="lineChart"></canvas>
-                        <canvas id="priorityChart"></canvas>
+                        <div class="chart-card-container"><div class="chart-wrap"><canvas id="statusChart"></canvas></div></div>
+                        <div class="chart-card-container"><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>
+                        <div class="chart-card-container"><div class="chart-wrap"><canvas id="priorityChart"></canvas></div></div>
                     </div>
 
                     <!-- Tables -->
                     <div class="report-tables">
-                        <div id="project-summary"></div>
-                        <div id="team-summary"></div>
+                        <div class="report-table-card">
+                            <h3>Project Summary</h3>
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Project</th>
+                                        <th>Total</th>
+                                        <th>Completed</th>
+                                        <th>In Progress</th>
+                                        <th>Overdue</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="project-summary-body"></tbody>
+                            </table>
+                            <div class="table-footer">
+                                <button id="view-all-projects" class="link-btn">View all projects</button>
+                            </div>
+                        </div>
+                        <div class="report-table-card">
+                            <h3>Team Performance</h3>
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Completed</th>
+                                        <th>Total</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="team-summary-body"></tbody>
+                            </table>
+                            <div class="table-footer">
+                                <button id="view-team-report" class="link-btn">View full team report</button>
+                            </div>
+                        </div>
                     </div>
 
                     </div>
@@ -570,6 +651,7 @@
         </section>
     </main>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/static/javascript/api.js"></script>
 <script>
 const params = new URLSearchParams(window.location.search);
@@ -1327,13 +1409,6 @@ async function loadDashboardSummary() {
     const role = localStorage.getItem("role");
     const email = localStorage.getItem("email");
     const token = localStorage.getItem("token");
-    const totalProjects = document.getElementById("total-projects");
-    const totalTasks = document.getElementById("total-tasks");
-    const completionRate = document.getElementById("completion-rate");
-
-    if (!role || !email || !token || !totalProjects || !totalTasks || !completionRate) {
-        return;
-    }
 
     try {
         const [projectsRes, tasksRes] = await Promise.all([
@@ -1348,12 +1423,37 @@ async function loadDashboardSummary() {
         const projects = await projectsRes.json();
         const tasks = await tasksRes.json();
 
-        if (typeof renderSummary === "function") {
-            renderSummary(projects, tasks);
+        let filteredProjects = projects;
+        let filteredTasks = tasks;
+
+        if (role === "user") {
+            filteredTasks = tasks.filter(t => t.assigned_to === email);
+
+            const projectIds = new Set(filteredTasks.map(t => t.project_id));
+
+            filteredProjects = projects.filter(p => projectIds.has(p.id));
         }
+
+        renderSummary(filteredProjects, filteredTasks);
+
     } catch (error) {
         console.error("Failed to load dashboard summary", error);
     }
+}
+
+function renderSummary(projects, tasks) {
+    const totalProjects = document.getElementById("total-projects");
+    const totalTasks = document.getElementById("total-tasks");
+    const completionRate = document.getElementById("completion-rate");
+
+    const completedTasks = tasks.filter(t => t.status === "done").length;
+    const total = tasks.length;
+
+    const percent = total === 0 ? 0 : Math.round((completedTasks / total) * 100);
+
+    totalProjects.textContent = projects.length;
+    totalTasks.textContent = tasks.length;
+    completionRate.textContent = percent + "%";
 }
 
 async function loadProjectWorkspace() {
@@ -1485,149 +1585,275 @@ function showProjectWorkspace() {
 }
 
 async function loadReports() {
-  const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
 
-  const [projectsRes, tasksRes] = await Promise.all([
-    fetch(`${BASE_URL}/projects`, { headers: { Authorization: "Bearer " + token } }),
-    fetch(`${BASE_URL}/tasks`, { headers: { Authorization: "Bearer " + token } })
-  ]);
+    try {
+        const [projectsRes, tasksRes] = await Promise.all([
+            fetch(`${BASE_URL}/projects`, {
+                headers: { Authorization: "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/tasks`, {
+                headers: { Authorization: "Bearer " + token }
+            })
+        ]);
 
-  const projects = await projectsRes.json();
-  const tasks = await tasksRes.json();
+        let projects = await projectsRes.json();
+        let tasks = await tasksRes.json();
 
-  const totalProjects = projects.length;
-  const totalTasks = tasks.length;
+        // ✅ USER FILTER
+        if (role === "user") {
+            tasks = tasks.filter(t => t.assigned_to === email);
 
-  const completed = tasks.filter(t => t.status === "done").length;
-  const inProgress = tasks.filter(t => t.status === "in progress").length;
+            const projectIds = new Set(tasks.map(t => t.project_id));
+            projects = projects.filter(p => projectIds.has(p.id));
+        }
 
-  const today = new Date();
-  const overdue = tasks.filter(t =>
-    t.deadline && new Date(t.deadline) < today && t.status !== "done"
-  ).length;
+        // ===== CALCULATIONS =====
+        const totalProjects = projects.length;
+        const totalTasks = tasks.length;
 
-  const completedPercent = ((completed / totalTasks) * 100).toFixed(1);
-  const progressPercent = ((inProgress / totalTasks) * 100).toFixed(1);
-  const overduePercent = ((overdue / totalTasks) * 100).toFixed(1);
+        const completed = tasks.filter(t => t.status === "done").length;
+        const inProgress = tasks.filter(t => t.status === "in progress").length;
 
-  renderCards(totalProjects, totalTasks, completed, inProgress, overdue, completedPercent, progressPercent, overduePercent);
-  renderCharts(tasks, completed, inProgress, overdue);
-  renderProjectSummary(projects, tasks);
-  renderTeamSummary(tasks);
+        const today = new Date();
+        const overdue = tasks.filter(t =>
+            t.deadline && new Date(t.deadline) < today && t.status !== "done"
+        ).length;
+
+        const completedPercent = totalTasks ? ((completed / totalTasks) * 100).toFixed(0) : 0;
+        const progressPercent = totalTasks ? ((inProgress / totalTasks) * 100).toFixed(0) : 0;
+        const overduePercent = totalTasks ? ((overdue / totalTasks) * 100).toFixed(0) : 0;
+
+        // ===== UPDATE CARDS =====
+        document.getElementById("report-total-projects").textContent = totalProjects;
+        document.getElementById("report-total-tasks").textContent = totalTasks;
+        document.getElementById("report-completed-tasks").textContent = completed;
+        document.getElementById("report-inprogress-tasks").textContent = inProgress;
+        document.getElementById("report-overdue-tasks").textContent = overdue;
+
+        document.getElementById("report-completed-percent").textContent = completedPercent + "% of total tasks";
+        document.getElementById("report-progress-percent").textContent = progressPercent + "% of total tasks";
+        document.getElementById("report-overdue-percent").textContent = overduePercent + "% of total tasks";
+
+        renderCharts(tasks, completed, inProgress, overdue);
+        renderProjectSummary(projects, tasks);
+        renderTeamSummary(tasks);
+
+        // ===== ADD THIS BELOW RENDER =====
+
+        const projectBtn = document.getElementById("view-all-projects");
+        const teamBtn = document.getElementById("view-team-report");
+
+        if (projectBtn) {
+            projectBtn.onclick = (e) => {
+                e.preventDefault();
+
+                showAllProjects = !showAllProjects;
+
+                renderProjectSummary(projects, tasks);
+
+                projectBtn.textContent = showAllProjects 
+                    ? "Show less" 
+                    : "View all projects";
+            };
+        }
+
+        if (teamBtn) {
+            teamBtn.onclick = (e) => {
+                e.preventDefault();
+
+                showAllTeam = !showAllTeam;
+
+                renderTeamSummary(tasks);
+
+                teamBtn.textContent = showAllTeam 
+                    ? "Show less" 
+                    : "View full team report";
+            };
+        }
+
+    } catch (error) {
+        console.error("Report loading error:", error);
+    }
 }
 
 function renderCards(p, t, c, i, o, cp, ip, op) {
-  document.getElementById("report-cards").innerHTML = `
-    <div class="card"><h4>Total Projects</h4><h2>${p}</h2></div>
-    <div class="card"><h4>Total Tasks</h4><h2>${t}</h2></div>
-    <div class="card"><h4>Completed</h4><h2>${c}</h2><small>${cp}%</small></div>
-    <div class="card"><h4>In Progress</h4><h2>${i}</h2><small>${ip}%</small></div>
-    <div class="card"><h4>Overdue</h4><h2>${o}</h2><small style="color:red">${op}%</small></div>
-  `;
+    document.getElementById("report-cards").innerHTML = `
+        <div class="card"><h4>Total Projects</h4><h2>${p}</h2></div>
+        <div class="card"><h4>Total Tasks</h4><h2>${t}</h2></div>
+        <div class="card green"><h4>Completed</h4><h2>${c}</h2><small>${cp}%</small></div>
+        <div class="card orange"><h4>In Progress</h4><h2>${i}</h2><small>${ip}%</small></div>
+        <div class="card red"><h4>Overdue</h4><h2>${o}</h2><small>${op}%</small></div>
+    `;
 }
 
 function renderCharts(tasks, completed, inProgress, overdue) {
 
-  new Chart(statusChart, {
-    type: "doughnut",
-    data: {
-      labels: ["Completed", "In Progress", "Overdue"],
-      datasets: [{
-        data: [completed, inProgress, overdue],
-        backgroundColor: ["#22c55e", "#f59e0b", "#ef4444"]
-      }]
-    }
-  });
+    // destroy old charts
+    Chart.getChart("statusChart")?.destroy();
+    Chart.getChart("lineChart")?.destroy();
+    Chart.getChart("priorityChart")?.destroy();
 
-  // Line chart (by date)
-  const map = {};
-  tasks.forEach(t => {
-    if (t.status === "done") {
-      const d = t.deadline;
-      map[d] = (map[d] || 0) + 1;
-    }
-  });
+    const statusCtx = document.getElementById("statusChart");
+    const lineCtx = document.getElementById("lineChart");
+    const priorityCtx = document.getElementById("priorityChart");
 
-  new Chart(lineChart, {
-    type: "line",
-    data: {
-      labels: Object.keys(map),
-      datasets: [{
-        label: "Completed Tasks",
-        data: Object.values(map)
-      }]
-    }
-  });
+    if (!statusCtx || !lineCtx || !priorityCtx) return;
 
-  // Priority (mock or add later)
-  new Chart(priorityChart, {
-    type: "bar",
-    data: {
-      labels: ["High", "Medium", "Low"],
-      datasets: [{ data: [10, 15, 5] }]
-    }
-  });
+    // ===== STATUS =====
+    new Chart(statusCtx, {
+        type: "doughnut",
+        data: {
+            labels: ["Completed", "In Progress", "Overdue"],
+            datasets: [{
+                data: [completed, inProgress, overdue],
+                backgroundColor: ["#22c55e", "#f59e0b", "#ef4444"]
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // ===== LINE =====
+    const map = {};
+    tasks.forEach(t => {
+        if (t.status === "done") {
+            const d = t.deadline || "No date";
+            map[d] = (map[d] || 0) + 1;
+        }
+    });
+
+    new Chart(lineCtx, {
+        type: "line",
+        data: {
+            labels: Object.keys(map),
+            datasets: [{
+                label: "Completed Tasks",
+                data: Object.values(map),
+                borderColor: "#3b82f6",
+                fill: false
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // ===== PRIORITY =====
+    const priority = { high: 0, medium: 0, low: 0 };
+
+    tasks.forEach(t => {
+        if (t.priority === "high") priority.high++;
+        else if (t.priority === "medium") priority.medium++;
+        else priority.low++;
+    });
+
+    new Chart(priorityCtx, {
+        type: "bar",
+        data: {
+            labels: ["High", "Medium", "Low"],
+            datasets: [{
+                data: [priority.high, priority.medium, priority.low],
+                backgroundColor: ["#ef4444", "#f59e0b", "#22c55e"]
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 }
+
+let showAllProjects = false;
 
 function renderProjectSummary(projects, tasks) {
-  let html = `<h3>Project Summary</h3><table>
-  <tr><th>Project</th><th>Total</th><th>Done</th><th>%</th></tr>`;
+    const body = document.getElementById("project-summary-body");
 
-  projects.forEach(p => {
-    const pt = tasks.filter(t => t.project_id == p.id);
-    const done = pt.filter(t => t.status === "done").length;
-    const percent = pt.length ? (done / pt.length * 100).toFixed(0) : 0;
+    const displayProjects = showAllProjects ? projects : projects.slice(0, 4);
 
-    html += `
-    <tr>
-      <td>${p.name}</td>
-      <td>${pt.length}</td>
-      <td>${done}</td>
-      <td>
-        <div style="background:#eee;height:6px;border-radius:5px">
-          <div style="width:${percent}%;background:#22c55e;height:6px;border-radius:5px"></div>
-        </div>
-        ${percent}%
-      </td>
-    </tr>`;
-  });
+    let html = "";
 
-  html += "</table>";
-  document.getElementById("project-summary").innerHTML = html;
+    displayProjects.forEach(p => {
+        const projectTasks = tasks.filter(t => t.project_id === p.id);
+
+        const total = projectTasks.length;
+        const completed = projectTasks.filter(t => t.status === "done").length;
+        const inProgress = projectTasks.filter(t => t.status === "in progress").length;
+        const overdue = projectTasks.filter(t =>
+            t.deadline && new Date(t.deadline) < new Date() && t.status !== "done"
+        ).length;
+
+        const percent = total ? Math.round((completed / total) * 100) : 0;
+
+        html += `
+        <tr>
+            <td>${p.name}</td>
+            <td>${total}</td>
+            <td>${completed}</td>
+            <td>${inProgress}</td>
+            <td>${overdue}</td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${percent}%"></div>
+                </div>
+                ${percent}%
+            </td>
+        </tr>`;
+    });
+
+    body.innerHTML = html;
 }
 
+let showAllTeam = false;
+
 function renderTeamSummary(tasks) {
-  const map = {};
+    const body = document.getElementById("team-summary-body");
 
-  tasks.forEach(t => {
-    const u = t.assigned_to;
-    if (!map[u]) map[u] = { total: 0, done: 0 };
+    const map = {};
 
-    map[u].total++;
-    if (t.status === "done") map[u].done++;
-  });
+    tasks.forEach(t => {
+        const user = t.assigned_to || "Unknown";
 
-  let html = `<h3>Team Performance</h3><table>
-  <tr><th>User</th><th>Total</th><th>Done</th><th>%</th></tr>`;
+        if (!map[user]) {
+            map[user] = { total: 0, completed: 0 };
+        }
 
-  for (let u in map) {
-    const percent = (map[u].done / map[u].total * 100).toFixed(0);
+        map[user].total++;
+        if (t.status === "done") map[user].completed++;
+    });
 
-    html += `
-    <tr>
-      <td>${u}</td>
-      <td>${map[u].total}</td>
-      <td>${map[u].done}</td>
-      <td>${percent}%</td>
-    </tr>`;
-  }
+    const users = Object.keys(map);
+    const displayUsers = showAllTeam ? users : users.slice(0, 4);
 
-  html += "</table>";
-  document.getElementById("team-summary").innerHTML = html;
+    let html = "";
+
+    displayUsers.forEach(user => {
+        const total = map[user].total;
+        const completed = map[user].completed;
+        const percent = total ? Math.round((completed / total) * 100) : 0;
+
+        const shortEmail = user.length > 17 
+            ? user.substring(0, 17) + "..." 
+            : user;
+
+        html += `
+        <tr>
+            <td class="member-cell">
+                <span class="avatar">${user[0].toUpperCase()}</span>
+                <span title="${user}">${shortEmail}</span>
+            </td>
+            <td>${completed}</td>
+            <td>${total}</td>
+            <td>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width:${percent}%"></div>
+                </div>
+                ${percent}%
+            </td>
+        </tr>`;
+    });
+
+    body.innerHTML = html;
 }
 
 function exportCSV() {
-  window.open(`${BASE_URL}/activities/export`);
+    window.open(`${BASE_URL}/activities/export`);
 }
 
 async function loadFiles() {
