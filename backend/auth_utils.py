@@ -11,7 +11,7 @@ router = APIRouter()
 
 SECRET_KEY = "your_secret_key_here"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60
+ACCESS_TOKEN_EXPIRE_MINUTES = 240
 conf = ConnectionConfig(
     MAIL_USERNAME="ramkumarram6073@gmail.com",
     MAIL_PASSWORD="ukfz xxsb sndp spfz",
