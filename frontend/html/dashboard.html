@@ -239,9 +239,9 @@
                             <h3>Team Activity Log</h3>
                             <p>Review recent activity for your team members.</p>
                         </div>
-                        <button class="files-action-btn primary" type="button" onclick="exportActivityLog()">
-                            <i class="fas fa-file-export"></i>
-                            Export CSV
+                        <button class="files-action-btn primary activity-export-trigger" type="button" onclick="exportActivityLog()">
+                            <i class="fas fa-download"></i>
+                            Export
                         </button>
                     </div>
                     <div class="workspace-table-wrap">
@@ -260,25 +260,117 @@
                         </table>
                     </div>
                 </section>
+
+                <div id="activity-export-modal" class="export-modal activity-export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="activity-export-title">
+                    <div class="export-modal-backdrop" onclick="closeActivityExportModal()"></div>
+                    <div class="export-modal-card activity-export-card">
+                        <div class="export-modal-body">
+                            <div class="export-modal-head">
+                                <div>
+                                    <h2 id="activity-export-title">Export Activity Log</h2>
+                                </div>
+                                <button class="export-close-btn" type="button" onclick="closeActivityExportModal()" aria-label="Close export activity log">
+                                    <i class="fas fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <div class="export-section">
+                                <h3>1. Select Date Range</h3>
+                                <div class="activity-export-date-row">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <input id="activity-export-start-date" type="date" aria-label="Activity export start date">
+                                    <span>-</span>
+                                    <input id="activity-export-end-date" type="date" aria-label="Activity export end date">
+                                </div>
+                            </div>
+
+                            <div class="export-section">
+                                <h3>2. Choose File Format</h3>
+                                <div class="export-format-grid activity-export-format-grid">
+                                    <button class="export-format-card selected" type="button" data-activity-export-format="excel" onclick="selectActivityExportFormat('excel')">
+                                        <span class="export-radio"></span>
+                                        <i class="fas fa-file-excel excel"></i>
+                                        <strong>Excel</strong>
+                                        <small>.xlsx</small>
+                                    </button>
+                                    <button class="export-format-card" type="button" data-activity-export-format="pdf" onclick="selectActivityExportFormat('pdf')">
+                                        <span class="export-radio"></span>
+                                        <i class="fas fa-file-pdf pdf"></i>
+                                        <strong>PDF</strong>
+                                        <small>.pdf</small>
+                                    </button>
+                                    <button class="export-format-card" type="button" data-activity-export-format="csv" onclick="selectActivityExportFormat('csv')">
+                                        <span class="export-radio"></span>
+                                        <i class="fas fa-file-csv csv"></i>
+                                        <strong>CSV</strong>
+                                        <small>.csv</small>
+                                    </button>
+                                    <button class="export-format-card" type="button" data-activity-export-format="sheets" onclick="selectActivityExportFormat('sheets')">
+                                        <span class="export-radio"></span>
+                                        <i class="fas fa-file-lines sheets"></i>
+                                        <strong>Google Sheets</strong>
+                                        <small>.gsheet</small>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="export-section export-options-section">
+                                <h3>3. Additional Options</h3>
+                                <label class="export-inline-check">
+                                    <input id="activity-export-detailed" type="checkbox" checked>
+                                    <span><i class="fas fa-check"></i></span>
+                                    <small>
+                                        Include detailed information
+                                        <em>(IP address, device &amp; browser info)</em>
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="export-modal-footer">
+                            <button class="export-cancel-btn" type="button" onclick="closeActivityExportModal()">Cancel</button>
+                            <button class="export-primary-btn" type="button" onclick="confirmActivityExport()">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div id="report-view" class="hidden">
                 <section class="dashboard-section">
-                    <div class="section-head calendar-head">
-                        <div>
-                            <h3>Project Reports</h3>
-                            <p>Analyze project performance and team productivity.</p>
-                        </div>
-                    </div>
                    <div id="report-content">
 
                     <!-- Top Bar -->
                     <div class="report-header">
-                        <h2>Reports</h2>
+                        <div>
+                            <h2>Reports</h2>
+                            <p>Overview of your internship project progress and team performance.</p>
+                        </div>
                         <div class="report-actions">
-                        <input type="date" >
-                        <input type="date">
-                        <button onclick="exportCSV()">Export</button>
+                            <div class="report-date-control">
+                                <button class="report-date-btn" type="button" onclick="toggleReportDatePicker(event)">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <span id="report-date-label">All dates</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div id="report-date-popover" class="report-date-popover hidden" onclick="event.stopPropagation()">
+                                    <label>
+                                        <span>Start date</span>
+                                        <input id="report-start-date" type="date" onchange="onReportDateChange()" aria-label="Report start date">
+                                    </label>
+                                    <label>
+                                        <span>End date</span>
+                                        <input id="report-end-date" type="date" onchange="onReportDateChange()" aria-label="Report end date">
+                                    </label>
+                                    <button type="button" onclick="clearReportDateRange()">Clear</button>
+                                </div>
+                            </div>
+                            <button class="report-export-btn" type="button" onclick="openExportModal()">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
                         </div>
                     </div>
 
@@ -334,9 +426,23 @@
 
                     <!-- Charts -->
                     <div class="report-grid">
-                        <div class="chart-card-container"><div class="chart-wrap"><canvas id="statusChart"></canvas></div></div>
-                        <div class="chart-card-container"><div class="chart-wrap"><canvas id="lineChart"></canvas></div></div>
-                        <div class="chart-card-container"><div class="chart-wrap"><canvas id="priorityChart"></canvas></div></div>
+                        <div class="chart-card-container status-report-card">
+                            <h3>Tasks by Status</h3>
+                            <div class="status-chart-layout">
+                                <div class="chart-wrap donut-wrap"><canvas id="statusChart"></canvas></div>
+                                <div id="status-chart-legend" class="status-chart-legend"></div>
+                            </div>
+                            <p id="status-chart-total" class="chart-footnote">Total: 0 tasks</p>
+                        </div>
+                        <div class="chart-card-container line-report-card">
+                            <h3>Tasks Completed Over Time</h3>
+                            <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+                        </div>
+                        <div class="chart-card-container project-report-card">
+                            <h3>Tasks by Project</h3>
+                            <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+                            <p id="project-chart-total" class="chart-footnote">Total: 0 tasks</p>
+                        </div>
                     </div>
 
                     <!-- Tables -->
@@ -381,6 +487,127 @@
 
                     </div>
                     </section>
+
+                    <div id="export-report-modal" class="export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="export-report-title">
+                        <div class="export-modal-backdrop" onclick="closeExportModal()"></div>
+                        <div class="export-modal-card">
+                            <div class="export-modal-body">
+                                <div class="export-modal-head">
+                                    <div>
+                                        <h2 id="export-report-title">Export Reports</h2>
+                                        <p>Choose the data you want to export and the file format.</p>
+                                    </div>
+                                    <button class="export-close-btn" type="button" onclick="closeExportModal()" aria-label="Close export reports">
+                                        <i class="fas fa-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <div class="export-section">
+                                    <h3>1. Select Data to Export</h3>
+                                    <div class="export-data-grid">
+                                        <button class="export-option-card selected" type="button" data-export-section="projects" onclick="toggleExportSection('projects')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon blue"><i class="fas fa-calendar-days"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Projects Summary</strong>
+                                                <small>Export overall project details</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card selected" type="button" data-export-section="overview" onclick="toggleExportSection('overview')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon amber"><i class="fas fa-chart-pie"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Reports Overview</strong>
+                                                <small>Export summary of all reports</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card selected" type="button" data-export-section="tasks" onclick="toggleExportSection('tasks')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon green"><i class="fas fa-square-check"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Tasks Summary</strong>
+                                                <small>Export all tasks data</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card" type="button" data-export-section="activity" onclick="toggleExportSection('activity')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon red"><i class="fas fa-calendar-days"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Activity Log</strong>
+                                                <small>Export activity log data</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card selected" type="button" data-export-section="team" onclick="toggleExportSection('team')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon purple"><i class="fas fa-user-group"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Team Performance</strong>
+                                                <small>Export team member performance</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card" type="button" data-export-section="comments" onclick="toggleExportSection('comments')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon cyan"><i class="fas fa-message"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Comments &amp; Updates</strong>
+                                                <small>Export comments and updates</small>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="export-section">
+                                    <h3>2. Choose File Format</h3>
+                                    <div class="export-format-grid">
+                                        <button class="export-format-card selected" type="button" data-export-format="excel" onclick="selectExportFormat('excel')">
+                                            <span class="export-radio"></span>
+                                            <i class="fas fa-file-excel excel"></i>
+                                            <strong>Excel</strong>
+                                            <small>.xlsx</small>
+                                        </button>
+                                        <button class="export-format-card" type="button" data-export-format="pdf" onclick="selectExportFormat('pdf')">
+                                            <span class="export-radio"></span>
+                                            <i class="fas fa-file-pdf pdf"></i>
+                                            <strong>PDF</strong>
+                                            <small>.pdf</small>
+                                        </button>
+                                        <button class="export-format-card" type="button" data-export-format="csv" onclick="selectExportFormat('csv')">
+                                            <span class="export-radio"></span>
+                                            <i class="fas fa-file-csv csv"></i>
+                                            <strong>CSV</strong>
+                                            <small>.csv</small>
+                                        </button>
+                                        <button class="export-format-card" type="button" data-export-format="sheets" onclick="selectExportFormat('sheets')">
+                                            <span class="export-radio"></span>
+                                            <i class="fas fa-file-lines sheets"></i>
+                                            <strong>Google Sheets</strong>
+                                            <small>.gsheet</small>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="export-section export-options-section">
+                                    <h3>3. Additional Options</h3>
+                                    <label class="export-inline-check">
+                                        <input id="export-include-charts" type="checkbox" checked>
+                                        <span><i class="fas fa-check"></i></span>
+                                        <small>
+                                            Include charts and graphs in export
+                                            <em>(Applies to PDF and Excel)</em>
+                                        </small>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="export-modal-footer">
+                                <button class="export-cancel-btn" type="button" onclick="closeExportModal()">Cancel</button>
+                                <button class="export-primary-btn" type="button" onclick="confirmReportExport()">
+                                    <i class="fas fa-download"></i>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
             <div id="files-view" class="hidden">
@@ -670,17 +897,6 @@ if (token) {
     window.history.replaceState({}, document.title, "/dashboard-page");
 }
 
-// THEN: call APIs
-(async () => {
-    loadProjects();
-    getUser();
-    if (typeof applySettingsPreferences === "function") {
-        applySettingsPreferences();
-    }
-    setProjectTab(localStorage.getItem("settings.defaultView") || 'files');
-    await loadAssignableUsers();
-    await loadFiles();
-})();
 </script>
 <script>
     
@@ -1584,10 +1800,349 @@ function showProjectWorkspace() {
     document.getElementById('project-workspace-view').classList.remove('hidden');
 }
 
+let activityExportState = {
+    format: "excel"
+};
+
+function exportActivityLog() {
+    openActivityExportModal();
+}
+
+function openActivityExportModal() {
+    const modal = document.getElementById("activity-export-modal");
+    if (!modal) return;
+
+    setDefaultActivityExportDates();
+    syncActivityExportModalUI();
+    modal.classList.remove("hidden");
+    document.body.classList.add("export-modal-open");
+}
+
+function closeActivityExportModal() {
+    const modal = document.getElementById("activity-export-modal");
+    if (!modal) return;
+
+    modal.classList.add("hidden");
+    document.body.classList.remove("export-modal-open");
+}
+
+function setDefaultActivityExportDates() {
+    const startInput = document.getElementById("activity-export-start-date");
+    const endInput = document.getElementById("activity-export-end-date");
+    if (!startInput || !endInput || startInput.value || endInput.value) return;
+
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 6);
+    startInput.value = toDateInputValue(start);
+    endInput.value = toDateInputValue(end);
+}
+
+function toDateInputValue(date) {
+    return [
+        date.getFullYear(),
+        String(date.getMonth() + 1).padStart(2, "0"),
+        String(date.getDate()).padStart(2, "0")
+    ].join("-");
+}
+
+function selectActivityExportFormat(format) {
+    activityExportState.format = format;
+    syncActivityExportModalUI();
+}
+
+function syncActivityExportModalUI() {
+    document.querySelectorAll("[data-activity-export-format]").forEach(card => {
+        card.classList.toggle("selected", card.dataset.activityExportFormat === activityExportState.format);
+    });
+}
+
+async function confirmActivityExport() {
+    const token = localStorage.getItem("token");
+    const startDate = document.getElementById("activity-export-start-date")?.value || "";
+    const endDate = document.getElementById("activity-export-end-date")?.value || "";
+    const includeDetails = document.getElementById("activity-export-detailed")?.checked ?? true;
+
+    if (startDate && endDate && startDate > endDate) {
+        alert("Start date cannot be after end date.");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${BASE_URL}/activities`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (!res.ok) {
+            const error = await res.json().catch(() => ({}));
+            alert(error.message || error.detail || "Failed to export activity log.");
+            return;
+        }
+
+        const logs = await res.json();
+        const filteredLogs = filterActivityLogsByDate(Array.isArray(logs) ? logs : [], startDate, endDate);
+
+        if (!filteredLogs.length) {
+            alert("No activity records found for the selected date range.");
+            return;
+        }
+
+        downloadActivityExport(filteredLogs, {
+            format: activityExportState.format,
+            startDate,
+            endDate,
+            includeDetails
+        });
+        closeActivityExportModal();
+    } catch (error) {
+        console.error(error);
+        alert("Failed to export activity log.");
+    }
+}
+
+function filterActivityLogsByDate(logs, startDate, endDate) {
+    const start = parseReportDate(startDate);
+    const end = parseReportDate(endDate, true);
+
+    if (!start && !end) return logs;
+
+    return logs.filter(log => {
+        if (!log.timestamp) return false;
+        const date = new Date(log.timestamp);
+        if (Number.isNaN(date.getTime())) return false;
+        if (start && date < start) return false;
+        if (end && date > end) return false;
+        return true;
+    });
+}
+
+function downloadActivityExport(logs, options) {
+    const rows = buildActivityExportRows(logs, options.includeDetails);
+    const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
+    const format = options.format || "csv";
+    const extension = format === "excel" ? "xls" : format === "pdf" ? "html" : "csv";
+    const mimeType = format === "excel"
+        ? "application/vnd.ms-excel;charset=utf-8;"
+        : format === "pdf"
+            ? "text/html;charset=utf-8;"
+            : "text/csv;charset=utf-8;";
+    const content = format === "pdf" ? buildPrintableReportHtml(rows) : csv;
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const rangeLabel = options.startDate || options.endDate ? `-${options.startDate || "start"}-to-${options.endDate || "end"}` : "";
+
+    anchor.href = url;
+    anchor.download = `taskflow-activity-log${rangeLabel}.${extension}`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+}
+
+function buildActivityExportRows(logs, includeDetails) {
+    const rows = [
+        ["TaskFlow Activity Log"],
+        ["Exported At", formatDateTime(new Date().toISOString())],
+        [],
+        includeDetails
+            ? ["Timestamp", "User Email", "User Name", "Role", "Action", "Target", "Details"]
+            : ["Timestamp", "User", "Action", "Details"]
+    ];
+
+    logs.forEach(log => {
+        if (includeDetails) {
+            rows.push([
+                formatDateTime(log.timestamp),
+                log.user_email || "",
+                log.username || "",
+                log.role || "",
+                log.action || "",
+                log.target || "",
+                log.details || ""
+            ]);
+            return;
+        }
+
+        rows.push([
+            formatDateTime(log.timestamp),
+            log.user_email || log.username || "",
+            log.action || "",
+            [log.target, log.details].filter(Boolean).join(" - ")
+        ]);
+    });
+
+    return rows;
+}
+
+let reportState = {
+    projects: [],
+    tasks: [],
+    filteredProjects: [],
+    filteredTasks: [],
+    startDate: "",
+    endDate: ""
+};
+
+let exportModalState = {
+    sections: new Set(["projects", "overview", "tasks", "team"]),
+    format: "excel"
+};
+
+let showAllProjects = false;
+let showAllTeam = false;
+
+function normalizeReportStatus(status) {
+    return String(status || "").trim().toLowerCase();
+}
+
+function getReportDateFilters() {
+    const startInput = document.getElementById("report-start-date");
+    const endInput = document.getElementById("report-end-date");
+    const startDate = startInput?.value || "";
+    const endDate = endInput?.value || "";
+
+    if (startDate && endDate && startDate > endDate) {
+        if (endInput) endInput.value = startDate;
+        return { startDate, endDate: startDate };
+    }
+
+    return { startDate, endDate };
+}
+
+function formatReportRangeDate(value) {
+    if (!value) return "";
+
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    });
+}
+
+function formatReportChartDate(value) {
+    if (!value || value === "No date") return value || "No date";
+    const date = new Date(value.length === 10 ? `${value}T00:00:00` : value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric"
+    });
+}
+
+function formatProjectChartLabel(name) {
+    const words = String(name || "Untitled").split(" ").filter(Boolean);
+    if (words.length <= 2) return words.join(" ");
+
+    const midpoint = Math.ceil(words.length / 2);
+    return [
+        words.slice(0, midpoint).join(" "),
+        words.slice(midpoint).join(" ")
+    ];
+}
+
+function updateReportDateLabel() {
+    const { startDate, endDate } = getReportDateFilters();
+    const label = document.getElementById("report-date-label");
+    if (!label) return;
+
+    if (startDate && endDate) {
+        const start = new Date(`${startDate}T00:00:00`);
+        const end = new Date(`${endDate}T00:00:00`);
+        const sameYear = start.getFullYear() === end.getFullYear();
+        const startText = start.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: sameYear ? undefined : "numeric"
+        });
+        const endText = end.toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric"
+        });
+        label.textContent = `${startText} - ${endText}`;
+        return;
+    }
+
+    if (startDate) {
+        label.textContent = `From ${formatReportRangeDate(startDate)}`;
+        return;
+    }
+
+    if (endDate) {
+        label.textContent = `Until ${formatReportRangeDate(endDate)}`;
+        return;
+    }
+
+    label.textContent = "All dates";
+}
+
+function toggleReportDatePicker(event) {
+    if (event) event.stopPropagation();
+    const popover = document.getElementById("report-date-popover");
+    if (popover) popover.classList.toggle("hidden");
+}
+
+function onReportDateChange() {
+    updateReportDateLabel();
+    loadReports();
+}
+
+function clearReportDateRange() {
+    const startInput = document.getElementById("report-start-date");
+    const endInput = document.getElementById("report-end-date");
+    if (startInput) startInput.value = "";
+    if (endInput) endInput.value = "";
+    updateReportDateLabel();
+    loadReports();
+}
+
+window.addEventListener("click", event => {
+    const popover = document.getElementById("report-date-popover");
+    const dateControl = document.querySelector(".report-date-control");
+    if (popover && dateControl && !popover.classList.contains("hidden") && !dateControl.contains(event.target)) {
+        popover.classList.add("hidden");
+    }
+});
+
+function parseReportDate(value, endOfDay = false) {
+    if (!value) return null;
+
+    const date = new Date(`${value}T${endOfDay ? "23:59:59" : "00:00:00"}`);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getTaskReportDate(task) {
+    const value = task.deadline || task.created_at || task.updated_at || "";
+    if (!value) return null;
+
+    const date = value.length === 10 ? new Date(`${value}T00:00:00`) : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function filterReportTasksByDate(tasks, startDate, endDate) {
+    const start = parseReportDate(startDate);
+    const end = parseReportDate(endDate, true);
+
+    if (!start && !end) return tasks;
+
+    return tasks.filter(task => {
+        const taskDate = getTaskReportDate(task);
+        if (!taskDate) return false;
+        if (start && taskDate < start) return false;
+        if (end && taskDate > end) return false;
+        return true;
+    });
+}
+
 async function loadReports() {
     const token = localStorage.getItem("token");
     const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
+    const email = (localStorage.getItem("email") || "").trim().toLowerCase();
 
     try {
         const [projectsRes, tasksRes] = await Promise.all([
@@ -1599,34 +2154,56 @@ async function loadReports() {
             })
         ]);
 
+        if (!projectsRes.ok || !tasksRes.ok) {
+            throw new Error("Unable to load report data");
+        }
+
         let projects = await projectsRes.json();
         let tasks = await tasksRes.json();
 
-        // ✅ USER FILTER
-        if (role === "user") {
-            tasks = tasks.filter(t => t.assigned_to === email);
+        if (!Array.isArray(projects)) projects = [];
+        if (!Array.isArray(tasks)) tasks = [];
 
-            const projectIds = new Set(tasks.map(t => t.project_id));
-            projects = projects.filter(p => projectIds.has(p.id));
+        if (role === "user") {
+            tasks = tasks.filter(t => String(t.assigned_to || "").trim().toLowerCase() === email);
+
+            const projectIds = new Set(tasks.map(t => String(t.project_id)));
+            projects = projects.filter(p => projectIds.has(String(p.id)));
         }
 
-        // ===== CALCULATIONS =====
-        const totalProjects = projects.length;
-        const totalTasks = tasks.length;
+        const { startDate, endDate } = getReportDateFilters();
+        const filteredTasks = filterReportTasksByDate(tasks, startDate, endDate);
+        const isDateFiltered = Boolean(startDate || endDate);
+        const filteredProjectIds = new Set(filteredTasks.map(t => String(t.project_id)));
+        const filteredProjects = isDateFiltered
+            ? projects.filter(p => filteredProjectIds.has(String(p.id)))
+            : projects;
 
-        const completed = tasks.filter(t => t.status === "done").length;
-        const inProgress = tasks.filter(t => t.status === "in progress").length;
+        reportState = {
+            projects,
+            tasks,
+            filteredProjects,
+            filteredTasks,
+            startDate,
+            endDate
+        };
+
+        const totalProjects = filteredProjects.length;
+        const totalTasks = filteredTasks.length;
+
+        const completed = filteredTasks.filter(t => normalizeReportStatus(t.status) === "done").length;
+        const inProgress = filteredTasks.filter(t => normalizeReportStatus(t.status) === "in progress").length;
 
         const today = new Date();
-        const overdue = tasks.filter(t =>
-            t.deadline && new Date(t.deadline) < today && t.status !== "done"
+        today.setHours(0, 0, 0, 0);
+        const overdue = filteredTasks.filter(t =>
+            t.deadline && new Date(`${t.deadline}T00:00:00`) < today && normalizeReportStatus(t.status) !== "done"
         ).length;
 
         const completedPercent = totalTasks ? ((completed / totalTasks) * 100).toFixed(0) : 0;
         const progressPercent = totalTasks ? ((inProgress / totalTasks) * 100).toFixed(0) : 0;
         const overduePercent = totalTasks ? ((overdue / totalTasks) * 100).toFixed(0) : 0;
 
-        // ===== UPDATE CARDS =====
         document.getElementById("report-total-projects").textContent = totalProjects;
         document.getElementById("report-total-tasks").textContent = totalTasks;
         document.getElementById("report-completed-tasks").textContent = completed;
@@ -1637,11 +2214,10 @@ async function loadReports() {
         document.getElementById("report-progress-percent").textContent = progressPercent + "% of total tasks";
         document.getElementById("report-overdue-percent").textContent = overduePercent + "% of total tasks";
 
-        renderCharts(tasks, completed, inProgress, overdue);
-        renderProjectSummary(projects, tasks);
-        renderTeamSummary(tasks);
-
-        // ===== ADD THIS BELOW RENDER =====
+        updateReportDateLabel();
+        renderCharts(filteredProjects, filteredTasks, completed, inProgress, overdue);
+        renderProjectSummary(filteredProjects, filteredTasks);
+        renderTeamSummary(filteredTasks);
 
         const projectBtn = document.getElementById("view-all-projects");
         const teamBtn = document.getElementById("view-team-report");
@@ -1652,7 +2228,7 @@ async function loadReports() {
 
                 showAllProjects = !showAllProjects;
 
-                renderProjectSummary(projects, tasks);
+                renderProjectSummary(reportState.filteredProjects, reportState.filteredTasks);
 
                 projectBtn.textContent = showAllProjects 
                     ? "Show less" 
@@ -1666,7 +2242,7 @@ async function loadReports() {
 
                 showAllTeam = !showAllTeam;
 
-                renderTeamSummary(tasks);
+                renderTeamSummary(reportState.filteredTasks);
 
                 teamBtn.textContent = showAllTeam 
                     ? "Show less" 
@@ -1676,6 +2252,10 @@ async function loadReports() {
 
     } catch (error) {
         console.error("Report loading error:", error);
+        const projectBody = document.getElementById("project-summary-body");
+        const teamBody = document.getElementById("team-summary-body");
+        if (projectBody) projectBody.innerHTML = `<tr><td colspan="6">Unable to load project report.</td></tr>`;
+        if (teamBody) teamBody.innerHTML = `<tr><td colspan="4">Unable to load team report.</td></tr>`;
     }
 }
 
@@ -1689,7 +2269,7 @@ function renderCards(p, t, c, i, o, cp, ip, op) {
     `;
 }
 
-function renderCharts(tasks, completed, inProgress, overdue) {
+function renderCharts(projects, tasks, completed, inProgress, overdue) {
 
     // destroy old charts
     Chart.getChart("statusChart")?.destroy();
@@ -1702,6 +2282,28 @@ function renderCharts(tasks, completed, inProgress, overdue) {
 
     if (!statusCtx || !lineCtx || !priorityCtx) return;
 
+    Chart.defaults.font.family = "Arial, sans-serif";
+    Chart.defaults.font.size = 12;
+    Chart.defaults.color = "#0b1538";
+
+    const totalTasks = tasks.length;
+    const completedPercent = totalTasks ? Math.round((completed / totalTasks) * 100) : 0;
+    const progressPercent = totalTasks ? Math.round((inProgress / totalTasks) * 100) : 0;
+    const overduePercent = totalTasks ? Math.round((overdue / totalTasks) * 100) : 0;
+    const statusLegend = document.getElementById("status-chart-legend");
+    const statusTotal = document.getElementById("status-chart-total");
+    const projectTotal = document.getElementById("project-chart-total");
+
+    if (statusLegend) {
+        statusLegend.innerHTML = `
+            <div><span class="legend-dot blue"></span><strong>Completed</strong><small>${completed} (${completedPercent}%)</small></div>
+            <div><span class="legend-dot orange"></span><strong>In Progress</strong><small>${inProgress} (${progressPercent}%)</small></div>
+            <div><span class="legend-dot red"></span><strong>Overdue</strong><small>${overdue} (${overduePercent}%)</small></div>
+        `;
+    }
+    if (statusTotal) statusTotal.textContent = `Total: ${totalTasks} task${totalTasks === 1 ? "" : "s"}`;
+    if (projectTotal) projectTotal.textContent = `Total: ${totalTasks} task${totalTasks === 1 ? "" : "s"}`;
+
     // ===== STATUS =====
     new Chart(statusCtx, {
         type: "doughnut",
@@ -1709,74 +2311,122 @@ function renderCharts(tasks, completed, inProgress, overdue) {
             labels: ["Completed", "In Progress", "Overdue"],
             datasets: [{
                 data: [completed, inProgress, overdue],
-                backgroundColor: ["#22c55e", "#f59e0b", "#ef4444"]
+                backgroundColor: ["#2f7bff", "#f59e0b", "#ff3b4f"],
+                borderWidth: 0
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: "54%",
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.label}: ${ctx.parsed} task${ctx.parsed === 1 ? "" : "s"}`
+                    }
+                }
+            }
+        }
     });
 
     // ===== LINE =====
     const map = {};
     tasks.forEach(t => {
-        if (t.status === "done") {
+        if (normalizeReportStatus(t.status) === "done") {
             const d = t.deadline || "No date";
             map[d] = (map[d] || 0) + 1;
         }
     });
+    const sortedDates = Object.keys(map).sort();
 
     new Chart(lineCtx, {
         type: "line",
         data: {
-            labels: Object.keys(map),
+            labels: sortedDates.map(formatReportChartDate),
             datasets: [{
                 label: "Completed Tasks",
-                data: Object.values(map),
+                data: sortedDates.map(date => map[date]),
                 borderColor: "#3b82f6",
+                backgroundColor: "rgba(59, 130, 246, 0.12)",
+                pointBackgroundColor: "#3b82f6",
+                pointBorderColor: "#3b82f6",
+                pointRadius: 4,
+                pointHoverRadius: 5,
+                tension: 0.35,
                 fill: false
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { display: false }, ticks: { color: "#0b1538" } },
+                y: { beginAtZero: true, grid: { color: "#e7edf6" }, ticks: { color: "#34405f", precision: 0 } }
+            },
+            plugins: {
+                legend: {
+                    position: "bottom",
+                    labels: { usePointStyle: true, boxWidth: 8, color: "#27365f" }
+                }
+            }
+        }
     });
 
-    // ===== PRIORITY =====
-    const priority = { high: 0, medium: 0, low: 0 };
-
-    tasks.forEach(t => {
-        if (t.priority === "high") priority.high++;
-        else if (t.priority === "medium") priority.medium++;
-        else priority.low++;
+    const projectLabels = [];
+    const projectCounts = [];
+    (projects || []).forEach(project => {
+        const count = tasks.filter(task => String(task.project_id) === String(project.id)).length;
+        if (count > 0) {
+            projectLabels.push(formatProjectChartLabel(project.name || "Untitled Project"));
+            projectCounts.push(count);
+        }
     });
 
     new Chart(priorityCtx, {
         type: "bar",
         data: {
-            labels: ["High", "Medium", "Low"],
+            labels: projectLabels,
             datasets: [{
-                data: [priority.high, priority.medium, priority.low],
-                backgroundColor: ["#ef4444", "#f59e0b", "#22c55e"]
+                label: "Tasks",
+                data: projectCounts,
+                backgroundColor: ["#2f7bff", "#2eb872", "#7c3aed", "#f59e0b", "#10aab8", "#ef4444"],
+                borderRadius: 4,
+                maxBarThickness: 38
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { display: false }, ticks: { color: "#0b1538", maxRotation: 0, minRotation: 0 } },
+                y: { beginAtZero: true, grid: { color: "#e7edf6" }, ticks: { color: "#34405f", precision: 0 } }
+            },
+            plugins: {
+                legend: { display: false }
+            }
+        }
     });
 }
 
-let showAllProjects = false;
-
 function renderProjectSummary(projects, tasks) {
     const body = document.getElementById("project-summary-body");
+    if (!body) return;
 
     const displayProjects = showAllProjects ? projects : projects.slice(0, 4);
 
     let html = "";
 
     displayProjects.forEach(p => {
-        const projectTasks = tasks.filter(t => t.project_id === p.id);
+        const projectTasks = tasks.filter(t => String(t.project_id) === String(p.id));
 
         const total = projectTasks.length;
-        const completed = projectTasks.filter(t => t.status === "done").length;
-        const inProgress = projectTasks.filter(t => t.status === "in progress").length;
+        const completed = projectTasks.filter(t => normalizeReportStatus(t.status) === "done").length;
+        const inProgress = projectTasks.filter(t => normalizeReportStatus(t.status) === "in progress").length;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
         const overdue = projectTasks.filter(t =>
-            t.deadline && new Date(t.deadline) < new Date() && t.status !== "done"
+            t.deadline && new Date(`${t.deadline}T00:00:00`) < today && normalizeReportStatus(t.status) !== "done"
         ).length;
 
         const percent = total ? Math.round((completed / total) * 100) : 0;
@@ -1797,13 +2447,12 @@ function renderProjectSummary(projects, tasks) {
         </tr>`;
     });
 
-    body.innerHTML = html;
+    body.innerHTML = html || `<tr><td colspan="6">No project data found for this report.</td></tr>`;
 }
-
-let showAllTeam = false;
 
 function renderTeamSummary(tasks) {
     const body = document.getElementById("team-summary-body");
+    if (!body) return;
 
     const map = {};
 
@@ -1815,7 +2464,7 @@ function renderTeamSummary(tasks) {
         }
 
         map[user].total++;
-        if (t.status === "done") map[user].completed++;
+        if (normalizeReportStatus(t.status) === "done") map[user].completed++;
     });
 
     const users = Object.keys(map);
@@ -1849,11 +2498,251 @@ function renderTeamSummary(tasks) {
         </tr>`;
     });
 
-    body.innerHTML = html;
+    body.innerHTML = html || `<tr><td colspan="4">No team data found for this report.</td></tr>`;
 }
 
-function exportCSV() {
-    window.open(`${BASE_URL}/activities/export`);
+function openExportModal() {
+    const modal = document.getElementById("export-report-modal");
+    if (!modal) return;
+
+    syncExportModalUI();
+    modal.classList.remove("hidden");
+    document.body.classList.add("export-modal-open");
+}
+
+function closeExportModal() {
+    const modal = document.getElementById("export-report-modal");
+    if (!modal) return;
+
+    modal.classList.add("hidden");
+    document.body.classList.remove("export-modal-open");
+}
+
+function toggleExportSection(section) {
+    if (exportModalState.sections.has(section)) {
+        exportModalState.sections.delete(section);
+    } else {
+        exportModalState.sections.add(section);
+    }
+
+    syncExportModalUI();
+}
+
+function selectExportFormat(format) {
+    exportModalState.format = format;
+    syncExportModalUI();
+}
+
+function syncExportModalUI() {
+    document.querySelectorAll("[data-export-section]").forEach(card => {
+        card.classList.toggle("selected", exportModalState.sections.has(card.dataset.exportSection));
+    });
+
+    document.querySelectorAll("[data-export-format]").forEach(card => {
+        card.classList.toggle("selected", card.dataset.exportFormat === exportModalState.format);
+    });
+}
+
+async function confirmReportExport() {
+    if (!exportModalState.sections.size) {
+        alert("Please select at least one report section.");
+        return;
+    }
+
+    await exportCSV({
+        sections: Array.from(exportModalState.sections),
+        format: exportModalState.format,
+        includeCharts: document.getElementById("export-include-charts")?.checked ?? true
+    });
+}
+
+async function exportCSV(options = {}) {
+    const { filteredProjects, filteredTasks, startDate, endDate } = reportState;
+    const sections = new Set(options.sections || ["projects", "overview", "tasks", "team"]);
+    const format = options.format || "csv";
+
+    if (!Array.isArray(filteredTasks) || !filteredTasks.length) {
+        alert("No report data available to export.");
+        return;
+    }
+
+    const projectById = new Map((filteredProjects || []).map(project => [String(project.id), project.name || "Untitled Project"]));
+    const completed = filteredTasks.filter(t => normalizeReportStatus(t.status) === "done").length;
+    const inProgress = filteredTasks.filter(t => normalizeReportStatus(t.status) === "in progress").length;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const overdue = filteredTasks.filter(t =>
+        t.deadline && new Date(`${t.deadline}T00:00:00`) < today && normalizeReportStatus(t.status) !== "done"
+    ).length;
+
+    const rows = [
+        ["TaskFlow Report"],
+        ["Date Range", startDate || "All", endDate || "All"]
+    ];
+
+    if (sections.has("overview")) {
+        rows.push(
+            [],
+            ["Reports Overview"],
+            ["Metric", "Value"],
+            ["Total Projects", filteredProjects.length],
+            ["Total Tasks", filteredTasks.length],
+            ["Completed Tasks", completed],
+            ["In Progress Tasks", inProgress],
+            ["Overdue Tasks", overdue]
+        );
+    }
+
+    if (sections.has("projects")) {
+        rows.push(
+            [],
+            ["Projects Summary"],
+            ["Project", "Total Tasks", "Completed", "In Progress", "Overdue", "Completion"]
+        );
+
+        filteredProjects.forEach(project => {
+            const projectTasks = filteredTasks.filter(task => String(task.project_id) === String(project.id));
+            const total = projectTasks.length;
+            const projectCompleted = projectTasks.filter(task => normalizeReportStatus(task.status) === "done").length;
+            const projectProgress = projectTasks.filter(task => normalizeReportStatus(task.status) === "in progress").length;
+            const projectOverdue = projectTasks.filter(task =>
+                task.deadline && new Date(`${task.deadline}T00:00:00`) < today && normalizeReportStatus(task.status) !== "done"
+            ).length;
+            const percent = total ? Math.round((projectCompleted / total) * 100) : 0;
+
+            rows.push([
+                project.name || "Untitled Project",
+                total,
+                projectCompleted,
+                projectProgress,
+                projectOverdue,
+                `${percent}%`
+            ]);
+        });
+    }
+
+    if (sections.has("tasks")) {
+        rows.push(
+            [],
+            ["Tasks Summary"],
+            ["Project", "Task", "Assigned To", "Status", "Deadline"]
+        );
+
+        filteredTasks.forEach(task => {
+            rows.push([
+                projectById.get(String(task.project_id)) || "Unknown Project",
+                task.title || "Untitled Task",
+                task.assigned_to || "Unassigned",
+                task.status || "No status",
+                task.deadline || "No date"
+            ]);
+        });
+    }
+
+    if (sections.has("team")) {
+        const teamMap = {};
+        filteredTasks.forEach(task => {
+            const user = task.assigned_to || "Unknown";
+            if (!teamMap[user]) teamMap[user] = { total: 0, completed: 0 };
+            teamMap[user].total++;
+            if (normalizeReportStatus(task.status) === "done") teamMap[user].completed++;
+        });
+
+        rows.push(
+            [],
+            ["Team Performance"],
+            ["Member", "Completed", "Total", "Completion"]
+        );
+
+        Object.keys(teamMap).forEach(user => {
+            const total = teamMap[user].total;
+            const teamCompleted = teamMap[user].completed;
+            rows.push([user, teamCompleted, total, `${total ? Math.round((teamCompleted / total) * 100) : 0}%`]);
+        });
+    }
+
+    if (sections.has("activity")) {
+        const token = localStorage.getItem("token");
+        try {
+            const res = await fetch(`${BASE_URL}/activities`, {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            const logs = res.ok ? await res.json() : [];
+            rows.push(
+                [],
+                ["Activity Log"],
+                ["Timestamp", "User", "Action", "Details"]
+            );
+            (Array.isArray(logs) ? logs : []).forEach(log => {
+                rows.push([
+                    formatDateTime(log.timestamp),
+                    log.user_email || "-",
+                    log.action || "-",
+                    [log.target, log.details].filter(Boolean).join(" - ") || "-"
+                ]);
+            });
+        } catch (error) {
+            console.error("Activity export failed", error);
+        }
+    }
+
+    if (sections.has("comments")) {
+        rows.push([], ["Comments & Updates"], ["No comment export data is available yet."]);
+    }
+
+    const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
+    const extension = format === "excel" ? "xls" : format === "pdf" ? "html" : "csv";
+    const mimeType = format === "excel"
+        ? "application/vnd.ms-excel;charset=utf-8;"
+        : format === "pdf"
+            ? "text/html;charset=utf-8;"
+            : "text/csv;charset=utf-8;";
+    const content = format === "pdf" ? buildPrintableReportHtml(rows) : csv;
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const rangeLabel = startDate || endDate ? `-${startDate || "start"}-to-${endDate || "end"}` : "";
+
+    anchor.href = url;
+    anchor.download = `taskflow-report${rangeLabel}.${extension}`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+    closeExportModal();
+}
+
+function csvEscape(value) {
+    const text = String(value ?? "");
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function buildPrintableReportHtml(rows) {
+    const safeRows = rows.map(row => row.map(value => String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")));
+
+    return `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TaskFlow Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; color: #0b1538; padding: 28px; }
+        h1 { margin: 0 0 18px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 14px; }
+        td { border: 1px solid #d9e1ee; padding: 8px 10px; font-size: 13px; }
+        tr:has(td:only-child) td { background: #eef4ff; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <h1>TaskFlow Report</h1>
+    <table>
+        ${safeRows.map(row => `<tr>${row.map(value => `<td>${value}</td>`).join("")}</tr>`).join("")}
+    </table>
+</body>
+</html>`;
 }
 
 async function loadFiles() {
@@ -2509,6 +3398,20 @@ function formatDateTime(value) {
     });
 }
 
+async function initializeDashboardPage() {
+    if (typeof applySettingsPreferences === "function") {
+        applySettingsPreferences();
+    }
+
+    const defaultView = localStorage.getItem("settings.defaultView") || "files";
+    setProjectTab(defaultView);
+
+    if (typeof loadAssignableUsers === "function") {
+        await loadAssignableUsers();
+    }
+}
+
+window.addEventListener("load", initializeDashboardPage);
 window.addEventListener("load", loadDashboardSummary);
 window.addEventListener("load", applySettingsPreferences);
 
