@@ -4088,6 +4088,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 .workspace-table td,
 .workspace-table th{
     text-align: left;
+    font-size: 14px;
 }
 
 /* =========================
@@ -4276,9 +4277,9 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 /* icon */
 .report-card .icon {
-    width: 58px;
-    height: 58px;
-    flex: 0 0 58px;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -4288,11 +4289,16 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 /* value */
 .report-card h2 {
-    font-size: 32px;
+    font-size: 25px;
     line-height: 1;
     margin: 8px 0 0 74px;
     font-weight: 700;
     color: #0b1538;
+}
+
+.report-card p {
+    margin: 6px 0 0 74px;
+    font-size: 12px;
 }
 
 /* text */

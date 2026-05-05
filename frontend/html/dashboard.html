@@ -29,10 +29,11 @@
                 <i class="fas fa-users menu-icon"></i>
                 <span>My Team</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="calendar" onclick="setProjectTab('calendar')">
-                <i class="fas fa-chart-column menu-icon"></i>
-                <span>Calendar</span>
+            <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
+                <i class="far fa-folder-open menu-icon"></i>
+                <span>Files</span>
             </button>
+            <hr style="border: none; height: 1px; background: #e5e7eb; margin: 10px 0;">
             <button class="menu-item" type="button" data-sidebar="activity-log" onclick="setProjectTab('activity-log')">
                 <i class="fas fa-clock-rotate-left menu-icon"></i>
                 <span>Activity Log</span>
@@ -41,10 +42,12 @@
                 <i class="fas fa-chart-pie menu-icon"></i>
                 <span>Reports</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
-                <i class="far fa-folder-open menu-icon"></i>
-                <span>Files</span>
+            
+            <button class="menu-item" type="button" data-sidebar="calendar" onclick="setProjectTab('calendar')">
+                <i class="fas fa-chart-column menu-icon"></i>
+                <span>Calendar</span>
             </button>
+            <hr style="border: none; height: 1px; background: #e5e7eb; margin: 10px 0;">
             <button class="menu-item" type="button" data-sidebar="settings" onclick="goToSettings()">
                 <i class="fas fa-gear menu-icon"></i>
                 <span>Settings</span>
@@ -77,10 +80,6 @@
                         <button type="button" class="dropdown-item" onclick="goToProfile()">
                             <i class="fas fa-user dropdown-icon"></i>
                             <span>My Profile</span>
-                        </button>
-                        <button type="button" class="dropdown-item" onclick="dashboard()">
-                            <i class="fas fa-house dropdown-icon"></i>
-                            <span>Dashboard</span>
                         </button>
                         <button type="button" class="dropdown-item" onclick="goToSettings()">
                             <i class="fas fa-gear dropdown-icon"></i>
@@ -243,6 +242,7 @@
                             <i class="fas fa-download"></i>
                             Export
                         </button>
+                        
                     </div>
                     <div class="workspace-table-wrap">
                         <table class="workspace-table">
@@ -298,18 +298,6 @@
                                         <i class="fas fa-file-pdf pdf"></i>
                                         <strong>PDF</strong>
                                         <small>.pdf</small>
-                                    </button>
-                                    <button class="export-format-card" type="button" data-activity-export-format="csv" onclick="selectActivityExportFormat('csv')">
-                                        <span class="export-radio"></span>
-                                        <i class="fas fa-file-csv csv"></i>
-                                        <strong>CSV</strong>
-                                        <small>.csv</small>
-                                    </button>
-                                    <button class="export-format-card" type="button" data-activity-export-format="sheets" onclick="selectActivityExportFormat('sheets')">
-                                        <span class="export-radio"></span>
-                                        <i class="fas fa-file-lines sheets"></i>
-                                        <strong>Google Sheets</strong>
-                                        <small>.gsheet</small>
                                     </button>
                                 </div>
                             </div>
@@ -545,14 +533,6 @@
                                                 <small>Export team member performance</small>
                                             </span>
                                         </button>
-                                        <button class="export-option-card" type="button" data-export-section="comments" onclick="toggleExportSection('comments')">
-                                            <span class="export-check"><i class="fas fa-check"></i></span>
-                                            <span class="export-option-icon cyan"><i class="fas fa-message"></i></span>
-                                            <span class="export-option-copy">
-                                                <strong>Comments &amp; Updates</strong>
-                                                <small>Export comments and updates</small>
-                                            </span>
-                                        </button>
                                     </div>
                                 </div>
 
@@ -570,18 +550,6 @@
                                             <i class="fas fa-file-pdf pdf"></i>
                                             <strong>PDF</strong>
                                             <small>.pdf</small>
-                                        </button>
-                                        <button class="export-format-card" type="button" data-export-format="csv" onclick="selectExportFormat('csv')">
-                                            <span class="export-radio"></span>
-                                            <i class="fas fa-file-csv csv"></i>
-                                            <strong>CSV</strong>
-                                            <small>.csv</small>
-                                        </button>
-                                        <button class="export-format-card" type="button" data-export-format="sheets" onclick="selectExportFormat('sheets')">
-                                            <span class="export-radio"></span>
-                                            <i class="fas fa-file-lines sheets"></i>
-                                            <strong>Google Sheets</strong>
-                                            <small>.gsheet</small>
                                         </button>
                                     </div>
                                 </div>
@@ -3460,7 +3428,7 @@ async function initializeDashboardPage() {
 
     applyDashboardRoleVisibility();
 
-    let defaultView = localStorage.getItem("settings.defaultView") || "files";
+    let defaultView = localStorage.getItem("settings.defaultView") || "dashboard";
     if (defaultView === "activity-log" && localStorage.getItem("role") === "user") {
         defaultView = "files";
     }
