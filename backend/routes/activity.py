@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from io import StringIO
 import csv
 from zoneinfo import ZoneInfo
-
+from websocket_manager import manager
+import asyncio
 
 router = APIRouter()
 
@@ -52,6 +53,15 @@ def record_activity(user: dict, action: str, target: str = "", details: str = ""
     }
 
     db.activity_log.insert_one(activity)
+
+    message = f"{user.get('username')} performed {action}"
+
+    try:
+        loop = asyncio.get_event_loop()
+        loop.create_task(manager.broadcast(message))
+    except:
+        pass
+
     return activity
 
 

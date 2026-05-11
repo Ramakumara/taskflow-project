@@ -1,4 +1,70 @@
 const BASE_URL = window.location.origin;
+const socket = new WebSocket("ws://127.0.0.1:8000/ws");
+
+socket.onopen = function () {
+    console.log("WebSocket Connected");
+};
+
+socket.onmessage = function (event) {
+
+    console.log("New Notification:", event.data);
+
+    showNotification(event.data);
+};
+
+function showNotification(message, type = "success") {
+
+    const notification = document.createElement("div");
+
+    notification.className = `taskflow-notification ${type}`;
+
+    let icon = "fa-circle-check";
+
+    if (type === "error") {
+        icon = "fa-circle-xmark";
+    }
+
+    if (type === "warning") {
+        icon = "fa-triangle-exclamation";
+    }
+
+    notification.innerHTML = `
+        <div class="notification-left">
+            <i class="fas ${icon}"></i>
+        </div>
+
+        <div class="notification-content">
+            <h4>TaskFlow Notification</h4>
+            <p>${message}</p>
+        </div>
+
+        <button class="notification-close">
+            <i class="fas fa-xmark"></i>
+        </button>
+    `;
+
+    document.body.appendChild(notification);
+
+    const closeBtn = notification.querySelector(".notification-close");
+
+    closeBtn.onclick = () => {
+        notification.remove();
+    };
+
+    setTimeout(() => {
+        notification.classList.add("show");
+    }, 100);
+
+    setTimeout(() => {
+
+        notification.classList.remove("show");
+
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+
+    }, 4000);
+}
 
 async function handleLogin() {
     const email = document.getElementById("email").value;
@@ -121,6 +187,7 @@ async function createProject() {
     const data = await res.json().catch(() => ({}));
     const message = data?.message || (res.ok ? "Project created" : "Unable to create project");
     alert(message);
+    socket.send(`New Project Created: ${name}`);
     
     document.getElementById("project-name").value = "";
 
@@ -310,6 +377,7 @@ async function createTask() {
 
     const data = await res.json().catch(() => ({}));
     alert(data?.message || (res.ok ? "Task created" : "Unable to create task"));
+    socket.send(`New Task Added: ${title}`);
     document.getElementById("task-title").value = "";
     document.getElementById("assigned-to").value = "";
     document.getElementById("deadline").value = "";
@@ -337,6 +405,7 @@ async function updateStatus(id, status) {
 
         if (res.ok) {
             alert("Status updated to: " + status);
+            socket.send(`Task Status Updated: ${status}`);
         } else {
             alert("Failed to update status");
         }
@@ -369,6 +438,7 @@ async function deleteProject(id) {
 
     const data = await res.json();
     alert(data.message);
+    socket.send("Project Deleted");
 
     loadProjects();
 }
@@ -393,6 +463,7 @@ async function deleteTask(id) {
 
     const data = await res.json();
     alert(data.message);
+    socket.send("Task Deleted");
 
     loadAllTasks();          // refresh tasks page
     loadProjectWorkspace();  // refresh project workspace (optional but best)
@@ -505,6 +576,7 @@ window.onload = function () {
         loadProjectDropdown();
         loadUsers();
         setAvatar();
+        checkAssignedTaskNotifications();
     }
 };
 
@@ -748,4 +820,52 @@ function handleTaskSearch(event) {
             row.style.display = "none";
         }
     });
+}
+
+
+async function checkAssignedTaskNotifications() {
+
+    const token = localStorage.getItem("token");
+    const email = localStorage.getItem("email");
+
+    if (!token || !email) return;
+
+    try {
+
+        const res = await fetch(`${BASE_URL}/tasks`, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        const tasks = await res.json();
+
+        if (!Array.isArray(tasks)) return;
+
+        const assignedTasks = tasks.filter(task =>
+            task.assigned_to === email
+        );
+
+        assignedTasks.forEach(task => {
+
+            const notificationKey = `task_notification_${task.id}`;
+
+            // Prevent duplicate popup
+            if (!localStorage.getItem(notificationKey)) {
+
+                showNotification(
+                    `New Task Assigned: ${task.title}`,
+                    "success"
+                );
+
+                localStorage.setItem(notificationKey, "shown");
+            }
+
+        });
+
+    } catch (error) {
+
+        console.error("Notification check failed", error);
+
+    }
 }

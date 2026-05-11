@@ -8,9 +8,13 @@ from auth_utils import router as auth_router
 from auth.google_oauth import init_oauth
 from routes.google_auth import router as google_router
 from starlette.middleware.sessions import SessionMiddleware
+from fastapi import WebSocket, WebSocketDisconnect
+from websocket_manager import manager
 
 
 app = FastAPI()
+
+clients = []
 
 app.add_middleware(
     CORSMiddleware,
@@ -101,3 +105,20 @@ from fastapi import Request
 def test_session(request: Request):
     request.session["test"] = "working"
     return {"session": request.session.get("test")}
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+
+    await websocket.accept()
+    clients.append(websocket)
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+
+            for client in clients:
+                await client.send_text(data)
+
+    except WebSocketDisconnect:
+        clients.remove(websocket)
