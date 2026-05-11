@@ -319,8 +319,6 @@ async function loadUsers() {
         return;
     }
 
-    select.innerHTML = "<option value=''>Assign User</option>";
-
     const userRoleUsers = users.filter(u => u.role === "user");
 
     if (userRoleUsers.length === 0) {
@@ -331,9 +329,26 @@ async function loadUsers() {
     userRoleUsers.forEach(u => {
         const option = document.createElement("option");
         option.value = u.email;
-        option.text = u.email;
+        option.textContent = u.email;
         select.appendChild(option);
     });
+
+    if (select.tomselect) {
+        select.tomselect.destroy();
+    }
+
+    new TomSelect("#assigned-to", {
+
+        placeholder: "assign User",
+
+        create: false,
+
+        maxOptions: 1,
+
+        allowEmptyOption: true
+
+    });
+    select.tomselect.clear();
 }
 
 async function createTask() {

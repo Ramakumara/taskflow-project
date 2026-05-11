@@ -5220,3 +5220,75 @@ body.export-modal-open {
 .hidden{
     display:none;
 }
+
+/* Main box */
+.ts-wrapper.single .ts-control {
+
+    display: flex !important;
+    align-items: center;
+
+    min-height: 40px;
+    height: 40px;
+
+    overflow: hidden;
+
+    white-space: nowrap;
+}
+
+/* ===== TOMSELECT FIX ===== */
+
+.ts-wrapper.single .ts-control {
+    display: flex !important;
+    align-items: center !important;
+
+    min-height: 48px !important;
+    height: 48px !important;
+
+    padding: 0 12px !important;
+
+    overflow: hidden !important;
+    flex-wrap: nowrap !important;
+
+    border-radius: 10px !important;
+    border: 1px solid #dfe6f1 !important;
+}
+
+/* Selected email */
+.ts-wrapper.single .item {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+
+    max-width: 85% !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Search typing input */
+.ts-wrapper.single .ts-control input {
+    width: auto !important;
+
+    min-width: 30px !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    border: none !important;
+    box-shadow: none !important;
+
+    background: transparent !important;
+
+    display: inline-block !important;
+}
+
+/* Dropdown */
+.ts-dropdown {
+    z-index: 99999 !important;
+}
+
+/* Remove extra spacing */
+.ts-wrapper {
+    margin-top: 10px;
+}
+
