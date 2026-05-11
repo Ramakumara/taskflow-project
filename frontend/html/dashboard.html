@@ -1910,14 +1910,13 @@ function downloadActivityExport(logs, options) {
     const rows = buildActivityExportRows(logs, options.includeDetails);
     const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
     const format = options.format || "csv";
-    const extension = format === "excel" ? "xls" : format === "pdf" ? "html" : "csv";
+    const extension = format === "excel" ? "xls" : format === "pdf" ? "pdf" : "csv"
     const mimeType = format === "excel"
         ? "application/vnd.ms-excel;charset=utf-8;"
         : format === "pdf"
             ? "text/html;charset=utf-8;"
             : "text/csv;charset=utf-8;";
-    const content = format === "pdf" ? buildPrintableReportHtml(rows) : csv;
-    const blob = new Blob([content], { type: mimeType });
+    const blob = new Blob([csv], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     const rangeLabel = options.startDate || options.endDate ? `-${options.startDate || "start"}-to-${options.endDate || "end"}` : "";
@@ -2705,24 +2704,47 @@ async function exportCSV(options = {}) {
     }
 
     const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
-    const extension = format === "excel" ? "xls" : format === "pdf" ? "html" : "csv";
+    const extension = format === "excel" ? "xls" : format === "pdf" ? "pdf" : "csv";
     const mimeType = format === "excel"
         ? "application/vnd.ms-excel;charset=utf-8;"
         : format === "pdf"
-            ? "text/html;charset=utf-8;"
+            ? "application/pdf;charset=utf-8;"
             : "text/csv;charset=utf-8;";
-    const content = format === "pdf" ? buildPrintableReportHtml(rows) : csv;
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    const rangeLabel = startDate || endDate ? `-${startDate || "start"}-to-${endDate || "end"}` : "";
+    const rangeLabel = startDate || endDate
+        ? `-${startDate || "start"}-to-${endDate || "end"}`
+        : "";
 
-    anchor.href = url;
-    anchor.download = `taskflow-report${rangeLabel}.${extension}`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
+    const filename = `taskflow-report${rangeLabel}`;
+
+    if (format === "pdf") {
+
+        exportRealPDF(rows, filename);
+
+    } else if (format === "excel") {
+
+        exportExcel(rows, filename);
+
+    } else {
+
+        const blob = new Blob([csv], { type: mimeType });
+
+        const url = URL.createObjectURL(blob);
+
+        const anchor = document.createElement("a");
+
+        anchor.href = url;
+
+        anchor.download = `${filename}.csv`;
+
+        document.body.appendChild(anchor);
+
+        anchor.click();
+
+        anchor.remove();
+
+        URL.revokeObjectURL(url);
+    }
+
     closeExportModal();
 }
 
@@ -3355,6 +3377,171 @@ async function downloadFile(filename) {
     }
 }
 
+async function exportRealPDF(rows, filename) {
+
+    const { jsPDF } = window.jspdf;
+
+    const doc = new jsPDF("p", "mm", "a4");
+
+    // Title
+    doc.setFontSize(22);
+    doc.text("TaskFlow Report", 70, 20);
+
+    // Date
+    doc.setFontSize(10);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 30);
+
+    let currentY = 40;
+
+    let headers = [];
+    let body = [];
+
+    rows.forEach((row) => {
+
+        // Section title
+        if (row.length === 1) {
+
+            // Print previous table first
+            if (headers.length && body.length) {
+
+                doc.autoTable({
+                    startY: currentY,
+                    head: [headers],
+                    body: body,
+                    theme: "grid",
+                    styles: {
+                        fontSize: 8,
+                        cellPadding: 3,
+                        overflow: "linebreak"
+                    },
+                    headStyles: {
+                        fillColor: [41, 128, 185]
+                    }
+                });
+
+                currentY = doc.lastAutoTable.finalY + 10;
+
+                headers = [];
+                body = [];
+            }
+
+            // Section heading
+            doc.setFontSize(14);
+            doc.setTextColor(41, 128, 185);
+
+            doc.text(String(row[0]), 14, currentY);
+
+            currentY += 8;
+        }
+
+        // Header row
+        else if (!headers.length) {
+
+            headers = row;
+
+        }
+
+        // Table body
+        else {
+
+            body.push(row);
+        }
+
+    });
+
+    // Final table
+    if (headers.length && body.length) {
+
+        doc.autoTable({
+            startY: currentY,
+            head: [headers],
+            body: body,
+            theme: "grid",
+            styles: {
+                fontSize: 8,
+                cellPadding: 3,
+                overflow: "linebreak"
+            },
+            headStyles: {
+                fillColor: [41, 128, 185]
+            }
+        });
+
+    }
+
+    const pdfBlob = doc.output("blob");
+
+    const handle = await window.showSaveFilePicker({
+
+        suggestedName: filename + ".pdf",
+
+        types: [
+            {
+                description: "PDF File",
+                accept: {
+                    "application/pdf": [".pdf"]
+                }
+            }
+        ]
+    });
+
+    const writable = await handle.createWritable();
+
+    await writable.write(pdfBlob);
+
+    await writable.close();
+}
+
+async function exportExcel(rows, filename) {
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+
+    worksheet["!cols"] = [
+        { wch: 40 },
+        { wch: 30 },
+        { wch: 30 },
+        { wch: 20 },
+        { wch: 20 },
+        { wch: 20 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+
+    const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array"
+    });
+
+    const blob = new Blob(
+        [excelBuffer],
+        {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        }
+    );
+
+    const handle = await window.showSaveFilePicker({
+
+        suggestedName: filename + ".xlsx",
+
+        types: [
+            {
+                description: "Excel File",
+                accept: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
+                }
+            }
+        ]
+    });
+
+    const writable = await handle.createWritable();
+
+    await writable.write(blob);
+
+    await writable.close();
+}
+
 async function deleteFile(filename) {
     const token = sessionStorage.getItem("token");
     const decoded = decodeURIComponent(filename);
@@ -3450,5 +3637,8 @@ window.addEventListener("load", applySettingsPreferences);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </body>
 </html>
