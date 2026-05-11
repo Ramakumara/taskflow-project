@@ -69,7 +69,103 @@
 
             <div class="topbar-right">
                 <div class="notification-wrap">
-                    <i class="fas fa-bell notification"></i>
+
+                    <div class="notification-bell" onclick="toggleNotifications(event)">
+
+                        <i class="fas fa-bell notification"></i>
+
+                        <span class="notification-count" id="notification-count">
+                            3
+                        </span>
+
+                    </div>
+
+                    <div id="notification-dropdown" class="notification-dropdown">
+
+                        <div class="notification-header">
+
+                            <h3>Notifications</h3>
+
+                            <span class="mark-read">
+                                Mark all as read
+                            </span>
+
+                        </div>
+
+                        <div class="notification-tabs">
+
+                            <button class="active-tab">All</button>
+
+                            <button>Unread</button>
+
+                            <button>Mentions</button>
+
+                        </div>
+
+                        <div class="notification-list">
+
+                            <div class="notification-item unread">
+
+                                <div class="notification-icon blue">
+                                    <i class="fas fa-check"></i>
+                                </div>
+
+                                <div class="notification-content">
+
+                                    <h4>Task Updated</h4>
+
+                                    <p>User login issue updated</p>
+
+                                    <small>2m ago</small>
+
+                                </div>
+
+                            </div>
+
+                            <div class="notification-item unread">
+
+                                <div class="notification-icon green">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+
+                                <div class="notification-content">
+
+                                    <h4>Task Created</h4>
+
+                                    <p>New project task created</p>
+
+                                    <small>15m ago</small>
+
+                                </div>
+
+                            </div>
+
+                            <div class="notification-item">
+
+                                <div class="notification-icon orange">
+                                    <i class="fas fa-calendar"></i>
+                                </div>
+
+                                <div class="notification-content">
+
+                                    <h4>Due Date Reminder</h4>
+
+                                    <p>API task due tomorrow</p>
+
+                                    <small>1h ago</small>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div class="view-all">
+                            View all notifications
+                        </div>
+
+                    </div>
+
                 </div>
 
                 <div class="profile-menu">
@@ -337,7 +433,6 @@
                     <div class="report-header">
                         <div>
                             <h2>Reports</h2>
-                            <p>Overview of your internship project progress and team performance.</p>
                         </div>
                         <div class="report-actions">
                             <div class="report-date-control">
@@ -3633,7 +3728,21 @@ window.addEventListener("load", initializeDashboardPage);
 window.addEventListener("load", loadDashboardSummary);
 window.addEventListener("load", applySettingsPreferences);
 
+function toggleNotifications(event) {
 
+    event.stopPropagation();
+
+    const dropdown = document.getElementById("notification-dropdown");
+
+    dropdown.classList.toggle("show");
+}
+
+document.addEventListener("click", function () {
+
+    document
+    .getElementById("notification-dropdown")
+    .classList.remove("show");
+});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>

@@ -5292,3 +5292,218 @@ body.export-modal-open {
     margin-top: 10px;
 }
 
+.notification-wrap {
+
+    position: relative;
+}
+
+.notification-bell {
+
+    position: relative;
+
+    cursor: pointer;
+}
+
+.notification-count {
+
+    position: absolute;
+
+    top: -8px;
+
+    right: -8px;
+
+    background: red;
+
+    color: white;
+
+    font-size: 11px;
+
+    width: 18px;
+
+    height: 18px;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+}
+
+.notification-dropdown {
+
+    display: none;
+
+    position: absolute;
+
+    top: 50px;
+
+    right: 0;
+
+    width: 340px;
+
+    background: white;
+
+    border-radius: 14px;
+
+    box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+
+    z-index: 999;
+}
+
+.notification-dropdown.show {
+
+    display: block;
+}
+.hidden {
+
+    display: none;
+}
+
+.notification-header {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    padding: 18px;
+
+    border-bottom: 1px solid #eee;
+}
+
+.notification-header h3 {
+
+    margin: 0;
+
+    font-size: 18px;
+}
+
+.mark-read {
+
+    color: #2563eb;
+
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+.notification-tabs {
+
+    display: flex;
+
+    gap: 10px;
+
+    padding: 12px 18px;
+}
+
+.notification-tabs button {
+
+    border: none;
+
+    padding: 8px 14px;
+
+    border-radius: 20px;
+
+    background: #f3f4f6;
+
+    cursor: pointer;
+}
+
+.active-tab {
+
+    background: #2563eb !important;
+
+    color: white;
+}
+
+.notification-list {
+
+    max-height: 350px;
+
+    overflow-y: auto;
+}
+
+.notification-item {
+
+    display: flex;
+
+    gap: 14px;
+
+    padding: 16px 18px;
+
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.notification-item:hover {
+
+    background: #f9fafb;
+}
+
+.notification-icon {
+
+    width: 42px;
+
+    height: 42px;
+
+    border-radius: 50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    color: white;
+}
+
+.notification-icon.blue {
+
+    background: #3b82f6;
+}
+
+.notification-icon.green {
+
+    background: #22c55e;
+}
+
+.notification-icon.orange {
+
+    background: #f59e0b;
+}
+
+.notification-content h4 {
+
+    margin: 0;
+
+    font-size: 14px;
+}
+
+.notification-content p {
+
+    margin: 4px 0;
+
+    font-size: 13px;
+
+    color: #555;
+}
+
+.notification-content small {
+
+    color: gray;
+}
+
+.view-all {
+
+    padding: 14px;
+
+    text-align: center;
+
+    color: #2563eb;
+
+    font-weight: 600;
+
+    cursor: pointer;
+}
