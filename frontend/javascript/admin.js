@@ -18,7 +18,7 @@ function initializeAdminDashboard() {
 }
 
 async function refreshAdminData() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
         const [usersRes, projectsRes, tasksRes] = await Promise.all([
@@ -55,7 +55,7 @@ async function refreshAdminData() {
 }
 
 function setProfileAvatar() {
-    const username = localStorage.getItem("username") || "Admin";
+    const username = sessionStorage.getItem("username") || "Admin";
     const avatar = document.getElementById("profileAvatar");
     const encoded = encodeURIComponent(username);
     avatar.src = `https://ui-avatars.com/api/?name=${encoded}&background=3f7ec8&color=fff&bold=true`;
@@ -179,7 +179,7 @@ function logoutFromAdmin() {
         logout();
         return;
     }
-    localStorage.clear();
+    sessionStorage.clear();
     window.location.href = "/";
 }
 
@@ -365,7 +365,7 @@ function renderUsersView() {
                                     <td>${escapeHtml(user.email || "-")}</td>
                                     <td>${escapeHtml(capitalize(user.role || "user"))}</td>
                                     <td>
-                                        ${user.email === localStorage.getItem("email") ? "<span class='disabled-action'>Current user</span>" : `<button class="action-btn delete-btn" type="button" onclick="deleteUser('${escapeHtml(user.email)}')">Delete</button>`}
+                                        ${user.email === sessionStorage.getItem("email") ? "<span class='disabled-action'>Current user</span>" : `<button class="action-btn delete-btn" type="button" onclick="deleteUser('${escapeHtml(user.email)}')">Delete</button>`}
                                     </td>
                                 </tr>
                             `).join("") : `<tr><td colspan="4" class="empty-state">No users found.</td></tr>`}
@@ -378,7 +378,7 @@ function renderUsersView() {
 }
 
 async function deleteUser(email) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     if (!token) {
         alert("Login required.");
@@ -442,7 +442,7 @@ function renderReportsView() {
 }
 
 async function renderFilesView() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     const res = await fetch(`${BASE_URL}/files`, {
         headers: {
@@ -496,7 +496,7 @@ async function renderFilesView() {
 }
 
 async function adminDownloadFile(name) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     const res = await fetch(`${BASE_URL}/files/download/${encodeURIComponent(name)}`, {
         headers: {
@@ -513,7 +513,7 @@ async function adminDownloadFile(name) {
     a.click();
 }
 async function adminDeleteFile(name) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     if (!confirm(`Delete ${name}?`)) return;
 
@@ -534,8 +534,8 @@ async function adminDeleteFile(name) {
 }
 
 function renderSettingsView() {
-    const username = localStorage.getItem("username") || "Admin";
-    const email = localStorage.getItem("email") || "Not available";
+    const username = sessionStorage.getItem("username") || "Admin";
+    const email = sessionStorage.getItem("email") || "Not available";
 
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view">

@@ -98,14 +98,14 @@
     <script src="/static/javascript/api.js"></script>
     <script src="/static/javascript/admin.js"></script>
     <script>
-        const role = localStorage.getItem("role");
+        const role = sessionStorage.getItem("role");
 
         if (role !== "admin") {
             alert("Access denied");
             window.location.href = "/";
         }
 
-        const username = localStorage.getItem("username");
+        const username = sessionStorage.getItem("username");
         if (username) {
             document.getElementById("welcome-user").innerText = username;
         }

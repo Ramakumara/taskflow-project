@@ -6,6 +6,8 @@
     <title>Dashboard</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 </head>
 <body>
 <div class="dashboard">
@@ -857,10 +859,10 @@ const username = params.get("username");
 const email = params.get("email");
 
 if (token) {
-    localStorage.setItem("token", token);
-    localStorage.setItem("role", role || "user");
-    localStorage.setItem("username", username || "");
-    localStorage.setItem("email", email || "");
+    sessionStorage.setItem("token", token);
+    sessionStorage.setItem("role", role || "user");
+    sessionStorage.setItem("username", username || "");
+    sessionStorage.setItem("email", email || "");
 
     window.history.replaceState({}, document.title, "/dashboard-page");
 }
@@ -909,7 +911,7 @@ function dashboard() {
 }
 
 function setProjectTab(tab) {
-    if (tab === 'activity-log' && localStorage.getItem("role") === "user") {
+    if (tab === 'activity-log' && sessionStorage.getItem("role") === "user") {
         dashboard();
         return;
     }
@@ -969,10 +971,10 @@ async function goToProfile() {
 }
 
 async function loadDashboardProfile() {
-    const username = localStorage.getItem("username") || "User";
-    const email = localStorage.getItem("email") || "";
-    const role = localStorage.getItem("role") || "user";
-    const token = localStorage.getItem("token");
+    const username = sessionStorage.getItem("username") || "User";
+    const email = sessionStorage.getItem("email") || "";
+    const role = sessionStorage.getItem("role") || "user";
+    const token = sessionStorage.getItem("token");
 
     if (!email) {
         alert("No user data found. Please login again.");
@@ -1019,13 +1021,13 @@ async function loadDashboardProfile() {
 function loadSettingsView() {
     const themeSelect = document.getElementById("settings-theme-select");
     const languageSelect = document.getElementById("settings-language-select");
-    if (themeSelect) themeSelect.value = localStorage.getItem("settings.theme") || "light";
-    if (languageSelect) languageSelect.value = localStorage.getItem("settings.language") || "english";
+    if (themeSelect) themeSelect.value = sessionStorage.getItem("settings.theme") || "light";
+    if (languageSelect) languageSelect.value = sessionStorage.getItem("settings.language") || "english";
     applySettingsPreferences();
 }
 
 function saveSettingsPreference(key, value) {
-    localStorage.setItem(`settings.${key}`, String(value));
+    sessionStorage.setItem(`settings.${key}`, String(value));
     applySettingsPreferences();
 }
 
@@ -1034,15 +1036,15 @@ function getTaskAssignedBy(task, project) {
 }
 
 function toggleQuietNotifications() {
-    const nextValue = localStorage.getItem("settings.quietNotifications") !== "true";
+    const nextValue = sessionStorage.getItem("settings.quietNotifications") !== "true";
     saveSettingsPreference("quietNotifications", nextValue);
 }
 
 function applySettingsPreferences() {
-    const compactTables = localStorage.getItem("settings.compactTables") === "true";
-    const quietNotifications = localStorage.getItem("settings.quietNotifications") === "true";
-    const theme = localStorage.getItem("settings.theme") || "light";
-    const language = localStorage.getItem("settings.language") || "english";
+    const compactTables = sessionStorage.getItem("settings.compactTables") === "true";
+    const quietNotifications = sessionStorage.getItem("settings.quietNotifications") === "true";
+    const theme = sessionStorage.getItem("settings.theme") || "light";
+    const language = sessionStorage.getItem("settings.language") || "english";
     document.body.classList.toggle("compact-dashboard-tables", compactTables);
     document.body.classList.toggle("quiet-dashboard-notifications", quietNotifications);
     document.body.classList.toggle("dashboard-theme-dark", getResolvedDashboardTheme(theme) === "dark");
@@ -1128,9 +1130,9 @@ let teamWorkspaceCache = {
 
 // Load all tasks for user
 async function loadAllTasks() {
-    const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
-    const token = localStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
+    const email = sessionStorage.getItem("email");
+    const token = sessionStorage.getItem("token");
 
     if (!role || !email || !token) return;
 
@@ -1184,7 +1186,7 @@ async function loadAllTasks() {
 }
 
 window.addEventListener("load", () => {
-    const role = localStorage.getItem("role");
+    const role = sessionStorage.getItem("role");
 
     if (role === "user") {
         // Hide header
@@ -1200,9 +1202,9 @@ window.addEventListener("load", () => {
 
 // Load team members
 async function loadTeamMembers() {
-    const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
-    const token = localStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
+    const email = sessionStorage.getItem("email");
+    const token = sessionStorage.getItem("token");
 
     if (!role || !email || !token) return;
 
@@ -1239,8 +1241,8 @@ function populateTeamProjectFilter(projects) {
     const filter = document.getElementById("teamProjectFilter");
     if (!filter) return;
 
-    const role = localStorage.getItem("role");
-    const userEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
+    const role = sessionStorage.getItem("role");
+    const userEmail = (sessionStorage.getItem("email") || "").trim().toLowerCase();
     const { tasks } = teamWorkspaceCache;
 
     const filteredProjects = role === "user"
@@ -1266,7 +1268,7 @@ function renderTeamWorkspace() {
     const list = document.getElementById("team-members-list");
     if (!list) return;
 
-    const role = localStorage.getItem("role");
+    const role = sessionStorage.getItem("role");
     const newProjectBtn = document.querySelector(".team-new-project-btn");
     if (newProjectBtn) {
         newProjectBtn.style.display = role === "manager" || role === "admin" ? "" : "none";
@@ -1280,7 +1282,7 @@ function renderTeamWorkspace() {
         users.map(user => [String(user.email || "").trim().toLowerCase(), user])
     );
 
-    const userEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
+    const userEmail = (sessionStorage.getItem("email") || "").trim().toLowerCase();
 
     let visibleProjects = projects.filter(project => {
         const matchesFilter =
@@ -1465,7 +1467,7 @@ function teamProjectColorClass(index) {
 }
 
 function openTeamAddMember(projectId) {
-    localStorage.setItem("selectedProjectId", projectId);
+    sessionStorage.setItem("selectedProjectId", projectId);
     setActiveMenu("overview");
     showView("dashboard-view");
     openCreate();
@@ -1496,9 +1498,9 @@ let dashboardCalendarMonth = new Date().getMonth();
 let dashboardCalendarYear = new Date().getFullYear();
 
 function initializeCalendar() {
-    const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
-    const token = localStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
+    const email = sessionStorage.getItem("email");
+    const token = sessionStorage.getItem("token");
 
     if (!role || !email || !token) return;
 
@@ -1604,9 +1606,9 @@ function generateCalendarDays(tasks, month, year) {
 }
 
 async function loadDashboardSummary() {
-    const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
-    const token = localStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
+    const email = sessionStorage.getItem("email");
+    const token = sessionStorage.getItem("token");
 
     try {
         const [projectsRes, tasksRes] = await Promise.all([
@@ -1655,9 +1657,9 @@ function renderSummary(projects, tasks) {
 }
 
 async function loadProjectWorkspace() {
-    const projectId = localStorage.getItem("selectedProjectId");
-    const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
+    const projectId = sessionStorage.getItem("selectedProjectId");
+    const role = sessionStorage.getItem("role");
+    const email = sessionStorage.getItem("email");
 
     if (!projectId || !role || !email) {
         return;
@@ -1669,7 +1671,7 @@ async function loadProjectWorkspace() {
     }
     
     try {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         // Load project title
         const projectsRes = await fetch(`${BASE_URL}/projects`, {
             headers: { "Authorization": "Bearer " + token }
@@ -1753,7 +1755,7 @@ async function loadProjectWorkspace() {
 }
 
 async function addTaskComment() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const input = document.getElementById("task-comment-input");
     if (!activeTaskId || !input) return;
 
@@ -1845,7 +1847,7 @@ function syncActivityExportModalUI() {
 }
 
 async function confirmActivityExport() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const startDate = document.getElementById("activity-export-start-date")?.value || "";
     const endDate = document.getElementById("activity-export-end-date")?.value || "";
     const includeDetails = document.getElementById("activity-export-detailed")?.checked ?? true;
@@ -1980,7 +1982,7 @@ let showAllProjects = false;
 let showAllTeam = false;
 
 function applyDashboardRoleVisibility() {
-    const role = localStorage.getItem("role");
+    const role = sessionStorage.getItem("role");
     const isUser = role === "user";
     const activityMenu = document.querySelector('[data-sidebar="activity-log"]');
     const activityExportCard = document.querySelector('[data-export-section="activity"]');
@@ -2146,9 +2148,9 @@ function filterReportTasksByDate(tasks, startDate, endDate) {
 }
 
 async function loadReports() {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    const email = (localStorage.getItem("email") || "").trim().toLowerCase();
+    const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
+    const email = (sessionStorage.getItem("email") || "").trim().toLowerCase();
 
     try {
         const [projectsRes, tasksRes] = await Promise.all([
@@ -2568,7 +2570,7 @@ async function exportCSV(options = {}) {
     const sections = new Set(options.sections || ["projects", "overview", "tasks", "team"]);
     const format = options.format || "csv";
 
-    if (localStorage.getItem("role") === "user") {
+    if (sessionStorage.getItem("role") === "user") {
         sections.delete("activity");
     }
 
@@ -2673,7 +2675,7 @@ async function exportCSV(options = {}) {
     }
 
     if (sections.has("activity")) {
-        const token = localStorage.getItem("token");
+        const token = sessionStorage.getItem("token");
         try {
             const res = await fetch(`${BASE_URL}/activities`, {
                 headers: { "Authorization": "Bearer " + token }
@@ -2757,14 +2759,14 @@ function buildPrintableReportHtml(rows) {
 }
 
 async function loadFiles() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const tbody = document.getElementById("files-table-body");
     const footer = document.getElementById("files-footer-copy");
     const storageCopy = document.getElementById("storage-copy");
     const storagePercent = document.getElementById("storage-percent");
     const storageFill = document.getElementById("storage-meter-fill");
 
-    const role = localStorage.getItem("role");
+    const role = sessionStorage.getItem("role");
 
     if (role === "user") {
         document.getElementById("uploadBtn").style.display = "none";
@@ -2807,10 +2809,10 @@ function renderFiles() {
     updateCategoryCounts();
 
     if (filesTab === "my") {
-        const email = (localStorage.getItem("email") || "").trim().toLowerCase();
+        const email = (sessionStorage.getItem("email") || "").trim().toLowerCase();
         items = items.filter(file => String(file.owner_email || file.owner || "").trim().toLowerCase() === email);
     } else if (filesTab === "shared") {
-        const email = (localStorage.getItem("email") || "").trim().toLowerCase();
+        const email = (sessionStorage.getItem("email") || "").trim().toLowerCase();
         items = items.filter(file => {
             const sharedWith = Array.isArray(file.shared_with) ? file.shared_with : [];
             return sharedWith.some(value => String(value || "").trim().toLowerCase() === email);
@@ -2849,13 +2851,13 @@ function renderFiles() {
     }
 
     tbody.innerHTML = "";
-    const role = localStorage.getItem("role");
+    const role = sessionStorage.getItem("role");
 
     const header = document.getElementById("assigned-header");
     if (header) {
         header.style.display = role === "user" ? "none" : "";
     }
-    const currentEmail = (localStorage.getItem("email") || "").trim().toLowerCase();
+    const currentEmail = (sessionStorage.getItem("email") || "").trim().toLowerCase();
     pageItems.forEach(file => {
         const row = document.createElement("tr");
         const fileOwnerEmail = String(file.owner_email || "").trim().toLowerCase();
@@ -2882,7 +2884,7 @@ function renderFiles() {
                 </span>
                 ${shortenFileName(file.name)}
             </td>            
-            <td>${file.owner_name || file.owner_email || localStorage.getItem("username") || "Unknown"}</td>
+            <td>${file.owner_name || file.owner_email || sessionStorage.getItem("username") || "Unknown"}</td>
 
             ${role !== "user" ? `
             <td>
@@ -3096,7 +3098,7 @@ async function assignFileToUser(filename, email) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + localStorage.getItem("token")
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
         },
         body: JSON.stringify({ shared_with: target })
     });
@@ -3154,7 +3156,7 @@ function renderAssignedControl(file) {
 }
 
 async function loadAssignableUsers() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     try {
         if (!Array.isArray(allUsersCache) || !allUsersCache.length) {
             const usersRes = await fetch(`${BASE_URL}/users`, {
@@ -3276,7 +3278,7 @@ async function saveInlineAssign(key) {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + localStorage.getItem("token")
+            "Authorization": "Bearer " + sessionStorage.getItem("token")
         },
         body: JSON.stringify({
             shared_with: selectedValues   // 🔥 MULTIPLE USERS
@@ -3301,7 +3303,7 @@ function getFileCategory(file) {
 }
 
 async function handleFileUpload(event) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const selected = Array.from(event.target.files || []);
     if (!selected.length) return;
 
@@ -3324,7 +3326,7 @@ async function handleFileUpload(event) {
 }
 
 async function downloadFile(filename) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const decoded = decodeURIComponent(filename);
 
     try {
@@ -3353,7 +3355,7 @@ async function downloadFile(filename) {
 }
 
 async function deleteFile(filename) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const decoded = decodeURIComponent(filename);
     if (!confirm(`Delete ${decoded}?`)) return;
 
@@ -3428,8 +3430,8 @@ async function initializeDashboardPage() {
 
     applyDashboardRoleVisibility();
 
-    let defaultView = localStorage.getItem("settings.defaultView") || "dashboard";
-    if (defaultView === "activity-log" && localStorage.getItem("role") === "user") {
+    let defaultView = sessionStorage.getItem("settings.defaultView") || "dashboard";
+    if (defaultView === "activity-log" && sessionStorage.getItem("role") === "user") {
         defaultView = "files";
     }
     setProjectTab(defaultView);

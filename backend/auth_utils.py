@@ -171,3 +171,58 @@ async def send_task_email(email: str, task_title: str, assigned_by: str):
 
     fm = FastMail(conf)
     await fm.send_message(message)
+
+
+async def send_reminder_email(email: str, task_title: str, deadline: str):
+
+    message = MessageSchema(
+        subject="⏰ Task Reminder",
+        recipients=[email],
+        body=f"""
+        <div style="font-family: Arial, sans-serif; padding:20px;">
+
+            <h2 style="color:#e67e22;">
+                Task Deadline Reminder
+            </h2>
+
+            <p>Hello,</p>
+
+            <p>Your task deadline is approaching.</p>
+
+            <div style="
+                background:#f4f6f7;
+                padding:15px;
+                border-left:5px solid orange;
+                margin:10px 0;
+            ">
+                <b>Task:</b> {task_title}<br>
+                <b>Deadline:</b> {deadline}
+            </div>
+
+            <p>Please complete the task before deadline.</p>
+
+            <a href="http://127.0.0.1:8000/"
+               style="
+                   background:#3498db;
+                   color:white;
+                   padding:10px 15px;
+                   text-decoration:none;
+                   border-radius:5px;
+               ">
+               Open TaskFlow
+            </a>
+
+            <br><br>
+
+            <p style="font-size:12px; color:gray;">
+                Automated reminder from TaskFlow
+            </p>
+
+        </div>
+        """,
+        subtype="html"
+    )
+
+    fm = FastMail(conf)
+
+    await fm.send_message(message)

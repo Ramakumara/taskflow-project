@@ -98,10 +98,10 @@ async function handleLogin() {
         }
 
         if (res.ok && data.message === "Login success") {
-            localStorage.setItem("token", data.access_token);
-            localStorage.setItem("username", data.username || "");
-            localStorage.setItem("email", data.email || email);
-            localStorage.setItem("role", data.role || "user");
+            sessionStorage.setItem("token", data.access_token);
+            sessionStorage.setItem("username", data.username || "");
+            sessionStorage.setItem("email", data.email || email);
+            sessionStorage.setItem("role", data.role || "user");
 
             if (data.role === "admin") {
                 window.location.href = "/admin-page";
@@ -151,13 +151,13 @@ async function handleRegister() {
 
 
 function logout() {
-    localStorage.clear();
+    sessionStorage.clear();
     window.location.href = "/";
 }
 
 async function createProject() {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+    const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
 
     if (role !== "manager") {
         alert("Only manager can create project");
@@ -196,9 +196,9 @@ async function createProject() {
 }
 
 async function loadProjects() {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
-    const email = localStorage.getItem("email");
+    const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
+    const email = sessionStorage.getItem("email");
 
     const pres = await fetch(`${BASE_URL}/projects`, {
         headers: { "Authorization": "Bearer " + token }
@@ -243,7 +243,7 @@ async function loadProjects() {
         `;
 
         card.onclick = () => {
-            localStorage.setItem("selectedProjectId", p.id);
+            sessionStorage.setItem("selectedProjectId", p.id);
             showProjectWorkspace();
             if (typeof loadProjectWorkspace === "function") {
                 loadProjectWorkspace();
@@ -283,7 +283,7 @@ function hideCreate() {
 }
 
 async function loadProjectDropdown() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     const res = await fetch(`${BASE_URL}/projects`, {
         headers: { "Authorization": "Bearer " + token }
@@ -304,7 +304,7 @@ async function loadProjectDropdown() {
 }
 
 async function loadUsers() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     const res = await fetch(`${BASE_URL}/users`, {
         headers: { "Authorization": "Bearer " + token }
@@ -337,8 +337,8 @@ async function loadUsers() {
 }
 
 async function createTask() {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+    const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
 
     if (role !== "manager") {
         alert("Only manager can create tasks");
@@ -389,7 +389,7 @@ async function createTask() {
 }
 
 async function updateStatus(id, status) {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
         const res = await fetch(`${BASE_URL}/tasks/${id}`, {
@@ -419,8 +419,8 @@ async function updateStatus(id, status) {
 }
 
 async function deleteProject(id) {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+    const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
 
     if (role !== "manager") {
         alert("Not allowed");
@@ -444,8 +444,8 @@ async function deleteProject(id) {
 }
 
 async function deleteTask(id) {
-    const token = localStorage.getItem("token");
-    const role = localStorage.getItem("role");
+    const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
 
     if (role !== "manager") {
         alert("Not allowed");
@@ -470,7 +470,7 @@ async function deleteTask(id) {
 }
 
 async function loadActivityLog() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
     const body = document.getElementById("activity-log-body");
     if (!body) return;
 
@@ -515,7 +515,7 @@ async function loadActivityLog() {
 }
 
 async function exportActivityLog() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
     try {
         const res = await fetch(`${BASE_URL}/activities/export`, {
@@ -544,8 +544,8 @@ async function exportActivityLog() {
 }
 
 window.onload = function () {
-    const role = localStorage.getItem("role");
-    const username = localStorage.getItem("username");
+    const role = sessionStorage.getItem("role");
+    const username = sessionStorage.getItem("username");
     const isDashboard = window.location.pathname.includes("dashboard-page");
 
     if (!role && isDashboard) {
@@ -577,6 +577,7 @@ window.onload = function () {
         loadUsers();
         setAvatar();
         checkAssignedTaskNotifications();
+        checkTaskReminders();
     }
 };
 
@@ -597,7 +598,7 @@ function formatDateTime(value) {
 }
 
 function setAvatar() {
-    const email = localStorage.getItem("email");
+    const email = sessionStorage.getItem("email");
 
     if (email) {
         const firstLetter = email.charAt(0).toUpperCase();
@@ -651,7 +652,7 @@ function goToProfile() {
 
 
 async function loadStatusPage() {
-    const token = localStorage.getItem("token");
+    const token = sessionStorage.getItem("token");
 
    const pres = await fetch(`${BASE_URL}/projects`, {
         headers: { "Authorization": "Bearer " + token }
@@ -704,9 +705,9 @@ function setProjectTab(tab) {
 
 
 function loadProjectPage() {
-    const projectId = localStorage.getItem("selectedProjectId");
-    const role = localStorage.getItem("role"); 
-    const token = localStorage.getItem("token"); 
+    const projectId = sessionStorage.getItem("selectedProjectId");
+    const role = sessionStorage.getItem("role"); 
+    const token = sessionStorage.getItem("token"); 
 
     if (role !== "manager") {
         const actionHeader = document.getElementById("action-header");
@@ -825,8 +826,8 @@ function handleTaskSearch(event) {
 
 async function checkAssignedTaskNotifications() {
 
-    const token = localStorage.getItem("token");
-    const email = localStorage.getItem("email");
+    const token = sessionStorage.getItem("token");
+    const email = sessionStorage.getItem("email");
 
     if (!token || !email) return;
 
@@ -851,14 +852,14 @@ async function checkAssignedTaskNotifications() {
             const notificationKey = `task_notification_${task.id}`;
 
             // Prevent duplicate popup
-            if (!localStorage.getItem(notificationKey)) {
+            if (!sessionStorage.getItem(notificationKey)) {
 
                 showNotification(
                     `New Task Assigned: ${task.title}`,
                     "success"
                 );
 
-                localStorage.setItem(notificationKey, "shown");
+                sessionStorage.setItem(notificationKey, "shown");
             }
 
         });
@@ -867,5 +868,74 @@ async function checkAssignedTaskNotifications() {
 
         console.error("Notification check failed", error);
 
+    }
+}
+
+async function checkTaskReminders() {
+
+    const token = sessionStorage.getItem("token");
+
+    if (!token) return;
+
+    try {
+
+        const response = await fetch(`${BASE_URL}/tasks`, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        const tasks = await response.json();
+
+        const today = new Date();
+
+        tasks.forEach(task => {
+
+            if (!task.deadline) return;
+
+            const deadline = new Date(task.deadline);
+
+            const diffTime = deadline - today;
+
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+
+
+            // Tomorrow reminder
+            if (diffDays === 1) {
+
+                showNotification(
+                    `Reminder: "${task.title}" deadline is tomorrow`,
+                    "warning"
+                );
+            }
+
+
+
+            // Due today
+            if (diffDays === 0) {
+
+                showNotification(
+                    `Task "${task.title}" is due today`,
+                    "warning"
+                );
+            }
+
+
+
+            // Overdue
+            if (diffDays < 0 && task.status !== "done") {
+
+                showNotification(
+                    `Task "${task.title}" is overdue`,
+                    "error"
+                );
+            }
+
+        });
+
+    } catch (error) {
+
+        console.error(error);
     }
 }

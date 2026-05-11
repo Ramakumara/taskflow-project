@@ -4,8 +4,10 @@ from models.tasks import TaskCreate, TaskUpdate
 from bson import ObjectId
 from fastapi import Depends
 from auth_utils import get_current_user
-from auth_utils import send_task_email
+from auth_utils import send_task_email, send_reminder_email
 from routes.activity import record_activity
+from datetime import datetime, timedelta
+
 router = APIRouter()
 
 def format_mongo(doc):
@@ -50,6 +52,18 @@ async def create_task(task: TaskCreate, current_user: dict = Depends(get_current
         task_title=new_task.get("title"),
         assigned_by=current_user["email"]   
     )
+
+    deadline = datetime.strptime(task.deadline, "%Y-%m-%d").date()
+
+    today = datetime.now().date()
+
+    if deadline == today + timedelta(days=1):
+
+        await send_reminder_email(
+            email=user["email"],
+            task_title=new_task.get("title"),
+            deadline=str(deadline)
+        )
 
     return {"message": "Task created and email sent"}
 
