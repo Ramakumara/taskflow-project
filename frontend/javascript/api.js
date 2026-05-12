@@ -43,7 +43,9 @@ function showNotification(message, type = "success") {
         </button>
     `;
 
-    document.body.appendChild(notification);
+    document
+        .getElementById("toast-container")
+        .appendChild(notification);
 
     const closeBtn = notification.querySelector(".notification-close");
 

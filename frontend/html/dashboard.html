@@ -11,6 +11,7 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
 </head>
 <body>
+<div id="toast-container"></div>
 <div class="dashboard">
     <aside class="dashboard-sidebar">
         <div class="dashboard-brand" aria-hidden="true">
@@ -120,7 +121,7 @@
                         </div>
 
                         <div class="view-all">
-                            View all notifications
+                            ....
                         </div>
 
                     </div>  
@@ -486,7 +487,6 @@
                         <div class="chart-card-container project-report-card">
                             <h3>Tasks by Project</h3>
                             <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
-                            <p id="project-chart-total" class="chart-footnote">Total: 0 tasks</p>
                         </div>
                     </div>
 
@@ -1961,6 +1961,30 @@ function filterActivityLogsByDate(logs, startDate, endDate) {
         if (start && date < start) return false;
         if (end && date > end) return false;
         return true;
+    });
+}
+
+function formatActivityTime(timestamp) {
+
+    const date = new Date(timestamp);
+
+    return date.toLocaleString("en-IN", {
+
+        timeZone: "Asia/Kolkata",
+
+        day: "2-digit",
+
+        month: "short",
+
+        year: "numeric",
+
+        hour: "2-digit",
+
+        minute: "2-digit",
+
+        second: "2-digit",
+
+        hour12: true
     });
 }
 
@@ -3900,8 +3924,10 @@ async function markNotificationRead(id) {
 
     try {
 
-        await fetch(
+        const response = await fetch(
+
             `${BASE_URL}/notifications/${id}/read`,
+
             {
                 method: "PUT",
 
@@ -3911,16 +3937,68 @@ async function markNotificationRead(id) {
             }
         );
 
-        allNotifications =
-            allNotifications.map(notification => {
+        if (!response.ok) {
 
-                if (notification.id === id) {
+            throw new Error("Failed");
+        }
 
-                    notification.read = true;
+        allNotifications = allNotifications.map(notification => {
+
+            if (
+                notification._id === id ||
+                notification.id === id
+            ) {
+
+                notification.read = true;
+            }
+
+            return notification;
+        });
+
+        renderNotifications();
+
+    } catch(error) {
+
+        console.log(error);
+    }
+}
+
+async function markAllNotificationsRead(event) {
+
+    event.stopPropagation();
+
+    const token = sessionStorage.getItem("token");
+
+    try {
+
+        const response = await fetch(
+
+            `${BASE_URL}/notifications/read-all`,
+
+            {
+                method: "PUT",
+
+                headers: {
+                    "Authorization": "Bearer " + token
                 }
+            }
+        );
 
-                return notification;
-            });
+        const data = await response.json();
+
+        console.log(data);
+
+        if (!response.ok) {
+
+            throw new Error("Failed");
+        }
+
+        allNotifications = allNotifications.map(notification => ({
+
+            ...notification,
+
+            read: true
+        }));
 
         renderNotifications();
 
@@ -3936,9 +4014,13 @@ function formatNotificationTime(timeString) {
 
     return date.toLocaleString("en-IN", {
 
+        timeZone: "Asia/Kolkata",
+
         day: "numeric",
 
         month: "short",
+
+        year: "numeric",
 
         hour: "2-digit",
 

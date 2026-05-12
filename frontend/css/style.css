@@ -5052,25 +5052,63 @@ body.export-modal-open {
     }
 }
 
-.taskflow-notification {
-    position: fixed;
-    top: 24px;
-    right: -400px;
+#toast-container {
+
+    position: fixed !important;
+
+    top: 20px !important;
+
+    right: 20px !important;
+
+    left: auto !important;
+
+    bottom: auto !important;
+
     width: 340px;
-    background: #ffffff;
-    border-radius: 14px;
-    padding: 16px;
+
+    z-index: 999999;
+
     display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-end;
+
+    gap: 12px;
+
+    pointer-events: none;
+}
+
+.taskflow-notification {
+
+    width: 320px;
+
+    background: #fff;
+
+    border-radius: 14px;
+
+    padding: 16px;
+
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+
+    display: flex;
+
+    justify-content: space-between;
+
     align-items: flex-start;
-    gap: 14px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.12);
-    z-index: 99999;
-    transition: all 0.4s ease;
-    border-left: 5px solid #2563eb;
+
+    gap: 12px;
+
+    box-sizing: border-box;
+
+    pointer-events: auto;
 }
 
 .taskflow-notification.show {
-    right: 24px;
+
+    opacity: 1;
+
+    transform: translateX(0);
 }
 
 .taskflow-notification.success {
@@ -5086,13 +5124,10 @@ body.export-modal-open {
 }
 
 .notification-left i {
-    font-size: 22px;
-    margin-top: 4px;
-    color: #2563eb;
-}
 
-.taskflow-notification.success .notification-left i {
-    color: #16a34a;
+    font-size: 20px;
+
+    color: #2563eb;
 }
 
 .taskflow-notification.error .notification-left i {
@@ -5108,25 +5143,33 @@ body.export-modal-open {
 }
 
 .notification-content h4 {
+
     margin: 0;
+
     font-size: 15px;
-    font-weight: 700;
-    color: #111827;
+
+    font-weight: 600;
 }
 
 .notification-content p {
-    margin: 4px 0 0;
-    font-size: 14px;
-    color: #6b7280;
-    line-height: 1.4;
-}
 
+    margin: 4px 0 0;
+
+    font-size: 13px;
+
+    color: #6b7280;
+}
 .notification-close {
-    border: none;
+
     background: transparent;
+
+    border: none;
+
     cursor: pointer;
-    color: #9ca3af;
+
     font-size: 16px;
+
+    color: #6b7280;
 }
 
 .notification-close:hover {
@@ -5580,27 +5623,9 @@ body.export-modal-open {
     flex: 1;
 }
 
-.notification-content h4 {
 
-    margin: 0;
 
-    font-size: 14px;
 
-    font-weight: 600;
-
-    color: #111827;
-}
-
-.notification-content p {
-
-    margin: 4px 0;
-
-    font-size: 12px;
-
-    color: #6b7280;
-
-    line-height: 1.5;
-}
 
 .notification-content small {
 

@@ -7,7 +7,10 @@ from auth_utils import get_current_user
 from auth_utils import send_task_email, send_reminder_email
 from routes.activity import record_activity
 from datetime import datetime, timedelta
+from datetime import datetime
+import pytz
 
+india = pytz.timezone("Asia/Kolkata")
 
 router = APIRouter()
 
@@ -45,7 +48,7 @@ async def create_task(task: TaskCreate, current_user: dict = Depends(get_current
         "email": user["email"],
         "title": "New Task Assigned",
         "message": f"You were assigned task '{new_task.get('title')}'",
-        "time": datetime.utcnow().isoformat(),
+        "time": datetime.now(india).isoformat(),
         "read": False,
         "created_at": datetime.utcnow()
     })
@@ -127,7 +130,7 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
 
         "message": f"{current_user['email']} updated task '{task['title']}' to {update.status}",
 
-        "time": datetime.utcnow().isoformat(),
+        "time": datetime.now(india).isoformat(),
 
         "read": False,
 

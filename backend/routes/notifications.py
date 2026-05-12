@@ -23,21 +23,53 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
     return notifications
 
 
+
 @router.put("/notifications/{notification_id}/read")
 async def mark_notification_read(
     notification_id: str
 ):
 
-    db.notifications.update_one(
-        {"_id": ObjectId(notification_id)},
-        {"$set": {"read": True}}
+    result = db.notifications.update_one(
+
+        {
+            "_id": ObjectId(notification_id)
+        },
+
+        {
+            "$set": {
+                "read": True
+            }
+        }
     )
 
     return {
-        "message": "Notification marked as read"
+        "success": True,
+        "modified": result.modified_count
     }
 
+@router.put("/notifications/read-all")
+async def mark_all_notifications_read(
+    current_user: dict = Depends(get_current_user)
+):
 
+    result = db.notifications.update_many(
+
+        {
+            "email": current_user["email"],
+            "read": False
+        },
+
+        {
+            "$set": {
+                "read": True
+            }
+        }
+    )
+
+    return {
+        "success": True,
+        "modified": result.modified_count
+    }
 
 @router.delete("/notifications/cleanup")
 async def cleanup_notifications():
