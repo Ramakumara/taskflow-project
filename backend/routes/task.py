@@ -8,6 +8,7 @@ from auth_utils import send_task_email, send_reminder_email
 from routes.activity import record_activity
 from datetime import datetime, timedelta
 
+
 router = APIRouter()
 
 def format_mongo(doc):
@@ -39,6 +40,15 @@ async def create_task(task: TaskCreate, current_user: dict = Depends(get_current
     new_task["assigned_by"] = current_user["email"]
 
     db.tasks.insert_one(new_task)
+
+    db.notifications.insert_one({
+        "email": user["email"],
+        "title": "New Task Assigned",
+        "message": f"You were assigned task '{new_task.get('title')}'",
+        "time": datetime.utcnow().isoformat(),
+        "read": False,
+        "created_at": datetime.utcnow()
+    })
 
     record_activity(
         current_user,
@@ -104,6 +114,25 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
         {"_id": ObjectId(task_id)},
         {"$set": {"status": update.status}}
     )
+
+    project = db.projects.find_one({"_id": task["project_id"]})
+
+    manager_email = project.get("owner_email")
+
+    db.notifications.insert_one({
+
+        "email": manager_email,
+
+        "title": "Task Updated",
+
+        "message": f"{current_user['email']} updated task '{task['title']}' to {update.status}",
+
+        "time": datetime.utcnow().isoformat(),
+
+        "read": False,
+
+        "created_at": datetime.utcnow()
+    })
 
     record_activity(
         current_user,

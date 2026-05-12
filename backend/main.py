@@ -10,6 +10,7 @@ from routes.google_auth import router as google_router
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi import WebSocket, WebSocketDisconnect
 from websocket_manager import manager
+from routes.notifications import router as notification_router
 
 
 app = FastAPI()
@@ -47,6 +48,7 @@ app.include_router(file.router, prefix="/files")
 app.include_router(activity.router)
 app.include_router(auth_router)
 app.include_router(google_router)
+app.include_router(notification_router)
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -122,3 +124,5 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         clients.remove(websocket)
+
+

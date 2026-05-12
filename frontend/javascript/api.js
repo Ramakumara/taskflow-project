@@ -633,18 +633,20 @@ function toggleMenu() {
     menu.classList.toggle("hidden");
 }
 
-window.onclick = function (e) {
+document.addEventListener("click", function (e) {
+
     const menu = document.getElementById("dropdown-menu");
     const trigger = document.getElementById("profile-trigger");
 
-    if (!menu) return; 
-
-    if (!e.target.matches("#avatar") && !e.target.closest("#profile-trigger")) {
-        if (!menu.classList.contains("hidden")) {
-            menu.classList.add("hidden");
-        }
+    if (
+        menu &&
+        !e.target.closest("#profile-trigger") &&
+        !e.target.closest("#dropdown-menu")
+    ) {
+        menu.classList.add("hidden");
     }
-};
+
+});
 
 function goToSettings() {
     alert("Settings page coming soon!");    
