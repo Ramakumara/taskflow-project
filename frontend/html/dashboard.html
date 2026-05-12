@@ -691,10 +691,20 @@
                                     </div>
                                 </div>
                             </div>
-                            <button class="files-sort" type="button" onclick="toggleFilesSort()">
-                                <span>Sort by: Name (A-Z)</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
+                            <div class="sort-container">
+
+                                <button class="files-sort" type="button" onclick="toggleFilesSort()">
+                                    <span>Sort by: Name (A-Z)</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+
+                                <div class="sort-options" id="sortOptions">
+                                    <div onclick="setSort('name-asc')">Name (A-Z)</div>
+                                    <div onclick="setSort('name-desc')">Name (Z-A)</div>
+                                    <div onclick="setSort('date-desc')">Date (Newest)</div>
+                                </div>
+
+                            </div>
                         </div>
                     </div>
 

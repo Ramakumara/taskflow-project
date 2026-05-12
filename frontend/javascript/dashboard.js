@@ -679,8 +679,9 @@ function renderDashboardYearOptions() {
 
     if (!yearSelect) return;
 
-    const startYear = dashboardCalendarYear - 2;
-    const endYear = dashboardCalendarYear + 2;
+    const currentYear = new Date().getFullYear();
+    const startYear = currentYear - 50;
+    const endYear = currentYear + 50;
     yearSelect.innerHTML = '';
 
     for (let year = startYear; year <= endYear; year++) {
@@ -2254,11 +2255,26 @@ window.addEventListener("click", function(event) {
 });
 
 function toggleFilesSort() {
-    filesSort = filesSort === "name-asc" ? "name-desc" : filesSort === "name-desc" ? "date-desc" : "name-asc";
+    document.getElementById("sortOptions").classList.toggle("show");
+}
+
+function setSort(sortType) {
+
+    filesSort = sortType;
+
     const label = document.querySelector(".files-sort span");
+
     if (label) {
-        label.textContent = filesSort === "name-asc" ? "Sort by: Name (A-Z)" : filesSort === "name-desc" ? "Sort by: Name (Z-A)" : "Sort by: Date (Newest)";
+        label.textContent =
+            sortType === "name-asc"
+            ? "Sort by: Name (A-Z)"
+            : sortType === "name-desc"
+            ? "Sort by: Name (Z-A)"
+            : "Sort by: Date (Newest)";
     }
+
+    document.getElementById("sortOptions").classList.remove("show");
+
     renderFiles();
 }
 

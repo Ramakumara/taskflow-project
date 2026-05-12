@@ -2334,12 +2334,41 @@ select option[value="done"] {
 }
 
 .calendar-year-select {
-    min-width: 120px;
-    padding: 10px 12px;
-    border-radius: 12px;
-    border: 1px solid #cbd5e1;
-    background: #f8fafc;
-    color: #334155;
+
+    width: 95px;
+
+    height: 40px;
+
+    border-radius: 10px;
+
+    border: 1px solid #dbe3ef;
+
+    background: #ffffff;
+
+    padding: 0 10px;
+
+    font-size: 14px;
+
+    cursor: pointer;
+
+    outline: none;
+}
+
+/* Dropdown list */
+
+.calendar-year-select option {
+
+    padding: 4px;
+
+    font-size: 14px;
+
+    height: 28px;
+}
+.calendar-year-select:focus {
+
+    border-color: #4f8cff;
+
+    box-shadow: 0 0 0 3px rgba(79,140,255,0.15);
 }
 
 .calendar-grid {
@@ -2887,7 +2916,7 @@ select option[value="done"] {
     min-height: 48px;
     border: 1px solid #edf1f7;
     border-radius: 10px;
-    background: #f8fafc;
+    background: #f8fafc !important;
     color: #172033;
     display: flex;
     align-items: center;
@@ -3263,7 +3292,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     padding: 12px 16px;
     border-radius: 14px;
     border: 1px solid #dfe7f3;
-    background: #ffffff;
+    background: #ffffff !important;
     color: #25314b;
     cursor: pointer;
     font-size: 15px;
@@ -5408,9 +5437,9 @@ body.export-modal-open {
 
     right: 0;
 
-    width: 360px;
+    width: 300px;
 
-    max-height: 500px;
+    max-height: 400px;
 
     background: #ffffff;
 
@@ -5624,9 +5653,6 @@ body.export-modal-open {
 }
 
 
-
-
-
 .notification-content small {
 
     font-size: 11px;
@@ -5669,3 +5695,34 @@ body.export-modal-open {
     background: #f9fafb;
 }
 
+
+
+.sort-container{
+    position: relative;
+    display: inline-block;
+}
+
+.sort-options{
+    display: none;
+    position: absolute;
+    top: 45px;
+    background: white;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    width: 180px;
+    z-index: 100;
+}
+
+.sort-options div{
+    padding: 10px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.sort-options div:hover{
+    background: #f2f2f2;
+}
+
+.sort-options.show{
+    display: block;
+}
