@@ -13,7 +13,7 @@ body {
     display: flex;
     overflow: hidden;
 
-    background-image: url("/static/images/background.png");
+    background-image: none;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
@@ -103,4 +103,129 @@ body {
 .reset-card button:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+/* Professional UI refresh */
+:root {
+    --tf-bg: #f5f7fb;
+    --tf-surface: #ffffff;
+    --tf-border: #dfe6f1;
+    --tf-text: #172033;
+    --tf-primary: #2563eb;
+    --tf-primary-dark: #1d4ed8;
+    --tf-radius: 8px;
+    --tf-shadow-lg: 0 18px 48px rgba(16, 24, 40, 0.14);
+    --tf-font: "Segoe UI", Inter, Arial, sans-serif;
+}
+
+body {
+    font-family: var(--tf-font);
+    background: var(--tf-bg);
+    color: var(--tf-text);
+}
+
+.reset-background {
+    min-height: 100vh;
+    height: auto;
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1fr);
+    background: var(--tf-bg) !important;
+    overflow: auto;
+}
+
+.reset-background::before {
+    content: "TaskFlow";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    background: linear-gradient(180deg, #111827 0%, #1f2a44 100%);
+    color: #ffffff;
+    font-size: clamp(36px, 6vw, 68px);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+.reset-container {
+    width: 100%;
+    min-height: 100vh;
+    margin-left: 0;
+    padding: 32px;
+    background: var(--tf-bg);
+}
+
+.reset-card {
+    width: min(400px, 100%);
+    padding: 34px;
+    border: 1px solid var(--tf-border);
+    border-radius: var(--tf-radius);
+    background: var(--tf-surface);
+    box-shadow: var(--tf-shadow-lg);
+    backdrop-filter: none;
+}
+
+.reset-card h2 {
+    margin: 0 0 20px;
+    color: var(--tf-text);
+    font-size: 28px;
+    line-height: 1.15;
+    text-align: left;
+}
+
+.reset-card label {
+    color: #344054;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.reset-card input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--tf-border);
+    border-radius: var(--tf-radius);
+    background: #ffffff;
+    color: var(--tf-text);
+}
+
+.reset-card input:focus {
+    border-color: #9db7ff;
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+}
+
+.reset-card button {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 18px;
+    padding: 0 16px;
+    border: 1px solid var(--tf-primary);
+    border-radius: var(--tf-radius);
+    background: var(--tf-primary);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.reset-card button:hover {
+    transform: none;
+    background: var(--tf-primary-dark);
+    border-color: var(--tf-primary-dark);
+    box-shadow: none;
+}
+
+@media (max-width: 900px) {
+    .reset-background {
+        grid-template-columns: 1fr;
+    }
+
+    .reset-background::before {
+        min-height: 180px;
+        padding: 32px;
+        font-size: 42px;
+    }
+
+    .reset-container {
+        min-height: auto;
+        padding: 24px;
+    }
 }
