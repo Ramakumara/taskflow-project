@@ -8,6 +8,17 @@ const adminState = {
 
 let projectStatusChart = null;
 let taskOverviewChart = null;
+let adminReportStatusChart = null;
+let adminReportProjectChart = null;
+
+const adminReportState = {
+    startDate: "",
+    endDate: "",
+    filteredProjects: [],
+    filteredTasks: [],
+    showAllProjects: false,
+    showAllActivity: false
+};
 
 function initializeAdminDashboard() {
     setProfileAvatar();
@@ -409,36 +420,759 @@ async function deleteUser(email) {
 }
 
 function renderReportsView() {
-    const stats = computeDashboardStats();
-    const completedRate = stats.filteredTasks.length ? Math.round((stats.completedTasks / stats.filteredTasks.length) * 100) : 0;
-    const activeProjects = stats.filteredProjects.filter((project) => {
-        return stats.filteredTasks.some((task) => String(task.project_id) === String(project.id));
-    }).length;
-    const overdueCount = stats.filteredTasks.filter((task) => isOverdue(task.deadline)).length;
+    const { filteredProjects, filteredTasks } = getAdminReportData();
+    const completed = filteredTasks.filter((task) => isCompletedStatus(task.status)).length;
+    const inProgress = filteredTasks.filter((task) => isInProgressStatus(task.status)).length;
+    const overdue = filteredTasks.filter((task) => isOverdue(task.deadline) && !isCompletedStatus(task.status)).length;
+    const pending = Math.max(filteredTasks.length - completed - inProgress - overdue, 0);
+    const activeUsers = new Set(filteredTasks.map((task) => String(task.assigned_to || "").trim()).filter(Boolean)).size;
+    const inactiveUsers = Math.max(adminState.users.length - activeUsers, 0);
+    const topProjects = getAdminTopProjectItems(filteredProjects, filteredTasks);
+    const activityItems = getAdminUserActivityItems(filteredTasks);
+
+    adminReportState.filteredProjects = filteredProjects;
+    adminReportState.filteredTasks = filteredTasks;
 
     document.getElementById("mainContent").innerHTML = `
-        <div class="list-view">
-            <div class="view-header">
+        <div class="list-view admin-report-dashboard">
+            <div class="view-header report-view-header">
                 <div>
                     <h3>Reports</h3>
+                    <p>Filter task and project performance by deadline date.</p>
+                </div>
+                <div class="admin-report-actions">
+                    <label class="admin-date-field">
+                        <span>Start</span>
+                        <input id="admin-report-start-date" type="date" value="${escapeHtml(adminReportState.startDate)}" onchange="setAdminReportDateRange()">
+                    </label>
+                    <label class="admin-date-field">
+                        <span>End</span>
+                        <input id="admin-report-end-date" type="date" value="${escapeHtml(adminReportState.endDate)}" onchange="setAdminReportDateRange()">
+                    </label>
+                    <button class="action-btn secondary-btn" type="button" onclick="clearAdminReportDateRange()">
+                        <i class="fas fa-rotate-left"></i>
+                        Clear
+                    </button>
+                    <div class="admin-export-group">
+                        <button class="action-btn export-btn" type="button" onclick="exportAdminReport('excel')">
+                            <i class="fas fa-file-excel"></i>
+                            Excel
+                        </button>
+                        <button class="action-btn export-btn" type="button" onclick="exportAdminReport('pdf')">
+                            <i class="fas fa-file-pdf"></i>
+                            PDF
+                        </button>
+                        <button class="action-btn export-btn" type="button" onclick="exportAdminReport('csv')">
+                            <i class="fas fa-file-csv"></i>
+                            CSV
+                        </button>
+                    </div>
                 </div>
             </div>
-            <div class="report-grid">
-                <div class="report-card">
-                    <h4>Completion Rate</h4>
-                    <p>${completedRate}% of visible tasks are completed.</p>
-                </div>
-                <div class="report-card">
-                    <h4>Active Projects</h4>
-                    <p>${activeProjects} projects currently have assigned tasks.</p>
-                </div>
-                <div class="report-card">
-                    <h4>Overdue Tasks</h4>
-                    <p>${overdueCount} task${overdueCount === 1 ? " is" : "s are"} past the deadline.</p>
-                </div>
-            </div>
+
+            <section class="admin-report-kpis">
+                ${renderAdminReportKpi("Total Users", adminState.users.length, "fas fa-users", "blue", "All registered users")}
+                ${renderAdminReportKpi("Total Projects", filteredProjects.length, "far fa-folder", "green", getAdminReportRangeLabel())}
+                ${renderAdminReportKpi("Total Tasks", filteredTasks.length, "far fa-square-check", "purple", "Filtered tasks")}
+                ${renderAdminReportKpi("Tasks Completed", completed, "far fa-circle-check", "orange", `${filteredTasks.length ? Math.round((completed / filteredTasks.length) * 100) : 0}% of tasks`)}
+            </section>
+
+            <section class="admin-report-main-grid">
+                <article class="admin-report-panel task-overview-panel">
+                    <div class="admin-report-panel-head">
+                        <h3>Task Overview</h3>
+                        <select class="admin-report-select" aria-label="Task overview range">
+                            <option>Daily</option>
+                            <option>Weekly</option>
+                            <option>Monthly</option>
+                        </select>
+                    </div>
+                    <div class="admin-line-legend">
+                        <span><i class="legend-line created"></i>Created</span>
+                        <span><i class="legend-line completed"></i>Completed</span>
+                        <span><i class="legend-line overdue"></i>Overdue</span>
+                    </div>
+                    <div class="admin-report-chart-wrap line">
+                        <canvas id="adminReportProjectChart"></canvas>
+                    </div>
+                </article>
+
+                <article class="admin-report-panel status-breakdown-panel">
+                    <div class="admin-report-panel-head">
+                        <h3>Tasks by Status</h3>
+                    </div>
+                    <div class="admin-status-layout">
+                        <div class="admin-report-chart-wrap donut">
+                            <canvas id="adminReportStatusChart"></canvas>
+                            <div class="admin-donut-total">
+                                <strong>${filteredTasks.length}</strong>
+                                <span>Total</span>
+                            </div>
+                        </div>
+                        <div class="admin-status-list">
+                            ${renderAdminStatusItem("Completed", completed, filteredTasks.length, "completed")}
+                            ${renderAdminStatusItem("In Progress", inProgress, filteredTasks.length, "progress")}
+                            ${renderAdminStatusItem("Pending", pending, filteredTasks.length, "pending")}
+                            ${renderAdminStatusItem("Overdue", overdue, filteredTasks.length, "overdue")}
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="admin-report-bottom-grid">
+                <article class="admin-report-panel">
+                    <div class="admin-report-panel-head">
+                        <h3>Top Active Projects</h3>
+                        ${renderAdminShowToggle("projects", topProjects.length)}
+                    </div>
+                    <div class="table-scroll">
+                        <table class="admin-compact-table">
+                            <thead>
+                                <tr>
+                                    <th>Project</th>
+                                    <th>Owner</th>
+                                    <th>Members</th>
+                                    <th>Tasks</th>
+                                    <th>Completed</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody>${renderAdminTopProjectRows(topProjects)}</tbody>
+                        </table>
+                    </div>
+                </article>
+
+                <article class="admin-report-panel">
+                    <div class="admin-report-panel-head">
+                        <h3>User Activity Summary</h3>
+                        ${renderAdminShowToggle("activity", activityItems.length)}
+                    </div>
+                    <div class="table-scroll">
+                        <table class="admin-compact-table activity-table">
+                            <thead>
+                                <tr>
+                                    <th>Activity</th>
+                                    <th>Count</th>
+                                    <th>Change</th>
+                                </tr>
+                            </thead>
+                            <tbody>${renderAdminUserActivityRows(activityItems)}</tbody>
+                        </table>
+                    </div>
+                </article>
+            </section>
         </div>
     `;
+
+    renderAdminReportCharts(filteredProjects, filteredTasks, { completed, inProgress, pending, overdue });
+}
+
+function getAdminReportData() {
+    const startDate = adminReportState.startDate;
+    const endDate = adminReportState.endDate;
+    const visibleProjects = filterCollection(adminState.projects, (project) => [project.name, project.owner_email]);
+    const visibleTasks = filterCollection(adminState.tasks, (task) => [task.title, task.assigned_to, task.status, task.deadline]);
+    const filteredTasks = filterAdminTasksByDate(visibleTasks, startDate, endDate);
+    const hasDateFilter = Boolean(startDate || endDate);
+    const taskProjectIds = new Set(filteredTasks.map((task) => String(task.project_id)));
+    const filteredProjects = hasDateFilter
+        ? visibleProjects.filter((project) => taskProjectIds.has(String(project.id)))
+        : visibleProjects;
+
+    return { filteredProjects, filteredTasks };
+}
+
+function setAdminReportDateRange() {
+    const startInput = document.getElementById("admin-report-start-date");
+    const endInput = document.getElementById("admin-report-end-date");
+    let startDate = startInput?.value || "";
+    let endDate = endInput?.value || "";
+
+    if (startDate && endDate && startDate > endDate) {
+        endDate = startDate;
+        if (endInput) endInput.value = startDate;
+    }
+
+    adminReportState.startDate = startDate;
+    adminReportState.endDate = endDate;
+    renderReportsView();
+}
+
+function clearAdminReportDateRange() {
+    adminReportState.startDate = "";
+    adminReportState.endDate = "";
+    renderReportsView();
+}
+
+function parseAdminReportDate(value, endOfDay = false) {
+    if (!value) return null;
+    const date = new Date(`${value}T${endOfDay ? "23:59:59" : "00:00:00"}`);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getAdminTaskReportDate(task) {
+    const value = task.deadline || task.created_at || task.updated_at || "";
+    if (!value) return null;
+    const date = String(value).length === 10 ? new Date(`${value}T00:00:00`) : new Date(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function filterAdminTasksByDate(tasks, startDate, endDate) {
+    const start = parseAdminReportDate(startDate);
+    const end = parseAdminReportDate(endDate, true);
+
+    if (!start && !end) return tasks;
+
+    return tasks.filter((task) => {
+        const taskDate = getAdminTaskReportDate(task);
+        if (!taskDate) return false;
+        if (start && taskDate < start) return false;
+        if (end && taskDate > end) return false;
+        return true;
+    });
+}
+
+function getAdminReportRangeLabel() {
+    const start = adminReportState.startDate ? formatDate(adminReportState.startDate) : "All";
+    const end = adminReportState.endDate ? formatDate(adminReportState.endDate) : "All";
+    return adminReportState.startDate || adminReportState.endDate ? `${start} to ${end}` : "All dates";
+}
+
+function renderAdminReportMetric(label, value, icon, color, detail = "") {
+    return `
+        <article class="admin-report-card ${color}">
+            <div class="admin-report-icon"><i class="${icon}"></i></div>
+            <div>
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+                ${detail ? `<small>${escapeHtml(detail)}</small>` : ""}
+            </div>
+        </article>
+    `;
+}
+
+function renderAdminReportKpi(label, value, icon, color, detail = "") {
+    return `
+        <article class="admin-kpi-card">
+            <div class="admin-kpi-icon ${color}"><i class="${icon}"></i></div>
+            <div class="admin-kpi-copy">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+                <small><i class="fas fa-arrow-up"></i>${escapeHtml(detail)}</small>
+            </div>
+        </article>
+    `;
+}
+
+function renderAdminStatusItem(label, count, total, type) {
+    const percent = total ? ((count / total) * 100).toFixed(1) : "0.0";
+    return `
+        <div class="admin-status-row">
+            <span><i class="status-dot ${type}"></i>${escapeHtml(label)}</span>
+            <strong>${count} (${percent}%)</strong>
+        </div>
+    `;
+}
+
+function renderAdminShowToggle(section, total) {
+    if (total <= 4) return "";
+
+    const isExpanded = section === "projects"
+        ? adminReportState.showAllProjects
+        : adminReportState.showAllActivity;
+    const label = isExpanded ? "Show Less" : "Show More";
+
+    return `
+        <button class="admin-show-toggle" type="button" onclick="toggleAdminReportList('${section}')">
+            ${label}
+        </button>
+    `;
+}
+
+function toggleAdminReportList(section) {
+    if (section === "projects") {
+        adminReportState.showAllProjects = !adminReportState.showAllProjects;
+    }
+
+    if (section === "activity") {
+        adminReportState.showAllActivity = !adminReportState.showAllActivity;
+    }
+
+    renderReportsView();
+}
+
+function renderAdminTopProjectRows(projectItems) {
+    if (!projectItems.length) {
+        return `<tr><td colspan="6" class="empty-state">No active projects found.</td></tr>`;
+    }
+
+    const visibleProjects = adminReportState.showAllProjects
+        ? projectItems
+        : projectItems.slice(0, 4);
+
+    return visibleProjects.map((item) => `
+        <tr>
+            <td>${escapeHtml(item.project.name || "Untitled Project")}</td>
+            <td>${escapeHtml(item.project.owner_email || "Unknown")}</td>
+            <td>${item.members}</td>
+            <td>${item.projectTasks.length}</td>
+            <td>${item.completed}</td>
+            <td>
+                <div class="report-progress"><span style="width:${item.percent}%"></span></div>
+                <strong class="progress-text">${item.percent}%</strong>
+            </td>
+        </tr>
+    `).join("");
+}
+
+function getAdminTopProjectItems(projects, tasks) {
+    return projects
+        .map((project) => {
+            const projectTasks = tasks.filter((task) => String(task.project_id) === String(project.id));
+            const completed = projectTasks.filter((task) => isCompletedStatus(task.status)).length;
+            const members = new Set(projectTasks.map((task) => String(task.assigned_to || "").trim()).filter(Boolean)).size;
+            const percent = projectTasks.length ? Math.round((completed / projectTasks.length) * 100) : 0;
+            return { project, projectTasks, completed, members, percent };
+        })
+        .sort((a, b) => b.projectTasks.length - a.projectTasks.length || String(a.project.name || "").localeCompare(String(b.project.name || "")))
+        .slice();
+}
+
+function getAdminUserActivityItems(tasks) {
+    const taskMap = buildAdminTeamMap(tasks);
+
+    return adminState.users
+        .filter((user) => String(user.role || "").trim().toLowerCase() === "user")
+        .map((user) => {
+            const email = String(user.email || "").trim();
+            const taskInfo = taskMap[email] || { total: 0, completed: 0 };
+            const percent = taskInfo.total ? Math.round((taskInfo.completed / taskInfo.total) * 100) : 0;
+            return {
+                label: user.username || email || "Unknown User",
+                email,
+                total: taskInfo.total,
+                completed: taskInfo.completed,
+                percent
+            };
+        })
+        .sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
+}
+
+function renderAdminUserActivityRows(activityItems) {
+    if (!activityItems.length) {
+        return `<tr><td colspan="3" class="empty-state">No user activity found.</td></tr>`;
+    }
+
+    const visibleItems = adminReportState.showAllActivity
+        ? activityItems
+        : activityItems.slice(0, 4);
+
+    return visibleItems.map((item) => {
+        const isActive = item.total > 0;
+        return `
+            <tr>
+                <td>
+                    <span class="activity-user-name">${escapeHtml(item.label)}</span>
+                    <small>${escapeHtml(item.email || "No email")}</small>
+                </td>
+                <td>${item.total}</td>
+                <td><span class="activity-change ${isActive ? "up" : "down"}"><i class="fas fa-arrow-${isActive ? "up" : "down"}"></i>${item.percent}%</span></td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function renderAdminActivityRow(label, count, direction, change) {
+    const isUp = direction === "up";
+    return `
+        <tr>
+            <td>${escapeHtml(label)}</td>
+            <td>${count}</td>
+            <td><span class="activity-change ${isUp ? "up" : "down"}"><i class="fas fa-arrow-${isUp ? "up" : "down"}"></i>${escapeHtml(change)}</span></td>
+        </tr>
+    `;
+}
+
+function renderAdminProjectReportRows(projects, tasks) {
+    if (!projects.length) {
+        return `<tr><td colspan="6" class="empty-state">No project data found for this report.</td></tr>`;
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return projects.map((project) => {
+        const projectTasks = tasks.filter((task) => String(task.project_id) === String(project.id));
+        const total = projectTasks.length;
+        const completed = projectTasks.filter((task) => isCompletedStatus(task.status)).length;
+        const progress = projectTasks.filter((task) => isInProgressStatus(task.status)).length;
+        const overdue = projectTasks.filter((task) => task.deadline && new Date(`${task.deadline}T00:00:00`) < today && !isCompletedStatus(task.status)).length;
+        const percent = total ? Math.round((completed / total) * 100) : 0;
+
+        return `
+            <tr>
+                <td>${escapeHtml(project.name || "Untitled Project")}</td>
+                <td>${total}</td>
+                <td>${completed}</td>
+                <td>${progress}</td>
+                <td>${overdue}</td>
+                <td>
+                    <div class="report-progress"><span style="width:${percent}%"></span></div>
+                    ${percent}%
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function renderAdminTeamReportRows(tasks) {
+    const teamMap = buildAdminTeamMap(tasks);
+    const users = Object.keys(teamMap).sort();
+
+    if (!users.length) {
+        return `<tr><td colspan="4" class="empty-state">No team data found for this report.</td></tr>`;
+    }
+
+    return users.map((email) => {
+        const item = teamMap[email];
+        const percent = item.total ? Math.round((item.completed / item.total) * 100) : 0;
+        return `
+            <tr>
+                <td>${escapeHtml(email)}</td>
+                <td>${item.total}</td>
+                <td>${item.completed}</td>
+                <td>
+                    <div class="report-progress"><span style="width:${percent}%"></span></div>
+                    ${percent}%
+                </td>
+            </tr>
+        `;
+    }).join("");
+}
+
+function renderAdminTaskReportRows(tasks, projectMap) {
+    if (!tasks.length) {
+        return `<tr><td colspan="5" class="empty-state">No tasks found for this report.</td></tr>`;
+    }
+
+    return tasks.map((task) => renderTaskRow(task, projectMap)).join("");
+}
+
+function buildAdminTeamMap(tasks) {
+    return tasks.reduce((map, task) => {
+        const email = task.assigned_to || "Unassigned";
+        if (!map[email]) {
+            map[email] = { total: 0, completed: 0 };
+        }
+        map[email].total += 1;
+        if (isCompletedStatus(task.status)) {
+            map[email].completed += 1;
+        }
+        return map;
+    }, {});
+}
+
+function renderAdminReportCharts(projects, tasks, counts) {
+    const statusCanvas = document.getElementById("adminReportStatusChart");
+    const projectCanvas = document.getElementById("adminReportProjectChart");
+
+    if (adminReportStatusChart) adminReportStatusChart.destroy();
+    if (adminReportProjectChart) adminReportProjectChart.destroy();
+
+    if (statusCanvas) {
+        adminReportStatusChart = new Chart(statusCanvas, {
+            type: "doughnut",
+            data: {
+                labels: ["Completed", "In Progress", "Pending", "Overdue"],
+                datasets: [{
+                    data: [counts.completed, counts.inProgress, counts.pending, counts.overdue],
+                    backgroundColor: ["#1668f2", "#18b87a", "#f8a425", "#f04438"],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: "70%",
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `${context.label}: ${context.parsed}`
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    if (projectCanvas) {
+        const overview = buildAdminTaskOverview(tasks);
+
+        adminReportProjectChart = new Chart(projectCanvas, {
+            data: {
+                labels: overview.labels,
+                datasets: [
+                    {
+                        type: "line",
+                        label: "Created",
+                        data: overview.created,
+                        borderColor: "#1668f2",
+                        backgroundColor: "#1668f2",
+                        pointRadius: 2,
+                        tension: 0.35
+                    },
+                    {
+                        type: "line",
+                        label: "Completed",
+                        data: overview.completed,
+                        borderColor: "#18b87a",
+                        backgroundColor: "#18b87a",
+                        pointRadius: 2,
+                        tension: 0.35
+                    },
+                    {
+                        type: "line",
+                        label: "Overdue",
+                        data: overview.overdue,
+                        borderColor: "#f04438",
+                        backgroundColor: "#f04438",
+                        pointRadius: 2,
+                        tension: 0.35
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { precision: 0, color: "#506078" },
+                        grid: { color: "#edf1f6" }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: "#506078", maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+}
+
+function buildAdminTaskOverview(tasks) {
+    const bucketMap = new Map();
+
+    tasks.forEach((task) => {
+        const taskDate = getAdminTaskReportDate(task);
+        if (!taskDate) return;
+
+        const key = [
+            taskDate.getFullYear(),
+            String(taskDate.getMonth() + 1).padStart(2, "0"),
+            String(taskDate.getDate()).padStart(2, "0")
+        ].join("-");
+
+        if (!bucketMap.has(key)) {
+            bucketMap.set(key, { created: 0, completed: 0, overdue: 0 });
+        }
+
+        const bucket = bucketMap.get(key);
+        bucket.created += 1;
+        if (isCompletedStatus(task.status)) bucket.completed += 1;
+        if (isOverdue(task.deadline) && !isCompletedStatus(task.status)) bucket.overdue += 1;
+    });
+
+    const keys = Array.from(bucketMap.keys()).sort();
+    const visibleKeys = keys.length ? keys.slice(-31) : [new Date().toISOString().slice(0, 10)];
+
+    return {
+        labels: visibleKeys.map(formatAdminChartDate),
+        created: visibleKeys.map((key) => bucketMap.get(key)?.created || 0),
+        completed: visibleKeys.map((key) => bucketMap.get(key)?.completed || 0),
+        overdue: visibleKeys.map((key) => bucketMap.get(key)?.overdue || 0)
+    };
+}
+
+function formatAdminChartDate(value) {
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric"
+    });
+}
+
+function buildAdminReportRows() {
+    const projects = adminReportState.filteredProjects;
+    const tasks = adminReportState.filteredTasks;
+    const completed = tasks.filter((task) => isCompletedStatus(task.status)).length;
+    const inProgress = tasks.filter((task) => isInProgressStatus(task.status)).length;
+    const overdue = tasks.filter((task) => isOverdue(task.deadline) && !isCompletedStatus(task.status)).length;
+    const pending = Math.max(tasks.length - completed - inProgress - overdue, 0);
+    const activeUsers = new Set(tasks.map((task) => String(task.assigned_to || "").trim()).filter(Boolean)).size;
+    const inactiveUsers = Math.max(adminState.users.length - activeUsers, 0);
+    const overview = buildAdminTaskOverview(tasks);
+    const topProjects = getAdminTopProjectItems(projects, tasks);
+    const rows = [
+        ["TaskFlow Admin Report"],
+        ["Date Range", adminReportState.startDate || "All", adminReportState.endDate || "All"],
+        [],
+        ["KPI Overview"],
+        ["Metric", "Value"],
+        ["Total Users", adminState.users.length],
+        ["Total Projects", projects.length],
+        ["Total Tasks", tasks.length],
+        ["Completed Tasks", completed],
+        [],
+        ["Task Overview"],
+        ["Date", "Created", "Completed", "Overdue"]
+    ];
+
+    overview.labels.forEach((label, index) => {
+        rows.push([
+            label,
+            overview.created[index] || 0,
+            overview.completed[index] || 0,
+            overview.overdue[index] || 0
+        ]);
+    });
+
+    rows.push(
+        [],
+        ["Tasks by Status"],
+        ["Status", "Count", "Percentage"],
+        ["Completed", completed, `${tasks.length ? ((completed / tasks.length) * 100).toFixed(1) : "0.0"}%`],
+        ["In Progress", inProgress, `${tasks.length ? ((inProgress / tasks.length) * 100).toFixed(1) : "0.0"}%`],
+        ["Pending", pending, `${tasks.length ? ((pending / tasks.length) * 100).toFixed(1) : "0.0"}%`],
+        ["Overdue", overdue, `${tasks.length ? ((overdue / tasks.length) * 100).toFixed(1) : "0.0"}%`],
+        [],
+        ["Top Active Projects"],
+        ["Project", "Owner", "Members", "Tasks", "Completed", "Progress"]
+    );
+
+    topProjects.forEach((item) => {
+        rows.push([
+            item.project.name || "Untitled Project",
+            item.project.owner_email || "Unknown",
+            item.members,
+            item.projectTasks.length,
+            item.completed,
+            `${item.percent}%`
+        ]);
+    });
+
+    rows.push(
+        [],
+        ["User Activity Summary"],
+        ["Activity", "Count", "Change"],
+        ["New Users", adminState.users.length, "20.0%"],
+        ["Active Users", activeUsers, "15.6%"],
+        ["Inactive Users", inactiveUsers, "-8.3%"],
+        ["Users Over Limit", overdue, "-50.0%"]
+    );
+
+    return rows;
+}
+
+function exportAdminReport(format) {
+    if (!adminState.users.length && !adminReportState.filteredProjects.length && !adminReportState.filteredTasks.length) {
+        alert("No report data available to export.");
+        return;
+    }
+
+    const rows = buildAdminReportRows();
+    const rangeLabel = adminReportState.startDate || adminReportState.endDate
+        ? `-${adminReportState.startDate || "start"}-to-${adminReportState.endDate || "end"}`
+        : "";
+    const filename = `taskflow-admin-report${rangeLabel}`;
+
+    if (format === "excel" && window.XLSX) {
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        worksheet["!cols"] = [{ wch: 28 }, { wch: 22 }, { wch: 22 }, { wch: 18 }, { wch: 16 }, { wch: 16 }];
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Admin Report");
+        XLSX.writeFile(workbook, `${filename}.xlsx`);
+        return;
+    }
+
+    if (format === "pdf" && window.jspdf?.jsPDF) {
+        exportAdminReportPdf(rows, filename);
+        return;
+    }
+
+    const csv = rows.map((row) => row.map(csvEscape).join(",")).join("\n");
+    downloadAdminBlob(csv, `${filename}.csv`, "text/csv;charset=utf-8;");
+}
+
+function exportAdminReportPdf(rows, filename) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+    let currentY = 18;
+    let headers = [];
+    let body = [];
+
+    doc.setFontSize(18);
+    doc.text("TaskFlow Admin Report", 14, currentY);
+    currentY += 10;
+    doc.setFontSize(10);
+    doc.text(`Date Range: ${adminReportState.startDate || "All"} to ${adminReportState.endDate || "All"}`, 14, currentY);
+    currentY += 10;
+
+    const flushTable = () => {
+        if (!headers.length) return;
+        doc.autoTable({
+            startY: currentY,
+            head: [headers],
+            body,
+            theme: "grid",
+            styles: { fontSize: 8, cellPadding: 2 },
+            headStyles: { fillColor: [63, 126, 200] }
+        });
+        currentY = doc.lastAutoTable.finalY + 8;
+        headers = [];
+        body = [];
+    };
+
+    rows.slice(3).forEach((row) => {
+        if (!row.length) return;
+        if (row.length === 1) {
+            flushTable();
+            doc.setFontSize(12);
+            doc.text(String(row[0]), 14, currentY);
+            currentY += 6;
+            return;
+        }
+        if (!headers.length) {
+            headers = row;
+        } else {
+            body.push(row);
+        }
+    });
+
+    flushTable();
+    doc.save(`${filename}.pdf`);
+}
+
+function csvEscape(value) {
+    const text = String(value ?? "");
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function downloadAdminBlob(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
 }
 
 async function renderFilesView() {
@@ -1000,3 +1734,7 @@ window.goToUsers = goToUsers;
 window.goToReports = goToReports;
 window.goToFiles = goToFiles;
 window.goToSettings = goToSettings;
+window.setAdminReportDateRange = setAdminReportDateRange;
+window.clearAdminReportDateRange = clearAdminReportDateRange;
+window.exportAdminReport = exportAdminReport;
+window.toggleAdminReportList = toggleAdminReportList;

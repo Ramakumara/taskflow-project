@@ -5494,7 +5494,7 @@ body.export-modal-open {
 
     border: none;
 
-    background: transparent;
+    background: transparent !important; 
 
     color: #2563eb;
 
@@ -5513,9 +5513,16 @@ body.export-modal-open {
     margin-left: auto;
 }
 
-.mark-read:hover {
-
-    text-decoration: underline;
+.mark-read,
+.mark-read:hover,
+.mark-read:focus,
+.mark-read:active{
+    background: transparent !important;
+    background-color: transparent !important;
+    color: #2563eb !important;
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
 }
 
 .notification-tabs {

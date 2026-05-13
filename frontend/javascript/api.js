@@ -912,6 +912,12 @@ async function checkTaskReminders() {
 
             if (!task.deadline) return;
 
+            // Skip completed tasks
+            if (
+                task.status === "done" ||
+                task.status === "completed"
+            ) return;
+
             const deadline = new Date(task.deadline);
 
             const diffTime = deadline - today;
@@ -943,7 +949,7 @@ async function checkTaskReminders() {
 
 
             // Overdue
-            if (diffDays < 0 && task.status !== "done") {
+            if (diffDays < 0) {
 
                 showNotification(
                     `Task "${task.title}" is overdue`,

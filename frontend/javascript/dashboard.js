@@ -1079,25 +1079,119 @@ function formatActivityTime(timestamp) {
 
 function downloadActivityExport(logs, options) {
     const rows = buildActivityExportRows(logs, options.includeDetails);
-    const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
     const format = options.format || "csv";
-    const extension = format === "excel" ? "xls" : format === "pdf" ? "pdf" : "csv"
-    const mimeType = format === "excel"
-        ? "application/vnd.ms-excel;charset=utf-8;"
-        : format === "pdf"
-            ? "text/html;charset=utf-8;"
-            : "text/csv;charset=utf-8;";
+    const rangeLabel = options.startDate || options.endDate ? `-${options.startDate || "start"}-to-${options.endDate || "end"}` : "";
+    const filename = `taskflow-activity-log${rangeLabel}`;
+
+    if (format === "pdf") {
+        downloadActivityPdf(rows, filename);
+        return;
+    }
+
+    if (format === "excel" && window.XLSX) {
+        downloadActivityExcel(rows, filename);
+        return;
+    }
+
+    const csv = rows.map(row => row.map(csvEscape).join(",")).join("\n");
+    const mimeType = "text/csv;charset=utf-8;";
     const blob = new Blob([csv], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
-    const rangeLabel = options.startDate || options.endDate ? `-${options.startDate || "start"}-to-${options.endDate || "end"}` : "";
 
     anchor.href = url;
-    anchor.download = `taskflow-activity-log${rangeLabel}.${extension}`;
+    anchor.download = `${filename}.csv`;
     document.body.appendChild(anchor);
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
+}
+
+function downloadActivityPdf(rows, filename) {
+    if (!window.jspdf?.jsPDF) {
+        alert("PDF library is not loaded. Please refresh and try again.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+    let currentY = 18;
+    let headers = [];
+    let body = [];
+
+    doc.setFontSize(18);
+    doc.text("TaskFlow Activity Log", 14, currentY);
+    currentY += 8;
+
+    const flushTable = () => {
+        if (!headers.length) return;
+
+        doc.autoTable({
+            startY: currentY,
+            head: [headers],
+            body,
+            theme: "grid",
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: "linebreak"
+            },
+            headStyles: {
+                fillColor: [47, 123, 255]
+            },
+            margin: { left: 10, right: 10 }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 8;
+        headers = [];
+        body = [];
+    };
+
+    rows.forEach(row => {
+        if (!row.length) return;
+
+        if (row.length === 1) {
+            flushTable();
+            doc.setFontSize(13);
+            doc.text(String(row[0]), 14, currentY);
+            currentY += 7;
+            return;
+        }
+
+        if (row.length === 2 && row[0] === "Exported At") {
+            doc.setFontSize(10);
+            doc.text(`Exported At: ${row[1]}`, 14, currentY);
+            currentY += 8;
+            return;
+        }
+
+        if (!headers.length) {
+            headers = row;
+            return;
+        }
+
+        body.push(row);
+    });
+
+    flushTable();
+    doc.save(`${filename}.pdf`);
+}
+
+function downloadActivityExcel(rows, filename) {
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    worksheet["!cols"] = [
+        { wch: 26 },
+        { wch: 34 },
+        { wch: 24 },
+        { wch: 16 },
+        { wch: 22 },
+        { wch: 28 },
+        { wch: 42 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Activity Log");
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
 }
 
 function buildActivityExportRows(logs, includeDetails) {
