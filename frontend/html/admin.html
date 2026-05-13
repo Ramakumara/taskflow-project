@@ -8,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <div id="toast-container"></div>
     <div class="dashboard-shell">
         <aside class="sidebar">
             <div class="brand-mark" aria-hidden="true">
@@ -56,9 +57,20 @@
                 </label>
 
                 <div class="topbar-actions">
-                    <div class="notification-wrap">
-                        <i class="fas fa-bell notification"></i>
+                    <div class="notification-wrap" id="adminNotificationWrap">
+                        <button class="notification-button" type="button" onclick="toggleAdminNotifications(event)" aria-label="Open notifications" aria-haspopup="true" aria-expanded="false" id="adminNotificationButton">
+                            <i class="fas fa-bell notification"></i>
+                        </button>
                         <span class="notification-badge" id="notificationCount">0</span>
+                        <div class="notification-dropdown hidden" id="adminNotificationDropdown">
+                            <div class="notification-dropdown-head">
+                                <h3>Notifications</h3>
+                                <button type="button" onclick="markAllAdminNotificationsRead(event)">Mark all read</button>
+                            </div>
+                            <div class="notification-list" id="adminNotificationList">
+                                <div class="notification-empty">Loading notifications...</div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="profile-menu">

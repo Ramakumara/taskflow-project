@@ -9,10 +9,13 @@ router = APIRouter()
 
 @router.get("/notifications")
 async def get_notifications(current_user: dict = Depends(get_current_user)):
+    query = {}
+    if current_user.get("role") != "admin":
+        query = {"email": current_user["email"]}
 
     notifications = list(
         db.notifications.find(
-            {"email": current_user["email"]}
+            query
         ).sort("created_at", -1)
     )
 
@@ -51,13 +54,13 @@ async def mark_notification_read(
 async def mark_all_notifications_read(
     current_user: dict = Depends(get_current_user)
 ):
+    query = {"read": False}
+    if current_user.get("role") != "admin":
+        query["email"] = current_user["email"]
 
     result = db.notifications.update_many(
 
-        {
-            "email": current_user["email"],
-            "read": False
-        },
+        query,
 
         {
             "$set": {

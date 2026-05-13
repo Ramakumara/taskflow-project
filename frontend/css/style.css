@@ -4573,7 +4573,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 }
 
 .link-btn {
-    background: none;
+    background: none !important;
     border: none;
     color: #0f6bff;
     font-size: 15px;
@@ -5513,16 +5513,10 @@ body.export-modal-open {
     margin-left: auto;
 }
 
-.mark-read,
-.mark-read:hover,
-.mark-read:focus,
-.mark-read:active{
-    background: transparent !important;
-    background-color: transparent !important;
-    color: #2563eb !important;
-    border: none !important;
-    outline: none !important;
-    box-shadow: none !important;
+.mark-read:hover{
+   
+    text-decoration: underline;
+
 }
 
 .notification-tabs {

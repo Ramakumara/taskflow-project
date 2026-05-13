@@ -2,6 +2,7 @@ const adminState = {
     users: [],
     projects: [],
     tasks: [],
+    notifications: [],
     searchTerm: "",
     currentSection: "dashboard"
 };
@@ -25,7 +26,9 @@ function initializeAdminDashboard() {
     refreshAdminData().then(() => {
         renderCurrentSection();
     });
+    loadAdminNotifications();
     attachAdminMenuCloseHandler();
+    setInterval(loadAdminNotifications, 30000);
 }
 
 async function refreshAdminData() {
@@ -177,10 +180,14 @@ function closeAdminProfileMenu() {
 function attachAdminMenuCloseHandler() {
     document.addEventListener("click", (event) => {
         const menu = document.querySelector(".profile-menu");
-        if (!menu || menu.contains(event.target)) {
-            return;
+        if (menu && !menu.contains(event.target)) {
+            closeAdminProfileMenu();
         }
-        closeAdminProfileMenu();
+
+        const notificationWrap = document.getElementById("adminNotificationWrap");
+        if (notificationWrap && !notificationWrap.contains(event.target)) {
+            closeAdminNotifications();
+        }
     });
 }
 
@@ -1607,9 +1614,149 @@ function renderTaskOverviewChart(overview) {
     });
 }
 
+async function loadAdminNotifications() {
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    try {
+        const res = await fetch(`${BASE_URL}/notifications`, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        if (!res.ok) {
+            throw new Error("Unable to load notifications");
+        }
+
+        const notifications = await res.json();
+        adminState.notifications = Array.isArray(notifications) ? notifications : [];
+        updateNotificationCount();
+        renderAdminNotifications();
+    } catch (error) {
+        console.error("Failed to load admin notifications", error);
+        renderAdminNotificationsError();
+    }
+}
+
 function updateNotificationCount() {
-    const count = adminState.tasks.filter((task) => isPendingStatus(task.status) || isOverdue(task.deadline)).length;
-    document.getElementById("notificationCount").innerText = count;
+    const badge = document.getElementById("notificationCount");
+    if (!badge) return;
+
+    const count = adminState.notifications.filter((notification) => !notification.read).length;
+    badge.innerText = count;
+    badge.classList.toggle("hidden", count === 0);
+}
+
+function toggleAdminNotifications(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById("adminNotificationDropdown");
+    const button = document.getElementById("adminNotificationButton");
+    if (!dropdown || !button) return;
+
+    const isOpening = dropdown.classList.contains("hidden");
+    dropdown.classList.toggle("hidden", !isOpening);
+    button.classList.toggle("open", isOpening);
+    button.setAttribute("aria-expanded", String(isOpening));
+
+    if (isOpening) {
+        loadAdminNotifications();
+    }
+}
+
+function closeAdminNotifications() {
+    const dropdown = document.getElementById("adminNotificationDropdown");
+    const button = document.getElementById("adminNotificationButton");
+    if (!dropdown || !button) return;
+
+    dropdown.classList.add("hidden");
+    button.classList.remove("open");
+    button.setAttribute("aria-expanded", "false");
+}
+
+function renderAdminNotifications() {
+    const list = document.getElementById("adminNotificationList");
+    if (!list) return;
+
+    if (!adminState.notifications.length) {
+        list.innerHTML = `<div class="notification-empty">No notifications yet.</div>`;
+        return;
+    }
+
+    list.innerHTML = adminState.notifications.slice(0, 20).map((notification) => `
+        <button class="notification-item ${notification.read ? "" : "unread"}" type="button" onclick="markAdminNotificationRead('${escapeHtml(notification.id)}')">
+            <span class="notification-item-icon"><i class="fas fa-bell"></i></span>
+            <span>
+                <h4>${escapeHtml(notification.title || "Notification")}</h4>
+                <p>${escapeHtml(notification.message || "")}</p>
+                <small>${escapeHtml(formatAdminNotificationTime(notification.time || notification.created_at))}${notification.email ? ` - ${escapeHtml(notification.email)}` : ""}</small>
+            </span>
+        </button>
+    `).join("");
+}
+
+function renderAdminNotificationsError() {
+    const list = document.getElementById("adminNotificationList");
+    if (!list) return;
+    list.innerHTML = `<div class="notification-empty">Unable to load notifications.</div>`;
+}
+
+async function markAdminNotificationRead(id) {
+    const token = sessionStorage.getItem("token");
+    if (!token || !id) return;
+
+    try {
+        await fetch(`${BASE_URL}/notifications/${encodeURIComponent(id)}/read`, {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        adminState.notifications = adminState.notifications.map((notification) => (
+            String(notification.id) === String(id)
+                ? { ...notification, read: true }
+                : notification
+        ));
+        updateNotificationCount();
+        renderAdminNotifications();
+    } catch (error) {
+        console.error("Failed to mark notification read", error);
+    }
+}
+
+async function markAllAdminNotificationsRead(event) {
+    event.stopPropagation();
+    const token = sessionStorage.getItem("token");
+    if (!token) return;
+
+    try {
+        await fetch(`${BASE_URL}/notifications/read-all`, {
+            method: "PUT",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+        await loadAdminNotifications();
+    } catch (error) {
+        console.error("Failed to mark notifications read", error);
+    }
+}
+
+function formatAdminNotificationTime(value) {
+    if (!value) return "Just now";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+
+    return date.toLocaleString("en-IN", {
+        timeZone: "Asia/Kolkata",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    });
 }
 
 function isCompletedStatus(status) {
@@ -1734,6 +1881,9 @@ window.goToUsers = goToUsers;
 window.goToReports = goToReports;
 window.goToFiles = goToFiles;
 window.goToSettings = goToSettings;
+window.toggleAdminNotifications = toggleAdminNotifications;
+window.markAdminNotificationRead = markAdminNotificationRead;
+window.markAllAdminNotificationsRead = markAllAdminNotificationsRead;
 window.setAdminReportDateRange = setAdminReportDateRange;
 window.clearAdminReportDateRange = clearAdminReportDateRange;
 window.exportAdminReport = exportAdminReport;
