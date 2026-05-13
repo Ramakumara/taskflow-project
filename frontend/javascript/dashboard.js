@@ -321,7 +321,7 @@ async function loadAllTasks() {
                 <td>${t.deadline || "N/A"}</td>
                 ${role === "admin" || role === "manager" ? `
                     <td>
-                        <button onclick="deleteTask('${t.id}')">Delete</button>
+                        <button class="delete-btn" type="button" onclick="deleteTask('${t.id}')">Delete</button>
                     </td>
                 ` : ""}
             `;
@@ -887,7 +887,7 @@ async function loadProjectWorkspace() {
                     role === "manager"
                     ? `
                     <td>
-                        <button onclick="deleteTask('${t.id}')">Delete</button>
+                        <button class="delete-btn" type="button" onclick="deleteTask('${t.id}')">Delete</button>
                     </td>
                     `
                     : ""
@@ -1584,7 +1584,7 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
             labels: ["Completed", "In Progress", "Overdue"],
             datasets: [{
                 data: [completed, inProgress, overdue],
-                backgroundColor: ["#2f7bff", "#f59e0b", "#ff3b4f"],
+                backgroundColor: ["#20b864", "#f59e0b", "#dc2626"],
                 borderWidth: 0
             }]
         },
@@ -1620,10 +1620,10 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
             datasets: [{
                 label: "Completed Tasks",
                 data: sortedDates.map(date => map[date]),
-                borderColor: "#3b82f6",
-                backgroundColor: "rgba(59, 130, 246, 0.12)",
-                pointBackgroundColor: "#3b82f6",
-                pointBorderColor: "#3b82f6",
+                borderColor: "#20b864",
+                backgroundColor: "rgba(32, 184, 100, 0.12)",
+                pointBackgroundColor: "#20b864",
+                pointBorderColor: "#20b864",
                 pointRadius: 4,
                 pointHoverRadius: 5,
                 tension: 0.35,
@@ -1663,7 +1663,7 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
             datasets: [{
                 label: "Tasks",
                 data: projectCounts,
-                backgroundColor: ["#2f7bff", "#2eb872", "#7c3aed", "#f59e0b", "#10aab8", "#ef4444"],
+                backgroundColor: ["#20b864", "#159653", "#14b8a6", "#f59e0b", "#64748b", "#dc2626"],
                 borderRadius: 4,
                 maxBarThickness: 38
             }]
@@ -2161,7 +2161,7 @@ function renderFiles() {
             actionButtons.push(`<button class="action-btn" type="button" onclick="downloadFile('${encodeURIComponent(file.name)}')"><i class="fas fa-download"></i></button>`);
         }
         if (canDelete) {
-            actionButtons.push(`<button class="action-btn" type="button" onclick="deleteFile('${encodeURIComponent(file.name)}')"><i class="fas fa-trash"></i></button>`);
+            actionButtons.push(`<button class="delete-btn" type="button" onclick="deleteFile('${encodeURIComponent(file.name)}')">Delete</button>`);
         }
 
         row.innerHTML = `
@@ -2216,7 +2216,7 @@ function updateCategoryCounts() {
             count.textContent = String(counts[category] || 0);
         }
         item.classList.toggle("active", category === filesCategory);
-        item.style.color = category === filesCategory ? "#2f7bff" : "#2f3a52";
+        item.style.color = category === filesCategory ? "#159653" : "#41516a";
     });
 }
 
