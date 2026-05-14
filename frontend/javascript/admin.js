@@ -20,6 +20,78 @@ const adminReportState = {
     showAllProjects: false,
     showAllActivity: false
 };
+const adminTaskFilters = {
+    projectId: "all",
+    status: "all",
+    page: 1,
+    pageSize: 5
+};
+
+function getTaskAssignments(task) {
+    if (Array.isArray(task?.assignments)) return task.assignments;
+    if (Array.isArray(task?.assigned_statuses)) return task.assigned_statuses;
+
+    const assigned = Array.isArray(task?.assigned_to)
+        ? task.assigned_to
+        : (task?.assigned_to ? [task.assigned_to] : []);
+
+    return assigned.map(email => ({
+        user_id: email,
+        status: normalizeStatusLabel(task?.status)
+    }));
+}
+
+function getTaskMembers(task) {
+    return getTaskAssignments(task).map(assignment => String(assignment.user_id || "").trim()).filter(Boolean);
+}
+
+function renderAdminMemberStatuses(task) {
+    const assignments = getTaskAssignments(task);
+    if (!assignments.length) return `<span class="muted-text">Unassigned</span>`;
+    const visibleAssignments = assignments.slice(0, 3);
+    const hiddenAssignments = assignments.slice(3);
+
+    return `
+        <div class="admin-task-assignee-card">
+            ${visibleAssignments.map(assignment => {
+                const email = assignment.user_id || "Unassigned";
+                const status = normalizeStatusLabel(assignment.status);
+                const name = getAdminUserDisplayName(email);
+                return `
+                    <div class="admin-task-assignee-row" title="${escapeHtml(email)}: ${escapeHtml(status)}">
+                        <span class="admin-task-avatar">${escapeHtml(getInitial(name || email))}</span>
+                        <span class="admin-task-name">${escapeHtml(name)}</span>
+                        <span class="admin-member-status ${statusClassName(status)}">
+                            <i></i>${escapeHtml(status)}
+                        </span>
+                    </div>
+                `;
+            }).join("")}
+            ${hiddenAssignments.length ? `
+                <span class="admin-task-more" title="${escapeHtml(hiddenAssignments.map(assignment => {
+                    const email = assignment.user_id || "Unassigned";
+                    return `${getAdminUserDisplayName(email)} - ${normalizeStatusLabel(assignment.status)}`;
+                }).join(", "))}">+ ${hiddenAssignments.length} more</span>
+            ` : ""}
+        </div>
+    `;
+}
+
+function getAdminUserDisplayName(email) {
+    const lookup = String(email || "").trim().toLowerCase();
+    const user = adminState.users.find(item => String(item.email || "").trim().toLowerCase() === lookup);
+    return user?.username || String(email || "Unassigned").split("@")[0] || "Unassigned";
+}
+
+function getInitial(value) {
+    return String(value || "?").trim().charAt(0).toUpperCase() || "?";
+}
+
+function getTaskMemberStatusSearchText(task) {
+    return getTaskAssignments(task)
+        .map(assignment => `${assignment.user_id || ""} ${normalizeStatusLabel(assignment.status)}`)
+        .join(" ");
+}
 
 function initializeAdminDashboard() {
     setProfileAvatar();
@@ -319,40 +391,102 @@ function renderProjectsView() {
 
 function renderTasksView() {
     const stats = computeDashboardStats();
-    const tasks = filterCollection(stats.filteredTasks, (task) => [
+    const searchedTasks = filterCollection(stats.filteredTasks, (task) => [
         task.title,
-        task.assigned_to,
+        getTaskMemberStatusSearchText(task),
         normalizeStatusLabel(task.status),
         stats.projectMap.get(String(task.project_id))?.name
     ]);
+    const tasks = searchedTasks.filter((task) => {
+        if (adminTaskFilters.projectId !== "all" && String(task.project_id) !== String(adminTaskFilters.projectId)) return false;
+        if (adminTaskFilters.status !== "all" && normalizeStatusLabel(task.status) !== adminTaskFilters.status) return false;
+        return true;
+    });
+    const totalPages = Math.max(Math.ceil(tasks.length / adminTaskFilters.pageSize), 1);
+    adminTaskFilters.page = Math.min(Math.max(adminTaskFilters.page, 1), totalPages);
+    const startIndex = (adminTaskFilters.page - 1) * adminTaskFilters.pageSize;
+    const pageTasks = tasks.slice(startIndex, startIndex + adminTaskFilters.pageSize);
+    const projectOptions = stats.filteredProjects.map(project => `
+        <option value="${escapeHtml(project.id)}" ${String(adminTaskFilters.projectId) === String(project.id) ? "selected" : ""}>
+            ${escapeHtml(project.name || "Untitled Project")}
+        </option>
+    `).join("");
 
     document.getElementById("mainContent").innerHTML = `
-        <div class="list-view">
-            <div class="view-header">
+        <div class="list-view task-management-view">
+            <div class="view-header task-management-head">
                 <div>
-                    <h3>Tasks</h3>
+                    <h3>My Tasks</h3>
+                </div>
+                <div class="admin-task-actions">
+                    <select class="admin-task-filter" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
+                        <option value="all">All Projects</option>
+                        ${projectOptions}
+                    </select>
+                    <select class="admin-task-filter" onchange="setAdminTaskStatusFilter(this.value)" aria-label="Filter tasks by status">
+                        <option value="all" ${adminTaskFilters.status === "all" ? "selected" : ""}>All Status</option>
+                        <option value="Pending" ${adminTaskFilters.status === "Pending" ? "selected" : ""}>Pending</option>
+                        <option value="In Progress" ${adminTaskFilters.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                        <option value="Completed" ${adminTaskFilters.status === "Completed" ? "selected" : ""}>Completed</option>
+                    </select>
                 </div>
             </div>
-            <div class="data-panel">
+            <div class="data-panel task-table-panel">
                 <div class="data-table-wrap">
-                    <table class="admin-table">
+                    <table class="admin-table admin-task-table">
                         <thead>
                             <tr>
                                 <th>Task</th>
                                 <th>Project</th>
-                                <th>Assigned To</th>
-                                <th>Status</th>
+                                <th>Assigned Users &amp; Status</th>
+                                <th>Overall Status</th>
                                 <th>Due Date</th>
+                                <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${tasks.length ? tasks.map((task) => renderTaskRow(task, stats.projectMap)).join("") : `<tr><td colspan="5" class="empty-state">No tasks found.</td></tr>`}
+                            ${pageTasks.length ? pageTasks.map((task) => renderTaskRow(task, stats.projectMap, { showAction: true })).join("") : `<tr><td colspan="6" class="empty-state">No tasks found.</td></tr>`}
                         </tbody>
                     </table>
+                </div>
+                <div class="admin-task-footer">
+                    <span>${tasks.length ? `Showing ${startIndex + 1} to ${startIndex + pageTasks.length} of ${tasks.length} tasks` : "Showing 0 tasks"}</span>
+                    <div class="admin-task-pagination-controls">
+                        <button class="admin-task-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page - 1})" ${adminTaskFilters.page <= 1 ? "disabled" : ""} aria-label="Previous task page">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="admin-task-page-current">${adminTaskFilters.page}</span>
+                        <button class="admin-task-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page + 1})" ${adminTaskFilters.page >= totalPages ? "disabled" : ""} aria-label="Next task page">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     `;
+}
+
+function setAdminTaskProjectFilter(value) {
+    adminTaskFilters.projectId = value || "all";
+    adminTaskFilters.page = 1;
+    renderTasksView();
+}
+
+function setAdminTaskStatusFilter(value) {
+    adminTaskFilters.status = value || "all";
+    adminTaskFilters.page = 1;
+    renderTasksView();
+}
+
+function setAdminTaskPage(page) {
+    adminTaskFilters.page = page;
+    renderTasksView();
+}
+
+async function adminDeleteTask(id) {
+    await deleteTask(id);
+    await refreshAdminData();
+    renderTasksView();
 }
 
 function renderUsersView() {
@@ -432,7 +566,7 @@ function renderReportsView() {
     const inProgress = filteredTasks.filter((task) => isInProgressStatus(task.status)).length;
     const overdue = filteredTasks.filter((task) => isOverdue(task.deadline) && !isCompletedStatus(task.status)).length;
     const pending = Math.max(filteredTasks.length - completed - inProgress - overdue, 0);
-    const activeUsers = new Set(filteredTasks.map((task) => String(task.assigned_to || "").trim()).filter(Boolean)).size;
+    const activeUsers = new Set(filteredTasks.flatMap(getTaskMembers)).size;
     const inactiveUsers = Math.max(adminState.users.length - activeUsers, 0);
     const topProjects = getAdminTopProjectItems(filteredProjects, filteredTasks);
     const activityItems = getAdminUserActivityItems(filteredTasks);
@@ -578,7 +712,7 @@ function getAdminReportData() {
     const startDate = adminReportState.startDate;
     const endDate = adminReportState.endDate;
     const visibleProjects = filterCollection(adminState.projects, (project) => [project.name, project.owner_email]);
-    const visibleTasks = filterCollection(adminState.tasks, (task) => [task.title, task.assigned_to, task.status, task.deadline]);
+    const visibleTasks = filterCollection(adminState.tasks, (task) => [task.title, getTaskMemberStatusSearchText(task), task.status, task.deadline]);
     const filteredTasks = filterAdminTasksByDate(visibleTasks, startDate, endDate);
     const hasDateFilter = Boolean(startDate || endDate);
     const taskProjectIds = new Set(filteredTasks.map((task) => String(task.project_id)));
@@ -737,7 +871,7 @@ function getAdminTopProjectItems(projects, tasks) {
         .map((project) => {
             const projectTasks = tasks.filter((task) => String(task.project_id) === String(project.id));
             const completed = projectTasks.filter((task) => isCompletedStatus(task.status)).length;
-            const members = new Set(projectTasks.map((task) => String(task.assigned_to || "").trim()).filter(Boolean)).size;
+            const members = new Set(projectTasks.flatMap(getTaskMembers)).size;
             const percent = projectTasks.length ? Math.round((completed / projectTasks.length) * 100) : 0;
             return { project, projectTasks, completed, members, percent };
         })
@@ -867,14 +1001,16 @@ function renderAdminTaskReportRows(tasks, projectMap) {
 
 function buildAdminTeamMap(tasks) {
     return tasks.reduce((map, task) => {
-        const email = task.assigned_to || "Unassigned";
-        if (!map[email]) {
-            map[email] = { total: 0, completed: 0 };
-        }
-        map[email].total += 1;
-        if (isCompletedStatus(task.status)) {
-            map[email].completed += 1;
-        }
+        getTaskAssignments(task).forEach((assignment) => {
+            const email = assignment.user_id || "Unassigned";
+            if (!map[email]) {
+                map[email] = { total: 0, completed: 0 };
+            }
+            map[email].total += 1;
+            if (isCompletedStatus(assignment.status)) {
+                map[email].completed += 1;
+            }
+        });
         return map;
     }, {});
 }
@@ -1021,7 +1157,7 @@ function buildAdminReportRows() {
     const inProgress = tasks.filter((task) => isInProgressStatus(task.status)).length;
     const overdue = tasks.filter((task) => isOverdue(task.deadline) && !isCompletedStatus(task.status)).length;
     const pending = Math.max(tasks.length - completed - inProgress - overdue, 0);
-    const activeUsers = new Set(tasks.map((task) => String(task.assigned_to || "").trim()).filter(Boolean)).size;
+    const activeUsers = new Set(tasks.flatMap(getTaskMembers)).size;
     const inactiveUsers = Math.max(adminState.users.length - activeUsers, 0);
     const overview = buildAdminTaskOverview(tasks);
     const topProjects = getAdminTopProjectItems(projects, tasks);
@@ -1307,7 +1443,7 @@ function renderSettingsView() {
 function computeDashboardStats() {
     const filteredUsers = filterCollection(adminState.users, (user) => [user.username, user.email, user.role]);
     const filteredProjects = filterCollection(adminState.projects, (project) => [project.name, project.owner_email]);
-    const filteredTasks = filterCollection(adminState.tasks, (task) => [task.title, task.assigned_to, task.status, task.deadline]);
+    const filteredTasks = filterCollection(adminState.tasks, (task) => [task.title, getTaskMemberStatusSearchText(task), task.status, task.deadline]);
     const projectMap = new Map(adminState.projects.map((project) => [String(project.id), project]));
 
     const completedTasks = filteredTasks.filter((task) => isCompletedStatus(task.status)).length;
@@ -1450,7 +1586,7 @@ function renderRecentTasksRows(tasks, projectMap) {
     return tasks.map((task) => renderTaskRow(task, projectMap)).join("");
 }
 
-function renderTaskRow(task, projectMap) {
+function renderTaskRow(task, projectMap, options = {}) {
     const project = projectMap.get(String(task.project_id));
     const label = normalizeStatusLabel(task.status);
     const className = statusClassName(task.status);
@@ -1459,9 +1595,14 @@ function renderTaskRow(task, projectMap) {
         <tr>
             <td>${escapeHtml(task.title || "Untitled Task")}</td>
             <td>${escapeHtml(project?.name || "Unknown Project")}</td>
-            <td>${escapeHtml(task.assigned_to || "Unassigned")}</td>
+            <td>${renderAdminMemberStatuses(task)}</td>
             <td><span class="status-pill ${className}">${escapeHtml(label)}</span></td>
             <td>${escapeHtml(formatDate(task.deadline))}</td>
+            ${options.showAction ? `
+                <td>
+                    <button class="action-btn delete-btn" type="button" onclick="adminDeleteTask('${escapeHtml(task.id)}')">Delete</button>
+                </td>
+            ` : ""}
         </tr>
     `;
 }
@@ -1888,3 +2029,7 @@ window.setAdminReportDateRange = setAdminReportDateRange;
 window.clearAdminReportDateRange = clearAdminReportDateRange;
 window.exportAdminReport = exportAdminReport;
 window.toggleAdminReportList = toggleAdminReportList;
+window.setAdminTaskProjectFilter = setAdminTaskProjectFilter;
+window.setAdminTaskStatusFilter = setAdminTaskStatusFilter;
+window.setAdminTaskPage = setAdminTaskPage;
+window.adminDeleteTask = adminDeleteTask;

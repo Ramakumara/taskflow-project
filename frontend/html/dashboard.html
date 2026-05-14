@@ -204,7 +204,7 @@
                             <h3>Create Task</h3>
                             <select id="project-select"></select>
                             <input id="task-title" placeholder="Task title">
-                            <select id="assigned-to"></select>
+                            <select id="assigned-to" multiple></select>
                             <input id="deadline" type="date" placeholder="Deadline">
                             <button class="button-btn" type="button" onclick="createTask()">Add Task</button>
                         </div>
@@ -223,26 +223,46 @@
 
             <div id="tasks-view" class="hidden">
                 <section class="dashboard-section">
-                    <div class="section-head">
+                    <div class="section-head task-board-head">
                         <div>
                             <h3>My Tasks</h3>
                         </div>
+                        <div class="task-board-actions">
+                            <label class="task-board-search" for="taskSearchInput">
+                                <i class="fas fa-search"></i>
+                                <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="setDashboardTaskPage(1)">
+                            </label>
+                            <select id="taskProjectFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by project">
+                                <option value="all">All Projects</option>
+                            </select>
+                            <select id="taskStatusFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by status">
+                                <option value="all">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                            <button id="taskAddButton" class="task-add-btn" type="button" onclick="openDashboardTaskCreate()">
+                                <i class="fas fa-plus"></i>
+                                <span>Add Task</span>
+                            </button>
+                        </div>
                     </div>
                     <div class="workspace-table-wrap">
-                        <table class="workspace-table">
+                        <table class="workspace-table task-board-table">
                             <thead>
                                 <tr>
                                     <th>Task</th>
                                     <th>Project</th>
-                                    <th id="all-tasks-assigned-header">Assigned To</th>
-                                    <th>Status</th>
+                                    <th id="all-tasks-assigned-header">Assigned Users &amp; Status</th>
+                                    <th>Overall Status</th>
                                     <th>Due Date</th>
-                                    <th id="task-action-header">action</th>
+                                    <th id="task-action-header">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="all-tasks-list"></tbody>
                         </table>
                     </div>
+                    <div class="task-pagination" id="dashboardTaskPagination"></div>
                 </section>
             </div>
 
@@ -896,15 +916,16 @@
                                         <thead>
                                             <tr>
                                                 <th>Task</th>
-                                                <th id="workspace-assigned-header">Assigned To</th>
+                                                <th id="workspace-assigned-header">Assigned Users &amp; Status</th>
                                                 <th>Due Date</th>
-                                                <th>Status</th>
+                                                <th>Overall Status</th>
                                                 <th id="action-header">Action</th>
                                             </tr>
                                         </thead>
                                         <tbody id="task-list"></tbody>
                                     </table>
                                 </div>
+                                <div class="task-pagination" id="projectTaskPagination"></div>
                             </div>
                         </div>
                     </section>

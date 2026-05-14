@@ -20,6 +20,11 @@ try:
 
     client.server_info()
     db = client[DB_NAME]
+    db.task_assignments.create_index(
+        [("task_id", 1), ("user_id", 1)],
+        name="task_id_1_user_id_1",
+        unique=True
+    )
     print("Database connected successfully")
 
 except Exception as e:

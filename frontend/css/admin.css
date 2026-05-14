@@ -2066,3 +2066,272 @@ body {
         width: 100%;
     }
 }
+
+.admin-member-status-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.admin-member-status {
+    max-width: 100%;
+    min-height: 28px;
+    padding: 5px 9px;
+    border: 1px solid #dbeafe;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #eef4ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 750;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+}
+
+.admin-member-status i {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    flex: 0 0 auto;
+}
+
+.admin-member-status.in-progress,
+.admin-member-status.progress {
+    border-color: #fed7aa;
+    background: #fff4de;
+    color: #b45309;
+}
+
+.admin-member-status.completed,
+.admin-member-status.done {
+    border-color: #bbf7d0;
+    background: #e7f8ee;
+    color: #08783f;
+}
+
+.task-management-head {
+    align-items: center;
+}
+
+.admin-task-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.admin-task-filter {
+    min-width: 170px;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #172033;
+    font-weight: 750;
+    box-shadow: none;
+}
+
+.task-table-panel {
+    padding: 0;
+    overflow: hidden;
+}
+
+.admin-task-table {
+    min-width: 1120px;
+}
+
+.admin-task-table th:nth-child(3),
+.admin-task-table td:nth-child(3) {
+    width: 360px;
+}
+
+.admin-task-assignee-card {
+    width: min(360px, 100%);
+    padding: 9px 12px;
+    border: 1px solid #dfe7f2;
+    border-radius: 8px;
+    background: #ffffff;
+    display: grid;
+    gap: 8px;
+}
+
+.admin-task-assignee-row {
+    min-height: 30px;
+    display: grid;
+    grid-template-columns: 28px minmax(92px, 1fr) minmax(112px, auto);
+    align-items: center;
+    gap: 9px;
+}
+
+.admin-task-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #d1fae5, #34d399);
+    color: #064e3b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.admin-task-name {
+    color: #172033;
+    font-size: 13px;
+    font-weight: 800;
+    overflow-wrap: anywhere;
+}
+
+.admin-task-assignee-card .admin-member-status {
+    justify-self: end;
+    min-height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #1d4ed8;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.admin-task-assignee-card .admin-member-status.pending,
+.admin-task-assignee-card .admin-member-status.todo,
+.admin-task-assignee-card .admin-member-status.on-hold {
+    color: #2563eb;
+}
+
+.admin-task-assignee-card .admin-member-status.in-progress,
+.admin-task-assignee-card .admin-member-status.progress {
+    color: #f97316;
+}
+
+.admin-task-assignee-card .admin-member-status.completed,
+.admin-task-assignee-card .admin-member-status.done {
+    color: #16a34a;
+}
+
+.admin-task-more {
+    width: max-content;
+    display: inline-flex;
+    align-items: center;
+    color: #2563eb;
+    font-size: 12px;
+    font-weight: 850;
+    cursor: default;
+    padding: 0;
+    line-height: 1.2;
+}
+
+.admin-task-footer {
+    min-height: 58px;
+    padding: 0 18px;
+    border-top: 1px solid #edf2f7;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.admin-task-pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-task-page-btn,
+.admin-task-page-current {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.admin-task-page-btn {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #94a3b8;
+    cursor: pointer;
+}
+
+.admin-task-page-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.admin-task-page-current {
+    background: #0f9f55;
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(15, 159, 85, 0.2);
+}
+
+.admin-task-table .status-pill,
+.status-pill {
+    min-width: 112px;
+    min-height: 34px;
+    gap: 7px;
+    border: 1px solid transparent;
+    color: #1d4ed8;
+    background: #eef4ff;
+}
+
+.admin-task-table .status-pill::before,
+.status-pill::before {
+    content: "";
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.admin-task-table .status-pill.pending,
+.status-pill.pending,
+.status-pill.todo,
+.status-pill.on-hold {
+    border-color: #dbeafe;
+    background: #eef4ff;
+    color: #2563eb;
+}
+
+.admin-task-table .status-pill.in-progress,
+.status-pill.in-progress,
+.status-pill.progress {
+    border-color: #fed7aa;
+    background: #fff4de;
+    color: #f97316;
+}
+
+.admin-task-table .status-pill.completed,
+.status-pill.completed,
+.status-pill.done {
+    border-color: #bbf7d0;
+    background: #e7f8ee;
+    color: #16a34a;
+}
+
+@media (max-width: 760px) {
+    .admin-task-actions,
+    .admin-task-filter {
+        width: 100%;
+    }
+
+    .admin-task-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 14px 16px;
+    }
+}

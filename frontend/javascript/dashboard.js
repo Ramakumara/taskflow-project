@@ -182,6 +182,111 @@ function getTaskAssignedBy(task, project) {
     return task.assigned_by || project?.owner_email || "Unknown";
 }
 
+function getTaskAssignments(task) {
+    if (Array.isArray(task?.assignments)) return task.assignments;
+    if (Array.isArray(task?.assigned_statuses)) return task.assigned_statuses;
+
+    const assigned = Array.isArray(task?.assigned_to)
+        ? task.assigned_to
+        : (task?.assigned_to ? [task.assigned_to] : []);
+
+    return assigned.map(email => ({
+        user_id: email,
+        status: normalizeMemberStatus(task?.status)
+    }));
+}
+
+function normalizeMemberStatus(status) {
+    const value = String(status || "Pending").trim().toLowerCase();
+    if (value === "todo" || value === "pending") return "Pending";
+    if (value === "in progress" || value === "progress") return "In Progress";
+    if (value === "done" || value === "completed") return "Completed";
+    return "Pending";
+}
+
+function memberStatusClass(status) {
+    return normalizeMemberStatus(status).toLowerCase().replace(/\s+/g, "-");
+}
+
+function getMyAssignment(task) {
+    const email = (sessionStorage.getItem("email") || "").trim().toLowerCase();
+    return getTaskAssignments(task).find(assignment =>
+        String(assignment.user_id || "").trim().toLowerCase() === email
+    );
+}
+
+function userIsAssignedToTask(task, email) {
+    const lookup = String(email || "").trim().toLowerCase();
+    return getTaskAssignments(task).some(assignment =>
+        String(assignment.user_id || "").trim().toLowerCase() === lookup
+    );
+}
+
+function renderMemberStatusBadges(task, options = {}) {
+    const assignments = getTaskAssignments(task);
+    const compact = options.compact ? " compact" : "";
+
+    if (!assignments.length) {
+        return `<span class="member-status-empty">Unassigned</span>`;
+    }
+
+    return `
+        <div class="member-status-list${compact}">
+            ${assignments.map(assignment => {
+                const email = String(assignment.user_id || "Unassigned");
+                const status = normalizeMemberStatus(assignment.status);
+                const label = options.showEmail === false ? status : `${email} - ${status}`;
+                return `
+                    <span class="member-status-badge ${memberStatusClass(status)}" title="${escapeTeamHtml(email)}: ${status}">
+                        <span class="member-status-dot"></span>
+                        <span>${escapeTeamHtml(label)}</span>
+                    </span>
+                `;
+            }).join("")}
+        </div>
+    `;
+}
+
+function renderAssigneeList(task, options = {}) {
+    const assignments = getTaskAssignments(task);
+    const compact = options.compact ? " compact" : "";
+
+    if (!assignments.length) {
+        return `<span class="member-status-empty">Unassigned</span>`;
+    }
+
+    return `
+        <div class="assignee-list${compact}">
+            ${assignments.map(assignment => {
+                const email = String(assignment.user_id || "Unassigned");
+                return `
+                    <span class="assignee-pill" title="${escapeTeamHtml(email)}">
+                        <i class="fas fa-user"></i>
+                        <span>${escapeTeamHtml(email)}</span>
+                    </span>
+                `;
+            }).join("")}
+        </div>
+    `;
+}
+
+function renderMyStatusControl(task) {
+    const assignment = getMyAssignment(task);
+    const status = normalizeMemberStatus(assignment?.status);
+
+    if (!assignment) {
+        return `<span class="member-status-empty">Not assigned</span>`;
+    }
+
+    return `
+        <select class="member-status-select" onchange="updateStatus('${task.id}', this.value)">
+            <option value="Pending" ${status === "Pending" ? "selected" : ""}>Pending</option>
+            <option value="In Progress" ${status === "In Progress" ? "selected" : ""}>In Progress</option>
+            <option value="Completed" ${status === "Completed" ? "selected" : ""}>Completed</option>
+        </select>
+    `;
+}
+
 function toggleQuietNotifications() {
     const nextValue = sessionStorage.getItem("settings.quietNotifications") !== "true";
     saveSettingsPreference("quietNotifications", nextValue);
@@ -274,6 +379,222 @@ let teamWorkspaceCache = {
     tasks: [],
     users: []
 };
+let dashboardTaskCache = {
+    projects: [],
+    tasks: [],
+    users: []
+};
+let dashboardTaskPage = 1;
+const dashboardTaskPageSize = 5;
+let projectWorkspaceTaskPage = 1;
+const projectWorkspaceTaskPageSize = 5;
+
+function getUserDisplayName(email, users = []) {
+    const lookup = String(email || "").trim().toLowerCase();
+    const user = users.find(item => String(item.email || "").trim().toLowerCase() === lookup);
+    return user?.username || String(email || "Unassigned").split("@")[0] || "Unassigned";
+}
+
+function getAvatarInitial(nameOrEmail) {
+    return String(nameOrEmail || "?").trim().charAt(0).toUpperCase() || "?";
+}
+
+function renderTaskAssigneeStatusList(task, users = [], options = {}) {
+    const assignments = getTaskAssignments(task);
+    const visibleCount = options.limit || 3;
+    const visibleAssignments = assignments.slice(0, visibleCount);
+    const hiddenAssignments = assignments.slice(visibleCount);
+    const remaining = hiddenAssignments.length;
+
+    if (!assignments.length) {
+        return `<span class="member-status-empty">Unassigned</span>`;
+    }
+
+    return `
+        <div class="task-assignee-card">
+            ${visibleAssignments.map(assignment => {
+                const email = String(assignment.user_id || "Unassigned");
+                const name = getUserDisplayName(email, users);
+                const status = normalizeMemberStatus(assignment.status);
+                return `
+                    <div class="task-assignee-row">
+                        <span class="task-assignee-avatar">${escapeTeamHtml(getAvatarInitial(name || email))}</span>
+                        <span class="task-assignee-name">${escapeTeamHtml(name)}</span>
+                        <span class="task-assignee-status ${memberStatusClass(status)}">
+                            <span></span>${escapeTeamHtml(status)}
+                        </span>
+                    </div>
+                `;
+            }).join("")}
+            ${remaining ? `
+                <span class="task-more-btn" title="${escapeTeamHtml(hiddenAssignments.map(assignment => {
+                    const email = String(assignment.user_id || "Unassigned");
+                    const name = getUserDisplayName(email, users);
+                    return `${name} - ${normalizeMemberStatus(assignment.status)}`;
+                }).join(", "))}">+ ${remaining} more</span>
+            ` : ""}
+        </div>
+    `;
+}
+
+function populateDashboardTaskFilters(projects) {
+    const projectFilter = document.getElementById("taskProjectFilter");
+    if (!projectFilter) return;
+
+    const current = projectFilter.value || "all";
+    projectFilter.innerHTML = `<option value="all">All Projects</option>`;
+
+    projects.forEach(project => {
+        const option = document.createElement("option");
+        option.value = String(project.id);
+        option.textContent = project.name || "Untitled Project";
+        projectFilter.appendChild(option);
+    });
+
+    projectFilter.value = Array.from(projectFilter.options).some(option => option.value === current)
+        ? current
+        : "all";
+}
+
+function getFilteredDashboardTasks() {
+    const query = (document.getElementById("taskSearchInput")?.value || "").trim().toLowerCase();
+    const projectId = document.getElementById("taskProjectFilter")?.value || "all";
+    const status = document.getElementById("taskStatusFilter")?.value || "all";
+    const { projects, tasks, users } = dashboardTaskCache;
+
+    return tasks.filter(task => {
+        const project = projects.find(item => String(item.id) === String(task.project_id));
+        const assignments = getTaskAssignments(task);
+
+        if (projectId !== "all" && String(task.project_id) !== String(projectId)) return false;
+        if (status !== "all" && normalizeMemberStatus(task.status) !== status) return false;
+
+        if (!query) return true;
+
+        const searchValues = [
+            task.title,
+            project?.name,
+            normalizeMemberStatus(task.status),
+            task.deadline,
+            ...assignments.flatMap(assignment => [
+                assignment.user_id,
+                getUserDisplayName(assignment.user_id, users),
+                normalizeMemberStatus(assignment.status)
+            ])
+        ];
+
+        return searchValues.some(value => String(value || "").toLowerCase().includes(query));
+    });
+}
+
+function renderDashboardTaskBoard() {
+    const list = document.getElementById("all-tasks-list");
+    if (!list) return;
+
+    const role = sessionStorage.getItem("role");
+    const { projects, users } = dashboardTaskCache;
+    const tasks = getFilteredDashboardTasks();
+    const totalPages = Math.max(Math.ceil(tasks.length / dashboardTaskPageSize), 1);
+    dashboardTaskPage = Math.min(Math.max(dashboardTaskPage, 1), totalPages);
+    const startIndex = (dashboardTaskPage - 1) * dashboardTaskPageSize;
+    const pageTasks = tasks.slice(startIndex, startIndex + dashboardTaskPageSize);
+    const taskActionHeader = document.getElementById("task-action-header");
+    const taskAddButton = document.getElementById("taskAddButton");
+
+    if (taskActionHeader) taskActionHeader.style.display = role === "manager" || role === "admin" ? "" : "none";
+    if (taskAddButton) taskAddButton.style.display = role === "manager" ? "" : "none";
+
+    if (!tasks.length) {
+        list.innerHTML = `<tr><td colspan="${role === "manager" || role === "admin" ? 6 : 5}" class="empty-state">No tasks found.</td></tr>`;
+        renderDashboardTaskPagination(0, 0, 0, 1, 1);
+        return;
+    }
+
+    list.innerHTML = "";
+    pageTasks.forEach(task => {
+        const project = projects.find(item => String(item.id) === String(task.project_id));
+        const row = document.createElement("tr");
+        const status = normalizeMemberStatus(task.status);
+        const statusClass = memberStatusClass(status);
+        const assignedDisplay = role === "user"
+            ? getTaskAssignedBy(task, project)
+            : renderTaskAssigneeStatusList(task, users);
+
+        row.innerHTML = `
+            <td class="task-title-cell">${escapeTeamHtml(task.title || "Untitled Task")}</td>
+            <td>${escapeTeamHtml(project?.name || "Unknown")}</td>
+            <td>${assignedDisplay || "Unknown"}</td>
+            <td>
+                ${role === "user"
+                    ? renderMyStatusControl(task)
+                    : `<span class="status-pill ${statusClass}">${escapeTeamHtml(status)}</span>`
+                }
+            </td>
+            <td>${escapeTeamHtml(task.deadline || "N/A")}</td>
+            ${role === "admin" || role === "manager" ? `
+                <td>
+                    <button class="delete-btn" type="button" onclick="deleteTask('${task.id}')">Delete</button>
+                </td>
+            ` : ""}
+        `;
+        list.appendChild(row);
+    });
+    renderDashboardTaskPagination(startIndex + 1, startIndex + pageTasks.length, tasks.length, dashboardTaskPage, totalPages);
+}
+
+function openDashboardTaskCreate() {
+    setActiveMenu("dashboard");
+    showView("dashboard-view");
+    openCreate();
+    const taskTitle = document.getElementById("task-title");
+    if (taskTitle) taskTitle.focus();
+}
+
+function setDashboardTaskPage(page) {
+    dashboardTaskPage = page;
+    renderDashboardTaskBoard();
+}
+
+function renderDashboardTaskPagination(start, end, total, page, totalPages) {
+    const footer = document.getElementById("dashboardTaskPagination");
+    if (!footer) return;
+
+    footer.innerHTML = `
+        <span>${total ? `Showing ${start} to ${end} of ${total} tasks` : "Showing 0 tasks"}</span>
+        <div class="task-pagination-controls">
+            <button class="task-page-btn" type="button" onclick="setDashboardTaskPage(${page - 1})" ${page <= 1 ? "disabled" : ""} aria-label="Previous task page">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="task-page-current">${page}</span>
+            <button class="task-page-btn" type="button" onclick="setDashboardTaskPage(${page + 1})" ${page >= totalPages ? "disabled" : ""} aria-label="Next task page">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    `;
+}
+
+function setProjectWorkspaceTaskPage(page) {
+    projectWorkspaceTaskPage = page;
+    loadProjectWorkspace();
+}
+
+function renderProjectWorkspacePagination(start, end, total, page, totalPages) {
+    const footer = document.getElementById("projectTaskPagination");
+    if (!footer) return;
+
+    footer.innerHTML = `
+        <span>${total ? `Showing ${start} to ${end} of ${total} tasks` : "Showing 0 tasks"}</span>
+        <div class="task-pagination-controls">
+            <button class="task-page-btn" type="button" onclick="setProjectWorkspaceTaskPage(${page - 1})" ${page <= 1 ? "disabled" : ""} aria-label="Previous project task page">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="task-page-current">${page}</span>
+            <button class="task-page-btn" type="button" onclick="setProjectWorkspaceTaskPage(${page + 1})" ${page >= totalPages ? "disabled" : ""} aria-label="Next project task page">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    `;
+}
 
 // Load all tasks for user
 async function loadAllTasks() {
@@ -284,49 +605,34 @@ async function loadAllTasks() {
     if (!role || !email || !token) return;
 
     try {
-        const [projectsRes, tasksRes] = await Promise.all([
+        const [projectsRes, tasksRes, usersRes] = await Promise.all([
             fetch(`${BASE_URL}/projects`, {
                 headers: { "Authorization": "Bearer " + token }
             }),
             fetch(`${BASE_URL}/tasks`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/users`, {
                 headers: { "Authorization": "Bearer " + token }
             })
         ]);
 
         const projects = await projectsRes.json();
         const tasks = await tasksRes.json();
+        const users = await usersRes.json().catch(() => []);
 
-        const list = document.getElementById("all-tasks-list");
-        list.innerHTML = "";
+        dashboardTaskCache = {
+            projects: Array.isArray(projects) ? projects : [],
+            tasks: Array.isArray(tasks) ? tasks : [],
+            users: Array.isArray(users) ? users : []
+        };
+
         const assignedHeader = document.getElementById("all-tasks-assigned-header");
         if (assignedHeader) {
-            assignedHeader.textContent = role === "user" ? "Assigned By" : "Assigned To";
+            assignedHeader.textContent = role === "user" ? "Assigned By" : "Assigned Users & Status";
         }
-
-        if (tasks.length === 0) {
-            list.innerHTML = `<tr><td colspan="5">No tasks assigned</td></tr>`;
-            return;
-        }
-
-        tasks.forEach(t => {
-            const project = projects.find(p => String(p.id) === String(t.project_id));
-            const row = document.createElement("tr");
-            const statusClass = t.status.trim().toLowerCase().replace(/\s+/g, "-");
-            const assignedDisplay = role === "user" ? getTaskAssignedBy(t, project) : t.assigned_to;
-            row.innerHTML = `
-                <td>${t.title}</td>
-                <td>${project?.name || "Unknown"}</td>
-                <td>${assignedDisplay || "Unknown"}</td>
-                <td><span class="status-pill ${statusClass}">${t.status}</span></td>
-                <td>${t.deadline || "N/A"}</td>
-                ${role === "admin" || role === "manager" ? `
-                    <td>
-                        <button class="delete-btn" type="button" onclick="deleteTask('${t.id}')">Delete</button>
-                    </td>
-                ` : ""}
-            `;
-            list.appendChild(row);
-        });
+        populateDashboardTaskFilters(dashboardTaskCache.projects);
+        renderDashboardTaskBoard();
     } catch (error) {
         console.error("Failed to load tasks", error);
     }
@@ -452,13 +758,15 @@ function renderTeamWorkspace() {
         // Search filter
         if (query) {
             projectTasks = projectTasks.filter(task => {
-                const member = userMap.get(String(task.assigned_to || "").trim().toLowerCase());
+                const assignments = getTaskAssignments(task);
                 return [
                     project.name,
                     task.title,
-                    task.assigned_to,
-                    member?.username,
-                    normalizeTeamStatus(task.status)
+                    normalizeTeamStatus(task.status),
+                    ...assignments.flatMap(assignment => {
+                        const member = userMap.get(String(assignment.user_id || "").trim().toLowerCase());
+                        return [assignment.user_id, member?.username, normalizeTeamStatus(assignment.status)];
+                    })
                 ].some(value => String(value || "").toLowerCase().includes(query));
             });
         }
@@ -543,7 +851,7 @@ function renderTeamWorkspace() {
 function userBelongsToTeamProject(project, tasks, userEmail) {
     return tasks.some(task =>
         String(task.project_id) === String(project.id) &&
-        String(task.assigned_to || "").trim().toLowerCase() === userEmail
+        userIsAssignedToTask(task, userEmail)
     );
 }
 
@@ -551,14 +859,16 @@ function buildTeamMemberRows(tasks, userMap) {
     const members = new Map();
 
     tasks.forEach(task => {
-        const email = String(task.assigned_to || "").trim().toLowerCase();
-        if (!email || members.has(email)) return;
+        getTaskAssignments(task).forEach(assignment => {
+            const email = String(assignment.user_id || "").trim().toLowerCase();
+            if (!email || members.has(email)) return;
 
-        const member = userMap.get(email) || {};
-        const name = member.username || task.assigned_to || email;
-        members.set(email, {
-            email: task.assigned_to || email,
-            name
+            const member = userMap.get(email) || {};
+            const name = member.username || assignment.user_id || email;
+            members.set(email, {
+                email: assignment.user_id || email,
+                name
+            });
         });
     });
 
@@ -580,20 +890,10 @@ function renderTeamMemberRow(member) {
 }
 
 function renderTeamTaskRow(task, userMap) {
-    const email = String(task.assigned_to || "").trim();
-    const member = userMap.get(email.toLowerCase()) || {};
-    const name = member.username || email || "Unassigned";
-    const status = normalizeTeamStatus(task.status);
-
     return `
         <tr>
-            <td>
-                <span class="team-member-cell">
-                    <span class="team-avatar">${escapeTeamHtml(name.charAt(0).toUpperCase() || "?")}</span>
-                    <span>${escapeTeamHtml(name)}</span>
-                </span>
-            </td>
-            <td>${escapeTeamHtml(email || "Unassigned")}</td>
+            <td>${escapeTeamHtml(task.title || "Untitled Task")}</td>
+            <td>${renderMemberStatusBadges(task)}</td>
         </tr>
     `;
 }
@@ -775,7 +1075,7 @@ async function loadDashboardSummary() {
         let filteredTasks = tasks;
 
         if (role === "user") {
-            filteredTasks = tasks.filter(t => t.assigned_to === email);
+            filteredTasks = tasks.filter(t => userIsAssignedToTask(t, email));
 
             const projectIds = new Set(filteredTasks.map(t => t.project_id));
 
@@ -794,7 +1094,7 @@ function renderSummary(projects, tasks) {
     const totalTasks = document.getElementById("total-tasks");
     const completionRate = document.getElementById("completion-rate");
 
-    const completedTasks = tasks.filter(t => t.status === "done").length;
+    const completedTasks = tasks.filter(t => normalizeMemberStatus(t.status) === "Completed").length;
     const total = tasks.length;
 
     const percent = total === 0 ? 0 : Math.round((completedTasks / total) * 100);
@@ -820,11 +1120,16 @@ async function loadProjectWorkspace() {
     
     try {
         const token = sessionStorage.getItem("token");
-        // Load project title
-        const projectsRes = await fetch(`${BASE_URL}/projects`, {
-            headers: { "Authorization": "Bearer " + token }
-        });
+        const [projectsRes, usersRes] = await Promise.all([
+            fetch(`${BASE_URL}/projects`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/users`, {
+                headers: { "Authorization": "Bearer " + token }
+            })
+        ]);
         const projects = await projectsRes.json();
+        const users = await usersRes.json().catch(() => []);
         const project = projects.find(p => String(p.id) === String(projectId));
         document.getElementById("project-title").innerText = project?.name || "Project";
 
@@ -838,7 +1143,7 @@ async function loadProjectWorkspace() {
         list.innerHTML = "";
         const assignedHeader = document.getElementById("workspace-assigned-header");
         if (assignedHeader) {
-            assignedHeader.textContent = role === "user" ? "Assigned By" : "Assigned To";
+            assignedHeader.textContent = role === "user" ? "Assigned By" : "Assigned Users & Status";
         }
 
         const projectTasks = tasks.filter(t =>
@@ -851,12 +1156,19 @@ async function loadProjectWorkspace() {
                     <td colspan="5">No tasks available</td>
                 </tr>
             `;
+            renderProjectWorkspacePagination(0, 0, 0, 1, 1);
             return;
         }
 
-        projectTasks.forEach(t => {
+        const totalPages = Math.max(Math.ceil(projectTasks.length / projectWorkspaceTaskPageSize), 1);
+        projectWorkspaceTaskPage = Math.min(Math.max(projectWorkspaceTaskPage, 1), totalPages);
+        const startIndex = (projectWorkspaceTaskPage - 1) * projectWorkspaceTaskPageSize;
+        const pageTasks = projectTasks.slice(startIndex, startIndex + projectWorkspaceTaskPageSize);
+
+        pageTasks.forEach(t => {
             const row = document.createElement("tr");
-            const assignedDisplay = role === "user" ? getTaskAssignedBy(t, project) : t.assigned_to;
+            const assignedDisplay = role === "user" ? getTaskAssignedBy(t, project) : renderTaskAssigneeStatusList(t, Array.isArray(users) ? users : []);
+            const statusClass = memberStatusClass(t.status);
 
             row.innerHTML = `
                 <td>${t.title}</td>
@@ -867,18 +1179,12 @@ async function loadProjectWorkspace() {
                     role === "user"
                     ? `
                     <td>
-                        <select onchange="updateStatus('${t.id}', this.value)">
-                            <option value="todo" ${t.status === "todo" ? "selected" : ""}>To Do</option>
-                            <option value="in progress" ${t.status === "in progress" ? "selected" : ""}>In Progress</option>
-                            <option value="done" ${t.status === "done" ? "selected" : ""}>Done</option>
-                        </select>
+                        ${renderMyStatusControl(t)}
                     </td>
                     `
                     : `
                     <td>
-                        <span class="status ${t.status.replace(" ", "-")}">
-                            ${t.status}
-                        </span>
+                        <span class="status ${statusClass}">${normalizeMemberStatus(t.status)}</span>
                     </td>
                     `
                 }
@@ -896,6 +1202,7 @@ async function loadProjectWorkspace() {
 
             list.appendChild(row);
         });
+        renderProjectWorkspacePagination(startIndex + 1, startIndex + pageTasks.length, projectTasks.length, projectWorkspaceTaskPage, totalPages);
 
     } catch (error) {
         console.error("Failed to load project workspace", error);
@@ -1266,7 +1573,10 @@ function applyDashboardRoleVisibility() {
 }
 
 function normalizeReportStatus(status) {
-    return String(status || "").trim().toLowerCase();
+    const value = String(status || "").trim().toLowerCase();
+    if (value === "completed" || value === "done") return "done";
+    if (value === "in progress" || value === "progress") return "in progress";
+    return "pending";
 }
 
 function getReportDateFilters() {
@@ -1438,7 +1748,7 @@ async function loadReports() {
         if (!Array.isArray(tasks)) tasks = [];
 
         if (role === "user") {
-            tasks = tasks.filter(t => String(t.assigned_to || "").trim().toLowerCase() === email);
+            tasks = tasks.filter(t => userIsAssignedToTask(t, email));
 
             const projectIds = new Set(tasks.map(t => String(t.project_id)));
             projects = projects.filter(p => projectIds.has(String(p.id)));
@@ -1730,14 +2040,16 @@ function renderTeamSummary(tasks) {
     const map = {};
 
     tasks.forEach(t => {
-        const user = t.assigned_to || "Unknown";
+        getTaskAssignments(t).forEach(assignment => {
+            const user = assignment.user_id || "Unknown";
 
-        if (!map[user]) {
-            map[user] = { total: 0, completed: 0 };
-        }
+            if (!map[user]) {
+                map[user] = { total: 0, completed: 0 };
+            }
 
-        map[user].total++;
-        if (normalizeReportStatus(t.status) === "done") map[user].completed++;
+            map[user].total++;
+            if (normalizeMemberStatus(assignment.status) === "Completed") map[user].completed++;
+        });
     });
 
     const users = Object.keys(map);
@@ -1910,8 +2222,8 @@ async function exportCSV(options = {}) {
             rows.push([
                 projectById.get(String(task.project_id)) || "Unknown Project",
                 task.title || "Untitled Task",
-                task.assigned_to || "Unassigned",
-                task.status || "No status",
+                getTaskAssignments(task).map(assignment => `${assignment.user_id} (${normalizeMemberStatus(assignment.status)})`).join(", ") || "Unassigned",
+                normalizeMemberStatus(task.status),
                 task.deadline || "No date"
             ]);
         });
@@ -1920,10 +2232,12 @@ async function exportCSV(options = {}) {
     if (sections.has("team")) {
         const teamMap = {};
         filteredTasks.forEach(task => {
-            const user = task.assigned_to || "Unknown";
-            if (!teamMap[user]) teamMap[user] = { total: 0, completed: 0 };
-            teamMap[user].total++;
-            if (normalizeReportStatus(task.status) === "done") teamMap[user].completed++;
+            getTaskAssignments(task).forEach(assignment => {
+                const user = assignment.user_id || "Unknown";
+                if (!teamMap[user]) teamMap[user] = { total: 0, completed: 0 };
+                teamMap[user].total++;
+                if (normalizeMemberStatus(assignment.status) === "Completed") teamMap[user].completed++;
+            });
         });
 
         rows.push(
