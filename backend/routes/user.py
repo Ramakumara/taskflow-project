@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Body, Query
 from database import db
 from models.users import UserRegister, UserLogin
 from passlib.context import CryptContext
@@ -6,6 +6,7 @@ from auth_utils import create_access_token
 from fastapi import Depends
 from auth_utils import get_current_user
 from routes.activity import record_activity
+from rbac import Role, require_permission, require_roles, Permission, normalize_role, VALID_ROLES
 from jose import JWTError, jwt
 import re
 import requests
@@ -49,7 +50,7 @@ def register(user: UserRegister):
         "username": user.username,
         "email": user.email,
         "password": hashed_password,
-        "role": user.role or "user"
+        "role": Role.USER.value
     }
 
     db.users.insert_one(new_user)
@@ -118,10 +119,7 @@ def get_users(current_user: dict = Depends(get_current_user)):
     return users
 
 @router.get("/admin/stats")
-def admin_stats(current_user: dict = Depends(get_current_user)):
-
-    if current_user["role"] != "admin":
-        return {"message": "Access denied"}
+def admin_stats(current_user: dict = Depends(require_roles(Role.ADMIN))):
 
     return {
         "total_users": db.users.count_documents({}),
@@ -130,33 +128,54 @@ def admin_stats(current_user: dict = Depends(get_current_user)):
     }
 
 @router.put("/users/role")
-def update_role(email: str, new_role: str, current_user: dict = Depends(get_current_user)):
+def update_role(
+    email: str,
+    new_role: str = Query(None),
+    payload: dict = Body(None),
+    current_user: dict = Depends(require_permission(Permission.CHANGE_ROLES))
+):
+    requested_role = new_role or (payload or {}).get("new_role") or (payload or {}).get("role")
+    if str(requested_role or "").strip().lower() not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail="Invalid role")
+    new_role = normalize_role(requested_role)
 
-    if current_user["role"] != "admin":
-        return {"message": "Access denied"}
+    target_user = db.users.find_one({"email": email})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if target_user.get("email") == current_user.get("email") and new_role != Role.ADMIN.value:
+        raise HTTPException(status_code=400, detail="Admin cannot remove their own admin role")
 
     db.users.update_one(
         {"email": email},
         {"$set": {"role": new_role}}
     )
 
+    record_activity(
+        current_user,
+        "User role changed",
+        f"User: {email}",
+        f"{target_user.get('role', 'user')} -> {new_role}"
+    )
+
     return {"message": "Role updated"}
 
 @router.delete("/users/{email}")
-def delete_user(email: str, current_user: dict = Depends(get_current_user)):
-    user = db.users.find_one({"email": current_user["email"]})
-    if current_user["role"] != "admin":
-        return {"message": "Access denied"}
+def delete_user(email: str, current_user: dict = Depends(require_permission(Permission.MANAGE_USERS))):
+    if email == current_user.get("email"):
+        raise HTTPException(status_code=400, detail="Admin cannot delete their own account")
+
+    target_user = db.users.find_one({"email": email})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
 
     db.users.delete_one({"email": email})
+    record_activity(current_user, "User deleted", f"User: {email}", f"Role: {target_user.get('role', 'user')}")
 
     return {"message": "User deleted"}
 
 @router.get("/teams")
-def get_team(current_user: dict = Depends(get_current_user)):
-
-    if current_user["role"] not in ("admin", "manager"):
-        return {"message": "Access denied"}
+def get_team(current_user: dict = Depends(require_roles(Role.ADMIN, Role.MANAGER))):
 
     users = []
 

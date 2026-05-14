@@ -6,6 +6,7 @@ from fastapi import Depends
 from auth_utils import get_current_user
 from auth_utils import send_task_email, send_reminder_email
 from routes.activity import record_activity
+from rbac import Role, Permission, require_permission
 from datetime import datetime, timedelta
 from datetime import datetime
 import pytz
@@ -110,13 +111,12 @@ def format_task(doc):
 
 
 @router.post("/tasks")
-async def create_task(task: TaskCreate, current_user: dict = Depends(get_current_user)):
+async def create_task(task: TaskCreate, current_user: dict = Depends(require_permission(Permission.ASSIGN_TASKS))):
 
-    if current_user["role"] != "manager":
-        raise HTTPException(status_code=403, detail="Only manager can create tasks")
+    is_admin = current_user["role"] == Role.ADMIN.value
 
     project = db.projects.find_one({"_id": ObjectId(task.project_id)})
-    if not project or project.get("owner_email") != current_user["email"]:
+    if not project or (not is_admin and project.get("owner_email") != current_user["email"]):
         raise HTTPException(status_code=403, detail="Not allowed")
 
     user_emails = list(dict.fromkeys(str(email) for email in task.assigned_to))
@@ -281,7 +281,7 @@ def update_my_task_assignment(task_id: str, update: TaskUpdate, current_user: di
 
 
 @router.delete("/tasks/{task_id}")
-def delete_task(task_id: str, current_user: dict = Depends(get_current_user)):
+def delete_task(task_id: str, current_user: dict = Depends(require_permission(Permission.MANAGE_TEAM_TASKS))):
 
     task = db.tasks.find_one({"_id": ObjectId(task_id)})
     if not task:

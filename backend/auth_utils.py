@@ -53,11 +53,26 @@ def get_current_user(authorization: str = Header(None)):
     if not authorization:
         raise HTTPException(status_code=401, detail="Token missing")
 
-    token = authorization.split(" ")[1]
+    parts = authorization.split(" ", 1)
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Invalid authorization header")
+
+    token = parts[1]
     payload = verify_token(token)
 
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid token")
+
+    email = payload.get("email")
+    if email:
+        user = db.users.find_one({"email": email}, {"_id": 0, "email": 1, "username": 1, "role": 1})
+        if not user:
+            raise HTTPException(status_code=401, detail="User not found")
+        payload.update({
+            "email": user.get("email"),
+            "username": user.get("username"),
+            "role": user.get("role") or "user"
+        })
 
     return payload
 

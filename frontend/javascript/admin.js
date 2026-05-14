@@ -517,7 +517,14 @@ function renderUsersView() {
                                     <td>${escapeHtml(user.email || "-")}</td>
                                     <td>${escapeHtml(capitalize(user.role || "user"))}</td>
                                     <td>
-                                        ${user.email === sessionStorage.getItem("email") ? "<span class='disabled-action'>Current user</span>" : `<button class="action-btn delete-btn" type="button" onclick="deleteUser('${escapeHtml(user.email)}')">Delete</button>`}
+                                        ${user.email === sessionStorage.getItem("email") ? "<span class='disabled-action'>Current user</span>" : `
+                                            <select class="admin-task-filter" aria-label="Change role for ${escapeHtml(user.email)}" onchange="changeUserRole('${escapeHtml(user.email)}', this.value)">
+                                                <option value="user" ${String(user.role || "user").toLowerCase() === "user" ? "selected" : ""}>User</option>
+                                                <option value="manager" ${String(user.role || "").toLowerCase() === "manager" ? "selected" : ""}>Manager</option>
+                                                <option value="admin" ${String(user.role || "").toLowerCase() === "admin" ? "selected" : ""}>Admin</option>
+                                            </select>
+                                            <button class="action-btn delete-btn" type="button" onclick="deleteUser('${escapeHtml(user.email)}')">Delete</button>
+                                        `}
                                     </td>
                                 </tr>
                             `).join("") : `<tr><td colspan="4" class="empty-state">No users found.</td></tr>`}
@@ -527,6 +534,39 @@ function renderUsersView() {
             </div>
         </div>
     `;
+}
+
+async function changeUserRole(email, newRole) {
+    const token = sessionStorage.getItem("token");
+
+    if (!token) {
+        alert("Login required.");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${BASE_URL}/users/role?email=${encodeURIComponent(email)}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ new_role: newRole })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            throw new Error(data.detail || data.message || "Unable to update role");
+        }
+
+        await refreshAdminData();
+        renderUsersView();
+        showNotification(`Updated ${email} to ${capitalize(newRole)}`);
+    } catch (error) {
+        alert(error.message || "Unable to update role");
+        await refreshAdminData();
+        renderUsersView();
+    }
 }
 
 async function deleteUser(email) {
@@ -2033,3 +2073,5 @@ window.setAdminTaskProjectFilter = setAdminTaskProjectFilter;
 window.setAdminTaskStatusFilter = setAdminTaskStatusFilter;
 window.setAdminTaskPage = setAdminTaskPage;
 window.adminDeleteTask = adminDeleteTask;
+window.changeUserRole = changeUserRole;
+window.deleteUser = deleteUser;

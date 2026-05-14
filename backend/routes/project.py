@@ -1,10 +1,11 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 from database import db
 from models.projects import ProjectCreate
 from bson import ObjectId
 from fastapi import Depends
 from auth_utils import get_current_user
 from routes.activity import record_activity
+from rbac import Role, Permission, require_permission
 
 router = APIRouter()
 
@@ -98,10 +99,7 @@ def format_team_user(doc):
     }
 
 @router.post("/projects")
-def create_project(project: ProjectCreate, current_user: dict = Depends(get_current_user)):
-
-    if current_user["role"] not in ["manager", "admin"]:
-        return {"message": "Access denied"}
+def create_project(project: ProjectCreate, current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS))):
 
     new_project = project.model_dump()
     new_project["owner_email"] = current_user["email"]  
@@ -179,12 +177,15 @@ def get_team_workspace(current_user: dict = Depends(get_current_user)):
 
 
 @router.delete("/projects/{project_id}")
-def delete_project(project_id: str, current_user: dict = Depends(get_current_user)):
-
-    if current_user["role"] != "manager":
-        return {"message": "Not allowed"}
+def delete_project(project_id: str, current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS))):
 
     project = db.projects.find_one({"_id": ObjectId(project_id)})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if current_user["role"] != Role.ADMIN.value and project.get("owner_email") != current_user["email"]:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
     project_name = project.get("name") if project else "Unknown project"
 
     db.projects.delete_one({"_id": ObjectId(project_id)})

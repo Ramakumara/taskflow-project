@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from database import db
 from auth_utils import get_current_user
+from rbac import Role, require_roles
 from datetime import datetime, timedelta
 from bson import ObjectId
 
@@ -29,8 +30,15 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
 
 @router.put("/notifications/{notification_id}/read")
 async def mark_notification_read(
-    notification_id: str
+    notification_id: str,
+    current_user: dict = Depends(get_current_user)
 ):
+    notification = db.notifications.find_one({"_id": ObjectId(notification_id)})
+    if not notification:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
+    if current_user.get("role") != "admin" and notification.get("email") != current_user.get("email"):
+        raise HTTPException(status_code=403, detail="Access denied")
 
     result = db.notifications.update_one(
 
@@ -75,8 +83,7 @@ async def mark_all_notifications_read(
     }
 
 @router.delete("/notifications/cleanup")
-async def cleanup_notifications():
-
+async def cleanup_notifications(current_user: dict = Depends(require_roles(Role.ADMIN))):
     one_hour_ago = datetime.utcnow() - timedelta(minutes=60)
 
     db.notifications.delete_many({

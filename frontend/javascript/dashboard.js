@@ -58,7 +58,7 @@ function dashboard() {
 }
 
 function setProjectTab(tab) {
-    if (tab === 'activity-log' && sessionStorage.getItem("role") === "user") {
+    if ((tab === 'activity-log' || tab === 'report') && sessionStorage.getItem("role") === "user") {
         dashboard();
         return;
     }
@@ -1557,10 +1557,15 @@ function applyDashboardRoleVisibility() {
     const role = sessionStorage.getItem("role");
     const isUser = role === "user";
     const activityMenu = document.querySelector('[data-sidebar="activity-log"]');
+    const reportMenu = document.querySelector('[data-sidebar="report"]');
     const activityExportCard = document.querySelector('[data-export-section="activity"]');
 
     if (activityMenu) {
         activityMenu.style.display = isUser ? "none" : "";
+    }
+
+    if (reportMenu) {
+        reportMenu.style.display = isUser ? "none" : "";
     }
 
     if (activityExportCard) {
@@ -2368,10 +2373,9 @@ async function loadFiles() {
     const storagePercent = document.getElementById("storage-percent");
     const storageFill = document.getElementById("storage-meter-fill");
 
-    const role = sessionStorage.getItem("role");
-
-    if (role === "user") {
-        document.getElementById("uploadBtn").style.display = "none";
+    const uploadBtn = document.getElementById("uploadBtn");
+    if (uploadBtn) {
+        uploadBtn.style.display = "";
     }
 
     if (!tbody) return;
@@ -3213,7 +3217,7 @@ async function initializeDashboardPage() {
     applyDashboardRoleVisibility();
 
     let defaultView = sessionStorage.getItem("settings.defaultView") || "dashboard";
-    if (defaultView === "activity-log" && sessionStorage.getItem("role") === "user") {
+    if ((defaultView === "activity-log" || defaultView === "report") && sessionStorage.getItem("role") === "user") {
         defaultView = "files";
     }
     setProjectTab(defaultView);

@@ -3,6 +3,7 @@ from fastapi.responses import RedirectResponse
 from auth.google_oauth import oauth
 from auth_utils import create_access_token
 from database import db
+from rbac import Role
 
 router = APIRouter()
 
@@ -37,17 +38,21 @@ async def auth_google(request: Request):
             db.users.insert_one({
                 "username": name,
                 "email": email,
-                "role": "user"
+                "role": Role.USER.value
             })
+            user_role = Role.USER.value
+        else:
+            user_role = existing_user.get("role") or Role.USER.value
+            name = existing_user.get("username") or name
 
         jwt_token = create_access_token({
             "email": email,
             "username": name,
-            "role": "user"
+            "role": user_role
         })
 
         return RedirectResponse(
-            f"http://localhost:8000/dashboard-page?token={jwt_token}&username={name}&email={email}&role=user"
+            f"http://localhost:8000/dashboard-page?token={jwt_token}&username={name}&email={email}&role={user_role}"
         )
 
     except Exception as e:

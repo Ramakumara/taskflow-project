@@ -123,15 +123,25 @@ async function handleLogin() {
 }
 
 async function handleRegister() {
-    const username = document.getElementById("username").value;
-    const email = document.getElementById("email").value;
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
-    const role = document.getElementById("role").value;
+    const confirmPassword = document.getElementById("confirm-password").value;
+
+    if (!username || !email || !password || !confirmPassword) {
+        alert("Please fill in all fields");
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        alert("Passwords do not match");
+        return;
+    }
 
     const res = await fetch(`${BASE_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, role })
+        body: JSON.stringify({ username, email, password })
     });
 
     const raw = await res.text();
@@ -161,8 +171,8 @@ async function createProject() {
     const token = sessionStorage.getItem("token");
     const role = sessionStorage.getItem("role");
 
-    if (role !== "manager") {
-        alert("Only manager can create project");
+    if (role !== "manager" && role !== "admin") {
+        alert("Only manager or admin can create project");
         return;
     }
 
@@ -352,8 +362,8 @@ async function createTask() {
     const token = sessionStorage.getItem("token");
     const role = sessionStorage.getItem("role");
 
-    if (role !== "manager") {
-        alert("Only manager can create tasks");
+    if (role !== "manager" && role !== "admin") {
+        alert("Only manager or admin can create tasks");
         return;
     }
 

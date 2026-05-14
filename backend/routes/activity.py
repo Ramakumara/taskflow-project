@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Response
 from database import db
 from auth_utils import get_current_user
+from rbac import Permission, require_permission
 from datetime import datetime, timezone
 from io import StringIO
 import csv
@@ -82,7 +83,7 @@ def format_activity(doc: dict) -> dict:
 
 
 @router.get("/activities")
-def get_activities(current_user: dict = Depends(get_current_user)):
+def get_activities(current_user: dict = Depends(require_permission(Permission.VIEW_ACTIVITY_LOGS))):
     team_emails = get_team_emails(current_user)
 
     if team_emails is None:
@@ -94,7 +95,7 @@ def get_activities(current_user: dict = Depends(get_current_user)):
 
 
 @router.get("/activities/export")
-def export_activities(current_user: dict = Depends(get_current_user)):
+def export_activities(current_user: dict = Depends(require_permission(Permission.VIEW_ACTIVITY_LOGS))):
     team_emails = get_team_emails(current_user)
 
     if team_emails is None:
