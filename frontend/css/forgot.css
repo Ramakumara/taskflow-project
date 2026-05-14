@@ -229,3 +229,165 @@ body {
         padding: 24px;
     }
 }
+
+/* Final alignment with the current TaskFlow auth UI */
+:root {
+    --tf-bg: #f5f7fb;
+    --tf-surface: #ffffff;
+    --tf-border: #e3e9f2;
+    --tf-text: #172033;
+    --tf-muted: #667085;
+    --tf-primary: #20b864;
+    --tf-primary-dark: #159653;
+    --tf-radius: 8px;
+    --tf-shadow-lg: 0 18px 48px rgba(16, 24, 40, 0.14);
+    --tf-font: "Segoe UI", Inter, Arial, sans-serif;
+    --tf-sidebar-bg: #08271e;
+    --tf-sidebar-bg-deep: #041812;
+    --tf-sidebar-bg-mid: #0a3326;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--tf-font);
+    background: var(--tf-bg);
+    color: var(--tf-text);
+    letter-spacing: 0;
+}
+
+button,
+input {
+    font-family: inherit;
+    letter-spacing: 0;
+}
+
+.forgot-background {
+    min-height: 100vh;
+    height: auto;
+    display: grid;
+    grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1fr);
+    align-items: stretch;
+    overflow: auto;
+    background: var(--tf-bg) !important;
+}
+
+.forgot-background::before {
+    content: "TaskFlow";
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 48px;
+    background:
+        radial-gradient(circle at 18% 0%, rgba(34, 197, 94, 0.24), transparent 34%),
+        linear-gradient(180deg, var(--tf-sidebar-bg-mid) 0%, var(--tf-sidebar-bg) 48%, var(--tf-sidebar-bg-deep) 100%);
+    color: #ffffff;
+    font-size: clamp(36px, 6vw, 68px);
+    font-weight: 800;
+    letter-spacing: 0;
+}
+
+.forgot-container {
+    width: 100%;
+    min-height: 100vh;
+    margin-left: 0;
+    padding: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--tf-bg);
+}
+
+.forgot-card {
+    width: min(420px, 100%);
+    padding: 34px;
+    border: 1px solid var(--tf-border);
+    border-radius: var(--tf-radius);
+    background: var(--tf-surface);
+    box-shadow: var(--tf-shadow-lg);
+    text-align: left;
+    backdrop-filter: none;
+}
+
+.forgot-card h2 {
+    margin: 0 0 20px;
+    color: var(--tf-text);
+    font-size: 28px;
+    line-height: 1.15;
+    text-align: left;
+}
+
+.forgot-card label {
+    display: block;
+    margin-top: 16px;
+    color: #344054;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.forgot-card input {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 7px;
+    padding: 0 12px;
+    border: 1px solid var(--tf-border);
+    border-radius: var(--tf-radius);
+    background: #ffffff;
+    color: var(--tf-text);
+    outline: none;
+}
+
+.forgot-card input:focus {
+    border-color: rgba(32, 184, 100, 0.55);
+    box-shadow: 0 0 0 4px rgba(32, 184, 100, 0.1);
+}
+
+.forgot-card button {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 18px;
+    padding: 0 16px;
+    border: 1px solid var(--tf-primary);
+    border-radius: var(--tf-radius);
+    background: var(--tf-primary);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: none;
+}
+
+.forgot-card button:hover {
+    background: var(--tf-primary-dark);
+    border-color: var(--tf-primary-dark);
+    transform: none;
+    box-shadow: none;
+}
+
+@media (max-width: 900px) {
+    .forgot-background {
+        grid-template-columns: 1fr;
+    }
+
+    .forgot-background::before {
+        min-height: 180px;
+        padding: 32px;
+        font-size: 42px;
+    }
+
+    .forgot-container {
+        min-height: auto;
+        padding: 24px;
+    }
+}
+
+@media (max-width: 640px) {
+    .forgot-container {
+        padding: 18px;
+    }
+
+    .forgot-card {
+        padding: 24px;
+    }
+}

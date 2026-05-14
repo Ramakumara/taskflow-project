@@ -2,36 +2,100 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
+    <title>Login</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
 </head>
-<body class="login-background">
+<body class="login-background login-page">
+
+<header class="auth-navbar">
+    <a class="auth-logo" href="/">
+        <span class="auth-logo-mark">T</span>
+        <span>TaskFlow</span>
+    </a>
+
+    <nav class="auth-nav-links" aria-label="Primary navigation">
+        <a href="#">About Us</a>
+        <a href="#">Features</a>
+        <a href="#">Pricing</a>
+        <a href="#">Contact</a>
+    </nav>
+
+    <button class="auth-language" type="button">
+        <i class="fa-solid fa-globe"></i>
+        <span>English</span>
+        <i class="fa-solid fa-chevron-down"></i>
+    </button>
+</header>
 
 <div class="login-container">
     <div class="login-card">
-        <h2>Welcome</h2>
+
+        <div class="login-card-head">
+            <span class="login-eyebrow">
+                <i class="fa-solid fa-user-plus"></i>
+                Create Account
+            </span>
+        </div>
+
         <p class="sub-text">Create your account to get started</p>
 
-        <span>Username</span>
-        <input id="username" placeholder="Enter your username">
+        <!-- Username -->
+        <label>Username</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-regular fa-user"></i>
+            <input id="username" type="text" placeholder="Enter your username">
+        </div>
 
-        <span>Email</span>
-        <input id="email" placeholder="Enter your email">
+        <!-- Email -->
+        <label>Email</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-regular fa-envelope"></i>
+            <input id="email" type="email" placeholder="Enter your email">
+        </div>
 
-        <span>Password</span>
-        <input id="password" type="password" placeholder="Enter your password">
+        <!-- Password -->
+        <label>Password</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-solid fa-lock"></i>
 
-        <span>Role</span>
-        <select id="role">
-            <option value="user">User</option>
-            <option value="manager">Manager</option>
-        </select>
+            <input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+            >
 
-        <button onclick="handleRegister()">Register</button>
+            <button
+                class="eye-icon"
+                type="button"
+                onclick="togglePassword()"
+            >
+                <i id="eyeIcon" class="bi bi-eye"></i>
+            </button>
+        </div>
 
-        <div class="divider">or</div>
+        <!-- Role -->
+        <label>Role</label>
+        <div class="input-group">
 
-        <p>Already have account? <a href="/">Login</a></p>
+            <select id="role">
+                <option value="user">User</option>
+                <option value="manager">Manager</option>
+            </select>
+        </div>
+
+        <!-- Button -->
+        <button class="login-submit-btn" onclick="handleRegister()">
+            <span>Register</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+        <p class="register-copy">
+            Already have an account?
+            <a href="/">Login</a>
+        </p>
+
     </div>
 </div>
 
