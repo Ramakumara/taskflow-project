@@ -1,0 +1,946 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
+</head>
+<body>
+<div id="toast-container"></div>
+<div class="dashboard">
+    <aside class="dashboard-sidebar">
+        <div class="dashboard-brand" aria-hidden="true">
+            <span class="brand-piece brand-piece-wide"></span>
+            <span class="brand-piece brand-piece-mid"></span>
+            <span class="brand-piece brand-piece-thin"></span>
+        </div>
+
+        <nav class="dashboard-nav">
+            <button class="menu-item" type="button" data-sidebar="dashboard" onclick="dashboard()">
+                <i class="fas fa-house menu-icon"></i>
+                <span>Dashboard</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="tasks" onclick="setProjectTab('tasks')">
+                <i class="fas fa-square-check menu-icon"></i>
+                <span>Tasks</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="team" onclick="setProjectTab('team')">
+                <i class="fas fa-users menu-icon"></i>
+                <span>My Team</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
+                <i class="far fa-folder-open menu-icon"></i>
+                <span>Files</span>
+            </button>
+            <hr style="border: none; height: 1px; background: #e5e7eb; margin: 10px 0;">
+            <button class="menu-item" type="button" data-sidebar="activity-log" onclick="setProjectTab('activity-log')">
+                <i class="fas fa-clock-rotate-left menu-icon"></i>
+                <span>Activity Log</span>
+            </button>
+            <button class="menu-item" type="button" data-sidebar="report" onclick="setProjectTab('report')">
+                <i class="fas fa-chart-pie menu-icon"></i>
+                <span>Reports</span>
+            </button>
+            
+            <button class="menu-item" type="button" data-sidebar="calendar" onclick="setProjectTab('calendar')">
+                <i class="fas fa-chart-column menu-icon"></i>
+                <span>Calendar</span>
+            </button>
+            <hr style="border: none; height: 1px; background: #e5e7eb; margin: 10px 0;">
+            <button class="menu-item" type="button" data-sidebar="settings" onclick="goToSettings()">
+                <i class="fas fa-gear menu-icon"></i>
+                <span>Settings</span>
+            </button>
+        </nav>
+    </aside>
+
+    <main class="dashboard-main">
+        <header class="topbar">
+            <div class="topbar-left">
+                <label class="search-box" for="projectSearch">
+                    <i class="fas fa-search"></i>
+                    <input id="projectSearch" type="text" placeholder="Search..." oninput="handleProjectSearch(event)">
+                </label>
+            </div>
+
+            <div class="topbar-right">
+                <div class="notification-wrap">
+
+                    <div class="notification-bell"
+                        onclick="toggleNotifications(event)">
+
+                        <i class="fas fa-bell"></i>
+
+                        <span class="notification-count"
+                            id="notification-count">3</span>
+
+                    </div>
+
+                    <div id="notification-dropdown"
+                            class="notification-dropdown"
+                            onclick="event.stopPropagation()">
+
+                        <div class="notification-header">
+
+                            <h3>Notifications</h3>
+
+                            <button type="button"
+                                    class="mark-read"
+                                    onclick="markAllNotificationsRead(event)">
+                                Mark all as read
+                            </button>
+
+                        </div>
+
+                        <div class="notification-tabs">
+
+                            <button type="button"
+                                    class="active-tab"
+                                    onclick="setNotificationFilter('all', event)">
+                                All
+                            </button>
+
+                            <button type="button"
+                                    onclick="setNotificationFilter('unread', event)">
+                                Unread
+                            </button>
+
+                            <button type="button"
+                                    onclick="setNotificationFilter('mentions', event)">
+                                Mentions
+                            </button>
+
+                        </div>
+
+                        <div class="notification-list" id="notification-list">
+                        </div>
+
+                        <div class="view-all">
+                            ....
+                        </div>
+
+                    </div>  
+
+                </div>
+
+                <div class="profile-menu">
+                    <button id="profile-trigger" class="profile-trigger" type="button" onclick="toggleMenu()">
+                        <div id="avatar">R</div>
+                        <span id="welcome-user"></span>
+                        <span class="profile-caret"><i class="fas fa-chevron-down"></i></span>
+                    </button>
+
+                    <div id="dropdown-menu" class="dropdown hidden">
+                        <button type="button" class="dropdown-item" onclick="goToProfile()">
+                            <i class="fas fa-user dropdown-icon"></i>
+                            <span>My Profile</span>
+                        </button>
+                        <button type="button" class="dropdown-item" onclick="goToSettings()">
+                            <i class="fas fa-gear dropdown-icon"></i>
+                            <span>Settings</span>
+                        </button>
+                        <button type="button" class="dropdown-item logout-item" onclick="logout()">
+                            <i class="fas fa-right-from-bracket dropdown-icon"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <section class="main-content" id="mainContent">
+            <div id="dashboard-view">
+                <section class="dashboard-summary">
+                    <article class="summary-card blue-card">
+                        <div class="summary-icon"><i class="fas fa-folder"></i></div>
+                        <div>
+                            <p>Total Projects</p>
+                            <h3 id="total-projects">0</h3>
+                        </div>
+                    </article>
+
+                    <article class="summary-card orange-card">
+                        <div class="summary-icon"><i class="fas fa-list-check"></i></div>
+                        <div>
+                            <p>Total Tasks</p>
+                            <h3 id="total-tasks">0</h3>
+                        </div>
+                    </article>
+
+                    <article class="summary-card green-card">
+                        <div class="summary-icon"><i class="fas fa-chart-line"></i></div>
+                        <div>
+                            <p>Completion Rate</p>
+                            <h3 id="completion-rate">0%</h3>
+                        </div>
+                    </article>
+                </section>
+
+                <div id="create-section" class="hidden">
+                    <div class="create-panel">
+                        <div class="create-panel-header">
+                            <div>
+                                <h3>Create Workspace Items</h3>
+                            </div>
+                            <button class="close-create-btn" type="button" onclick="hideCreate()">
+                                <i class="fas fa-xmark"></i>
+                            </button>
+                        </div>
+
+                        <div class="card" id="project-section">
+                            <h3>Create Project</h3>
+                            <form id="project-form">
+                                <input id="project-name" placeholder="Project name" required>
+                                <button class="button-btn" type="button" onclick="createProject()">Create</button>
+                            </form>
+                        </div>
+
+                        <div class="card" id="task-section">
+                            <h3>Create Task</h3>
+                            <select id="project-select"></select>
+                            <input id="task-title" placeholder="Task title">
+                            <select id="assigned-to" multiple></select>
+                            <input id="deadline" type="date" placeholder="Deadline">
+                            <button class="button-btn" type="button" onclick="createTask()">Add Task</button>
+                        </div>
+                    </div>
+                </div>
+
+                <section class="project-section data-panel">
+                    <div class="section-head">
+                        <div>
+                            <h3>Projects</h3>
+                        </div>
+                    </div>
+                    <div id="project-grid" class="project-grid"></div>
+                </section>
+            </div>
+
+            <div id="tasks-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head task-board-head">
+                        <div>
+                            <h3>My Tasks</h3>
+                        </div>
+                        <div class="task-board-actions">
+                            <label class="task-board-search" for="taskSearchInput">
+                                <i class="fas fa-search"></i>
+                                <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="setDashboardTaskPage(1)">
+                            </label>
+                            <select id="taskProjectFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by project">
+                                <option value="all">All Projects</option>
+                            </select>
+                            <select id="taskStatusFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by status">
+                                <option value="all">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                            <button id="taskAddButton" class="task-add-btn" type="button" onclick="openDashboardTaskCreate()">
+                                <i class="fas fa-plus"></i>
+                                <span>Add Task</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="workspace-table-wrap">
+                        <table class="workspace-table task-board-table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Project</th>
+                                    <th id="all-tasks-assigned-header">Assigned Users &amp; Status</th>
+                                    <th>Overall Status</th>
+                                    <th>Due Date</th>
+                                    <th id="task-action-header">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-tasks-list"></tbody>
+                        </table>
+                    </div>
+                    <div class="task-pagination" id="dashboardTaskPagination"></div>
+                </section>
+            </div>
+
+            <div id="team-view" class="hidden">
+                <section class="team-page">
+                    <div class="team-toolbar">
+                        <label class="team-search" for="teamSearchInput">
+                            <i class="fas fa-search"></i>
+                            <input id="teamSearchInput" type="text" placeholder="Search projects or members..." oninput="renderTeamWorkspace()">
+                        </label>
+
+                        <div class="team-toolbar-actions">
+                            <select id="teamProjectFilter" class="team-filter-select" onchange="renderTeamWorkspace()" aria-label="Filter team projects">
+                                <option value="all">All Projects</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="team-members-list" class="team-project-list"></div>
+                </section>
+            </div>
+
+            <div id="calendar-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head calendar-head">
+                        <div>
+                            <h3>Calendar</h3>
+                        </div>
+                        <div class="calendar-top-row">
+                            <div class="calendar-nav-group">
+                                <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(-1)">
+                                    <i class="fas fa-chevron-left"></i>
+                                </button>
+                                <div class="calendar-nav-title" id="calendar-month-year"></div>
+                                <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(1)">
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                            <select id="calendar-year-select" class="calendar-year-select" onchange="onCalendarYearChange(event)" aria-label="Select calendar year"></select>
+                        </div>
+                    </div>
+                    <div id="calendar-container" class="calendar-panel">
+                        <div id="calendar" class="calendar-grid"></div>
+                    </div>
+                </section>
+            </div>
+
+            <div id="activity-view" class="hidden">
+                <section class="dashboard-section">
+                    <div class="section-head calendar-head">
+                        <div>
+                            <h3>Team Activity Log</h3>
+                            <p>Review recent activity for your team members.</p>
+                        </div>
+                        <button class="files-action-btn primary activity-export-trigger" type="button" onclick="exportActivityLog()">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                        
+                    </div>
+                    <div class="workspace-table-wrap">
+                        <table class="workspace-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-log-body">
+                                <tr><td colspan="4">Loading activity log...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <div id="activity-export-modal" class="export-modal activity-export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="activity-export-title">
+                    <div class="export-modal-backdrop" onclick="closeActivityExportModal()"></div>
+                    <div class="export-modal-card activity-export-card">
+                        <div class="export-modal-body">
+                            <div class="export-modal-head">
+                                <div>
+                                    <h2 id="activity-export-title">Export Activity Log</h2>
+                                </div>
+                                <button class="export-close-btn" type="button" onclick="closeActivityExportModal()" aria-label="Close export activity log">
+                                    <i class="fas fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <div class="export-section">
+                                <h3>1. Select Date Range</h3>
+                                <div class="activity-export-date-row">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <input id="activity-export-start-date" type="date" aria-label="Activity export start date">
+                                    <span>-</span>
+                                    <input id="activity-export-end-date" type="date" aria-label="Activity export end date">
+                                </div>
+                            </div>
+
+                            <div class="export-section">
+                                <h3>2. Choose File Format</h3>
+                                <div class="export-format-grid activity-export-format-grid">
+                                    <button class="export-format-card selected" type="button" data-activity-export-format="excel" onclick="selectActivityExportFormat('excel')">
+                                        <span class="export-radio"></span>
+                                        <i class="fas fa-file-excel excel"></i>
+                                        <strong>Excel</strong>
+                                        <small>.xlsx</small>
+                                    </button>
+                                    <button class="export-format-card" type="button" data-activity-export-format="pdf" onclick="selectActivityExportFormat('pdf')">
+                                        <span class="export-radio"></span>
+                                        <i class="fas fa-file-pdf pdf"></i>
+                                        <strong>PDF</strong>
+                                        <small>.pdf</small>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="export-section export-options-section">
+                                <h3>3. Additional Options</h3>
+                                <label class="export-inline-check">
+                                    <input id="activity-export-detailed" type="checkbox" checked>
+                                    <span><i class="fas fa-check"></i></span>
+                                    <small>
+                                        Include detailed information
+                                        <em>(IP address, device &amp; browser info)</em>
+                                    </small>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="export-modal-footer">
+                            <button class="export-cancel-btn" type="button" onclick="closeActivityExportModal()">Cancel</button>
+                            <button class="export-primary-btn" type="button" onclick="confirmActivityExport()">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="report-view" class="hidden">
+                <section class="dashboard-section">
+                   <div id="report-content">
+
+                    <!-- Top Bar -->
+                    <div class="report-header">
+                        <div>
+                            <h2>Reports</h2>
+                        </div>
+                        <div class="report-actions">
+                            <div class="report-date-control">
+                                <button class="report-date-btn" type="button" onclick="toggleReportDatePicker(event)">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <span id="report-date-label">All dates</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div id="report-date-popover" class="report-date-popover hidden" onclick="event.stopPropagation()">
+                                    <label>
+                                        <span>Start date</span>
+                                        <input id="report-start-date" type="date" onchange="onReportDateChange()" aria-label="Report start date">
+                                    </label>
+                                    <label>
+                                        <span>End date</span>
+                                        <input id="report-end-date" type="date" onchange="onReportDateChange()" aria-label="Report end date">
+                                    </label>
+                                    <button type="button" onclick="clearReportDateRange()">Clear</button>
+                                </div>
+                            </div>
+                            <button class="report-export-btn" type="button" onclick="openExportModal()">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cards -->
+                    <div class="report-cards">
+
+                        <div class="report-card blue">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-folder"></i></div>
+                                <span>Total Projects</span>
+                            </div>
+                            <h2 id="report-total-projects">0</h2>
+                            <p class="link-text">All projects</p>
+                        </div>
+
+                        <div class="report-card green">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-list-check"></i></div>
+                                <span>Total Tasks</span>
+                            </div>
+                            <h2 id="report-total-tasks">0</h2>
+                            <p class="link-text">All tasks</p>
+                        </div>
+
+                        <div class="report-card purple">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-circle-check"></i></div>
+                                <span>Completed Tasks</span>
+                            </div>
+                            <h2 id="report-completed-tasks">0</h2>
+                            <p class="percent blue-text" id="report-completed-percent">0%</p>
+                        </div>
+
+                        <div class="report-card orange">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-hourglass-half"></i></div>
+                                <span>In Progress Tasks</span>
+                            </div>
+                            <h2 id="report-inprogress-tasks">0</h2>
+                            <p class="percent orange-text" id="report-progress-percent">0%</p>
+                        </div>
+
+                        <div class="report-card red">
+                            <div class="card-top">
+                                <div class="icon"><i class="fas fa-triangle-exclamation"></i></div>
+                                <span>Overdue Tasks</span>
+                            </div>
+                            <h2 id="report-overdue-tasks">0</h2>
+                            <p class="percent red-text" id="report-overdue-percent">0%</p>
+                        </div>
+
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="report-grid">
+                        <div class="chart-card-container status-report-card">
+                            <h3>Tasks by Status</h3>
+                            <div class="status-chart-layout">
+                                <div class="chart-wrap donut-wrap"><canvas id="statusChart"></canvas></div>
+                                <div id="status-chart-legend" class="status-chart-legend"></div>
+                            </div>
+                            <p id="status-chart-total" class="chart-footnote">Total: 0 tasks</p>
+                        </div>
+                        <div class="chart-card-container line-report-card">
+                            <h3>Tasks Completed Over Time</h3>
+                            <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+                        </div>
+                        <div class="chart-card-container project-report-card">
+                            <h3>Tasks by Project</h3>
+                            <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- Tables -->
+                    <div class="report-tables">
+                        <div class="report-table-card">
+                            <h3>Project Summary</h3>
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Project</th>
+                                        <th>Total</th>
+                                        <th>Completed</th>
+                                        <th>In Progress</th>
+                                        <th>Overdue</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="project-summary-body"></tbody>
+                            </table>
+                            <div class="table-footer">
+                                <button id="view-all-projects" class="link-btn">View all projects</button>
+                            </div>
+                        </div>
+                        <div class="report-table-card">
+                            <h3>Team Performance</h3>
+                            <table class="report-table">
+                                <thead>
+                                    <tr>
+                                        <th>Member</th>
+                                        <th>Completed</th>
+                                        <th>Total</th>
+                                        <th>Completion</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="team-summary-body"></tbody>
+                            </table>
+                            <div class="table-footer">
+                                <button id="view-team-report" class="link-btn">View full team report</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    </div>
+                    </section>
+
+                    <div id="export-report-modal" class="export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="export-report-title">
+                        <div class="export-modal-backdrop" onclick="closeExportModal()"></div>
+                        <div class="export-modal-card">
+                            <div class="export-modal-body">
+                                <div class="export-modal-head">
+                                    <div>
+                                        <h2 id="export-report-title">Export Reports</h2>
+                                        <p>Choose the data you want to export and the file format.</p>
+                                    </div>
+                                    <button class="export-close-btn" type="button" onclick="closeExportModal()" aria-label="Close export reports">
+                                        <i class="fas fa-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <div class="export-section">
+                                    <h3>1. Select Data to Export</h3>
+                                    <div class="export-data-grid">
+                                        <button class="export-option-card selected" type="button" data-export-section="projects" onclick="toggleExportSection('projects')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon blue"><i class="fas fa-calendar-days"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Projects Summary</strong>
+                                                <small>Export overall project details</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card selected" type="button" data-export-section="overview" onclick="toggleExportSection('overview')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon amber"><i class="fas fa-chart-pie"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Reports Overview</strong>
+                                                <small>Export summary of all reports</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card selected" type="button" data-export-section="tasks" onclick="toggleExportSection('tasks')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon green"><i class="fas fa-square-check"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Tasks Summary</strong>
+                                                <small>Export all tasks data</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card" type="button" data-export-section="activity" onclick="toggleExportSection('activity')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon red"><i class="fas fa-calendar-days"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Activity Log</strong>
+                                                <small>Export activity log data</small>
+                                            </span>
+                                        </button>
+                                        <button class="export-option-card selected" type="button" data-export-section="team" onclick="toggleExportSection('team')">
+                                            <span class="export-check"><i class="fas fa-check"></i></span>
+                                            <span class="export-option-icon purple"><i class="fas fa-user-group"></i></span>
+                                            <span class="export-option-copy">
+                                                <strong>Team Performance</strong>
+                                                <small>Export team member performance</small>
+                                            </span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="export-section">
+                                    <h3>2. Choose File Format</h3>
+                                    <div class="export-format-grid">
+                                        <button class="export-format-card selected" type="button" data-export-format="excel" onclick="selectExportFormat('excel')">
+                                            <span class="export-radio"></span>
+                                            <i class="fas fa-file-excel excel"></i>
+                                            <strong>Excel</strong>
+                                            <small>.xlsx</small>
+                                        </button>
+                                        <button class="export-format-card" type="button" data-export-format="pdf" onclick="selectExportFormat('pdf')">
+                                            <span class="export-radio"></span>
+                                            <i class="fas fa-file-pdf pdf"></i>
+                                            <strong>PDF</strong>
+                                            <small>.pdf</small>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="export-section export-options-section">
+                                    <h3>3. Additional Options</h3>
+                                    <label class="export-inline-check">
+                                        <input id="export-include-charts" type="checkbox" checked>
+                                        <span><i class="fas fa-check"></i></span>
+                                        <small>
+                                            Include charts and graphs in export
+                                            <em>(Applies to PDF and Excel)</em>
+                                        </small>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="export-modal-footer">
+                                <button class="export-cancel-btn" type="button" onclick="closeExportModal()">Cancel</button>
+                                <button class="export-primary-btn" type="button" onclick="confirmReportExport()">
+                                    <i class="fas fa-download"></i>
+                                    Export
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <div id="files-view" class="hidden">
+                <section class="files-page">
+                    <div class="files-top-row">
+                        <div>
+                            <h1 class="files-title">Files</h1>
+                        </div>
+                        <div class="files-actions">
+                            <button id="uploadBtn" class="files-action-btn primary" type="button" onclick="document.getElementById('file-input').click()">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload File</span>
+                            </button>
+                            <input id="file-input" type="file" class="hidden" multiple onchange="handleFileUpload(event)">
+                        </div>
+                    </div>
+
+                    <div class="files-toolbar">
+                        <div class="files-tabs">
+                            <button class="files-tab active" type="button" data-files-tab="all" onclick="setFilesTab('all')"><i class="fas fa-folder"></i>All Files</button>
+                            <button class="files-tab" type="button" data-files-tab="my" onclick="setFilesTab('my')"><i class="fas fa-user"></i>My Files</button>
+                            <button class="files-tab" type="button" data-files-tab="shared" onclick="setFilesTab('shared')"><i class="fas fa-users"></i>Shared with Me</button>
+                        </div>
+                        <div class="files-toolbar-right">
+                            <div class="files-category-dropdown">
+                                <button class="category-dropdown-btn" type="button" onclick="toggleCategoryDropdown()">
+                                    Categories: <span id="selected-category-label">All Files</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="category-dropdown-menu hidden" id="files-category-dropdown-menu">
+                                    <div id="category-list" class="category-list">
+                                        <button class="category-item active" type="button" data-category="all" onclick="setFilesCategory('all')"><span><i class="fas fa-folder-open"></i>All Files</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="documents" onclick="setFilesCategory('documents')"><span><i class="far fa-file-lines"></i>Documents</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="images" onclick="setFilesCategory('images')"><span><i class="far fa-image"></i>Images</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="videos" onclick="setFilesCategory('videos')"><span><i class="far fa-circle-play"></i>Videos</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="archives" onclick="setFilesCategory('archives')"><span><i class="far fa-archive"></i>Archives</span><strong>0</strong></button>
+                                        <button class="category-item" type="button" data-category="others" onclick="setFilesCategory('others')"><span><i class="far fa-folder"></i>Others</span><strong>0</strong></button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="files-storage-dropdown">
+                                <button class="storage-dropdown-btn" type="button" onclick="toggleStorageDropdown()">
+                                    Storage Usage
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="storage-dropdown-menu hidden" id="storage-dropdown-menu">
+                                    <div class="storage-summary-dropdown-card">
+                                        <h3>Storage Usage</h3>
+                                        <p class="storage-copy" id="storage-copy">Loading storage...</p>
+                                        <div class="storage-meter">
+                                            <div class="storage-meter-fill" id="storage-meter-fill"></div>
+                                        </div>
+                                        <div class="storage-row">
+                                            <span id="storage-percent">0%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="sort-container">
+
+                                <button class="files-sort" type="button" onclick="toggleFilesSort()">
+                                    <span>Sort by: Name (A-Z)</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+
+                                <div class="sort-options" id="sortOptions">
+                                    <div onclick="setSort('name-asc')">Name (A-Z)</div>
+                                    <div onclick="setSort('name-desc')">Name (Z-A)</div>
+                                    <div onclick="setSort('date-desc')">Date (Newest)</div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="files-content-grid">
+                        <section class="files-table-card">
+                            <table class="files-table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Name </th>
+                                        <th>Owner</th>
+                                        <th id="assigned-header">Assigned To</th>
+                                        <th>Size</th>
+                                        <th>Last Modified</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="files-table-body">
+                                    <tr><td colspan="7" class="empty-table">Loading files...</td></tr>
+                                </tbody>
+                            </table>
+
+                            <div class="files-table-footer">
+                                <p id="files-footer-copy">Showing 0 files</p>
+                                <div class="pagination" id="files-pagination"></div>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+            </div>
+
+            <div id="profile-view" class="hidden">
+                <section class="dashboard-profile-page">
+                    <div class="profile-page-head">
+                        <div>
+                            <h1 class="profile-page-title">My Profile</h1>
+                        </div>
+                        <button class="profile-action-btn" type="button" onclick="goToSettings()">
+                            <i class="fas fa-gear"></i>
+                            <span>Settings</span>
+                        </button>
+                    </div>
+
+                    <div class="dashboard-profile-grid">
+                        <section class="dashboard-profile-card profile-identity-card">
+                            <div class="profile-avatar-wrap">
+                                <div id="dashboard-profile-avatar-large" class="dashboard-profile-avatar-large">R</div>
+                                <button type="button" class="profile-camera-btn" aria-label="Change photo">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                            </div>
+
+                            <h2 id="dashboard-profile-name">Your Name</h2>
+                            <p id="dashboard-profile-role-text">User</p>
+
+                        </section>
+
+                        <section class="dashboard-profile-card profile-details-card">
+                            <div class="profile-card-head">
+                                <div class="profile-card-icon"><i class="fas fa-id-card"></i></div>
+                                <div>
+                                    <h3>Profile Details</h3>
+                                    <p>Account information used across TaskFlow.</p>
+                                </div>
+                            </div>
+
+                            <div class="profile-detail-list">
+                                <div class="profile-detail-row">
+                                    <span>Full Name</span>
+                                    <strong id="dashboard-profile-username">-</strong>
+                                </div>
+                                <div class="profile-detail-row">
+                                    <span>Email</span>
+                                    <strong id="dashboard-profile-email">-</strong>
+                                </div>
+                                <div class="profile-detail-row">
+                                    <span>Role</span>
+                                    <strong id="dashboard-profile-role">-</strong>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="dashboard-profile-card profile-details-card">
+                            <div class="profile-card-head">
+                                <div class="profile-card-icon"><i class="fas fa-shield-halved"></i></div>
+                                <div>
+                                    <h3>Account Access</h3>
+                                    <p>Manage security and active session actions.</p>
+                                </div>
+                            </div>
+
+                            <div class="profile-action-list">
+                                <button class="profile-list-button" type="button" onclick="window.location.href='/forgot-page'">
+                                    <span><i class="fas fa-key"></i>Reset password</span>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button class="profile-list-button" type="button" onclick="goToSettings()">
+                                    <span><i class="fas fa-sliders"></i>Dashboard preferences</span>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                                <button class="profile-list-button danger" type="button" onclick="logout()">
+                                    <span><i class="fas fa-right-from-bracket"></i>Logout</span>
+                                    <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+            </div>
+
+            <div id="settings-view" class="hidden">
+                <section class="settings-page">
+                    <div class="settings-heading">
+                        <h1 class="settings-title" data-settings-text="title">Settings</h1>
+                        <p data-settings-text="subtitle">Manage your account and preferences.</p>
+                    </div>
+
+                    <section class="settings-list-card">
+                        <button class="settings-row" type="button" onclick="goToProfile()">
+                            <span class="settings-row-icon"><i class="far fa-user"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="profileTitle">Profile</strong>
+                                <small data-settings-text="profileCopy">View and update your personal information.</small>
+                            </span>
+                            <i class="fas fa-chevron-right settings-row-chevron"></i>
+                        </button>
+
+                        <button class="settings-row" type="button" onclick="toggleQuietNotifications()">
+                            <span class="settings-row-icon"><i class="far fa-bell"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="notificationsTitle">Notifications</strong>
+                                <small data-settings-text="notificationsCopy">Manage your notification preferences.</small>
+                            </span>
+                            <span class="settings-status-pill" id="settings-notification-state">On</span>
+                        </button>
+
+                        <button class="settings-row" type="button" onclick="window.location.href='/forgot-page'">
+                            <span class="settings-row-icon"><i class="fas fa-lock"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="securityTitle">Security</strong>
+                                <small data-settings-text="securityCopy">Change your password and security settings.</small>
+                            </span>
+                            <i class="fas fa-chevron-right settings-row-chevron"></i>
+                        </button>
+
+                        <div class="settings-row">
+                            <span class="settings-row-icon"><i class="fas fa-palette"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="appearanceTitle">Appearance</strong>
+                                <small data-settings-text="appearanceCopy">Choose your preferred theme.</small>
+                            </span>
+                            <select id="settings-theme-select" class="settings-select" onchange="saveSettingsPreference('theme', this.value)" aria-label="Choose appearance theme">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                                <option value="system">System</option>
+                            </select>
+                        </div>
+
+                        <div class="settings-row">
+                            <span class="settings-row-icon"><i class="fas fa-globe"></i></span>
+                            <span class="settings-row-copy">
+                                <strong data-settings-text="languageTitle">Language</strong>
+                                <small data-settings-text="languageCopy">Select your preferred language.</small>
+                            </span>
+                            <select id="settings-language-select" class="settings-select" onchange="saveSettingsPreference('language', this.value)" aria-label="Choose language">
+                                <option value="english">English</option>
+                                <option value="hindi">Hindi</option>
+                            </select>
+                        </div>
+                    </section>
+                </section>
+            </div>
+
+            <div id="project-workspace-view" class="hidden">
+                <section class="project-workspace-main">
+                    <section class="workspace-header">
+                        <div class="workspace-title-row">
+                            <h1 id="project-title">Project</h1>
+                            <div class="workspace-progress-wrap">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="workspace-layout">
+                        <div class="workspace-center">
+                            <div class="workspace-panel" id="workspacePanel">
+                                <div class="workspace-table-wrap" id="tasksView">
+                                    <table class="workspace-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Task</th>
+                                                <th id="workspace-assigned-header">Assigned Users &amp; Status</th>
+                                                <th>Due Date</th>
+                                                <th>Overall Status</th>
+                                                <th id="action-header">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="task-list"></tbody>
+                                    </table>
+                                </div>
+                                <div class="task-pagination" id="projectTaskPagination"></div>
+                            </div>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </section>
+    </main>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="/static/javascript/api.js"></script>
+<script src="/static/javascript/dashboard.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</body>
+</html>

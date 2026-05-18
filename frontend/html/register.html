@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create TaskFlow Account | Start Your Team Workspace</title>
+    <meta name="description" content="Create a TaskFlow account to start managing tasks, collaborating with teams, and tracking work in a secure modern workspace.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/public.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+</head>
+<body class="login-background login-page auth-page">
+<div class="public-decor"></div>
+
+<header class="auth-navbar">
+    <a class="auth-logo" href="/">
+        <span class="auth-logo-mark">T</span>
+        <span>TaskFlow</span>
+    </a>
+
+    <nav class="auth-nav-links" aria-label="Primary navigation">
+        <a href="/about-us">About Us</a>
+        <a href="/features">Features</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/contact">Contact</a>
+        <button class="get-started-btn">
+            <a href="/" style="color:white; text-decoration:none;">
+                Sign In
+            </a>
+        </button>
+    </nav>
+
+    
+</header>
+
+<main class="login-container page-main">
+    <div class="login-card">
+
+        <div class="login-card-head">
+            <span class="login-eyebrow">
+                <i class="fa-solid fa-user-plus"></i>
+                Create Account
+            </span>
+        </div>
+
+        <!-- Username -->
+        <label>Username</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-regular fa-user"></i>
+            <input id="username" type="text" placeholder="Enter your username">
+        </div>
+
+        <!-- Email -->
+        <label>Email</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-regular fa-envelope"></i>
+            <input id="email" type="email" placeholder="Enter your email">
+        </div>
+
+        <!-- Password -->
+        <label>Password</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-solid fa-lock"></i>
+
+            <input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+            >
+
+            <button
+                class="eye-icon"
+                type="button"
+                onclick="togglePassword()"
+            >
+                <i id="eyeIcon" class="bi bi-eye"></i>
+            </button>
+        </div>
+
+        <!-- Confirm Password -->
+        <label>Confirm Password</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-solid fa-lock"></i>
+            <input
+                id="confirm-password"
+                type="password"
+                placeholder="Confirm your password"
+            >
+        </div>
+
+        <!-- Button -->
+        <button class="login-submit-btn" onclick="handleRegister()">
+            <span>Register</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+        <p class="register-copy">
+            Already have an account?
+            <a href="/">Login</a>
+        </p>
+
+    </div>
+</main>
+
+<footer class="auth-footer">
+    <span>&copy; 2025 TaskFlow. All rights reserved.</span>
+    <a href="/privacy-policy">Privacy Policy</a>
+    <a href="/terms-of-service">Terms of Service</a>
+    <a href="/help-center">Help Center</a>
+</footer>
+<script src="/static/javascript/api.js"></script>
+<script src="/static/javascript/public.js"></script>
+<script>
+function togglePassword() {
+    let input = document.getElementById("password");
+    input.type = input.type === "password" ? "text" : "password";
+}
+</script>
+
+</body>
+</html>

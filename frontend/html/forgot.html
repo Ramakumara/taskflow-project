@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password | TaskFlow</title>
+    <meta name="description" content="Reset your TaskFlow password and regain secure access to your workspace.">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/public.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="login-background login-page auth-page">
+<div class="public-decor"></div>
+
+<header class="auth-navbar">
+    <a class="auth-logo" href="/">
+        <span class="auth-logo-mark">T</span>
+        <span>TaskFlow</span>
+    </a>
+
+    <nav class="auth-nav-links" aria-label="Primary navigation">
+        <a href="/about-us">About Us</a>
+        <a href="/features">Features</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/contact">Contact</a>
+        <button class="get-started-btn">
+            <a href="/register-page" style="color:white; text-decoration:none;">
+                Get Started
+            </a>
+        </button>
+    </nav>
+
+ 
+</header>
+
+<main class="login-container">
+    <section class="login-card" aria-label="Forgot password form">
+        <div class="login-card-head">
+            <span class="login-eyebrow"><i class="fa-solid fa-key"></i> Password help</span>
+        </div>
+
+        <label for="email">Email</label>
+        <div class="input-group">
+            <i class="input-leading-icon fa-regular fa-envelope"></i>
+            <input id="email" type="email" placeholder="name@company.com" autocomplete="email">
+        </div>
+
+        <button class="login-submit-btn" onclick="sendReset()">
+            <span>Send Reset Link</span>
+            <i class="fa-solid fa-arrow-right"></i>
+        </button>
+
+        <p class="register-copy">Remembered your password? <a href="/">Back to login</a></p>
+    </section>
+</main>
+
+<footer class="auth-footer">
+    <span>&copy; 2025 TaskFlow. All rights reserved.</span>
+    <a href="/privacy-policy">Privacy Policy</a>
+    <a href="/terms-of-service">Terms of Service</a>
+    <a href="/help-center">Help Center</a>
+</footer>
+
+<script src="/static/javascript/public.js"></script>
+<script>
+function sendReset() {
+    const email = document.getElementById("email").value;
+
+    fetch("/forgot-password", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ email })
+    })
+    .then(res => res.json())
+    .then(data => {
+        alert(data.reset_link ? `${data.message}\nReset link: ${data.reset_link}` : data.message);
+    });
+}
+</script>
+</body>
+</html>
