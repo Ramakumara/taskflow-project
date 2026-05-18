@@ -65,6 +65,7 @@ def register_page():
         os.path.join(BASE_DIR, "..", "frontend", "html", "register.html")
     )
 
+
 @app.get("/about-us")
 def about_page():
     return FileResponse(
@@ -106,6 +107,7 @@ def help_page():
     return FileResponse(
         os.path.join(BASE_DIR, "..", "frontend", "html", "help.html")
     )
+
 
 @app.get("/dashboard-page")
 def dashboard_page():
