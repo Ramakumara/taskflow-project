@@ -510,12 +510,137 @@ async function deleteTask(id) {
     if (typeof loadProjectWorkspace === "function") loadProjectWorkspace();
 }
 
+let activityLogEntries = [];
+
+function escapeActivityLogHtml(value) {
+    return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    }[char]));
+}
+
+function getActivityLogFilterElements() {
+    return {
+        search: document.getElementById("activityLogSearch"),
+        action: document.getElementById("activityLogActionFilter"),
+        startDate: document.getElementById("activityLogStartDate"),
+        endDate: document.getElementById("activityLogEndDate"),
+        summary: document.getElementById("activity-log-filter-summary"),
+        body: document.getElementById("activity-log-body")
+    };
+}
+
+function populateActivityLogActionFilter(logs) {
+    const { action } = getActivityLogFilterElements();
+    if (!action) return;
+
+    const selectedValue = action.value || "all";
+    const actions = [...new Set(
+        (Array.isArray(logs) ? logs : [])
+            .map(log => String(log?.action || "").trim())
+            .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+
+    action.innerHTML = `<option value="all">All Actions</option>${actions.map(item => `
+        <option value="${escapeActivityLogHtml(item)}">${escapeActivityLogHtml(item)}</option>
+    `).join("")}`;
+
+    action.value = actions.includes(selectedValue) ? selectedValue : "all";
+}
+
+function getActivityLogFilteredEntries() {
+    const { search, action, startDate, endDate } = getActivityLogFilterElements();
+    const searchValue = String(search?.value || "").trim().toLowerCase();
+    const actionValue = String(action?.value || "all").trim().toLowerCase();
+    const startValue = startDate?.value || "";
+    const endValue = endDate?.value || "";
+    const start = startValue ? new Date(`${startValue}T00:00:00`) : null;
+    const end = endValue ? new Date(`${endValue}T23:59:59.999`) : null;
+
+    return activityLogEntries.filter(log => {
+        const actionText = String(log?.action || "").trim();
+        const timestamp = log?.timestamp ? new Date(log.timestamp) : null;
+        const haystack = [
+            log?.user_email,
+            log?.username,
+            actionText,
+            log?.target,
+            log?.details
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+        if (searchValue && !haystack.includes(searchValue)) return false;
+        if (actionValue !== "all" && actionText.toLowerCase() !== actionValue) return false;
+        if ((start || end) && (!timestamp || Number.isNaN(timestamp.getTime()))) return false;
+        if (start && timestamp < start) return false;
+        if (end && timestamp > end) return false;
+        return true;
+    });
+}
+
+function renderActivityLogRows(logs) {
+    const { body, summary } = getActivityLogFilterElements();
+    if (!body) return;
+
+    if (!activityLogEntries.length) {
+        body.innerHTML = `<tr><td colspan="4">No activity records found.</td></tr>`;
+        if (summary) summary.textContent = "No activity records available.";
+        return;
+    }
+
+    const filteredLogs = Array.isArray(logs) ? logs : getActivityLogFilteredEntries();
+    if (!filteredLogs.length) {
+        body.innerHTML = `<tr><td colspan="4">No activity records match the current filters.</td></tr>`;
+    } else {
+        body.innerHTML = filteredLogs.map(log => {
+            const details = [log?.target, log?.details].filter(Boolean).join(" - ") || "-";
+
+            return `
+                <tr>
+                    <td>${escapeActivityLogHtml(formatDateTime(log?.timestamp))}</td>
+                    <td>${escapeActivityLogHtml(log?.user_email || log?.username || "-")}</td>
+                    <td>${escapeActivityLogHtml(log?.action || "-")}</td>
+                    <td>${escapeActivityLogHtml(details)}</td>
+                </tr>
+            `;
+        }).join("");
+    }
+
+    if (summary) {
+        summary.textContent = `${filteredLogs.length} of ${activityLogEntries.length} activity record${activityLogEntries.length === 1 ? "" : "s"} shown`;
+    }
+}
+
+function handleActivityLogFiltersChange() {
+    const { startDate, endDate } = getActivityLogFilterElements();
+    if (startDate && endDate && startDate.value && endDate.value && startDate.value > endDate.value) {
+        endDate.value = startDate.value;
+    }
+
+    renderActivityLogRows();
+}
+
+function resetActivityLogFilters() {
+    const { search, action, startDate, endDate } = getActivityLogFilterElements();
+    if (search) search.value = "";
+    if (action) action.value = "all";
+    if (startDate) startDate.value = "";
+    if (endDate) endDate.value = "";
+    renderActivityLogRows(activityLogEntries);
+}
+
 async function loadActivityLog() {
     const token = sessionStorage.getItem("token");
-    const body = document.getElementById("activity-log-body");
+    const { body, summary } = getActivityLogFilterElements();
     if (!body) return;
 
     body.innerHTML = `<tr><td colspan="4">Loading activity log...</td></tr>`;
+    if (summary) summary.textContent = "Loading activity records...";
 
     try {
         const res = await fetch(`${BASE_URL}/activities`, {
@@ -525,14 +650,25 @@ async function loadActivityLog() {
         if (!res.ok) {
             const error = await res.json().catch(() => ({}));
             body.innerHTML = `<tr><td colspan="4">${error.message || error.detail || "Unable to load activity log."}</td></tr>`;
+            if (summary) summary.textContent = "Unable to load activity records.";
             return;
         }
 
         const logs = await res.json();
         if (!Array.isArray(logs) || logs.length === 0) {
+            activityLogEntries = [];
+            populateActivityLogActionFilter([]);
             body.innerHTML = `<tr><td colspan="4">No activity records found.</td></tr>`;
+            if (summary) summary.textContent = "No activity records available.";
             return;
         }
+
+        activityLogEntries = logs
+            .slice()
+            .sort((a, b) => new Date(b?.timestamp || 0) - new Date(a?.timestamp || 0));
+        populateActivityLogActionFilter(activityLogEntries);
+        renderActivityLogRows(activityLogEntries);
+        return;
 
         body.innerHTML = "";
         logs.slice(0, 30).forEach(log => {
@@ -551,7 +687,10 @@ async function loadActivityLog() {
         });
     } catch (err) {
         console.error(err);
+        activityLogEntries = [];
+        populateActivityLogActionFilter([]);
         body.innerHTML = `<tr><td colspan="4">Unable to load activity log.</td></tr>`;
+        if (summary) summary.textContent = "Unable to load activity records.";
     }
 }
 

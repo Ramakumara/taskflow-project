@@ -7882,6 +7882,34 @@ button {
     box-shadow: none;
 }
 
+.activity-log-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 14px;
+}
+
+.activity-log-search {
+    flex: 1 1 320px;
+    min-width: 240px;
+}
+
+.activity-log-date-filter {
+    flex: 0 0 170px;
+}
+
+.activity-log-reset-btn {
+    flex: 0 0 auto;
+}
+
+.activity-log-filter-summary {
+    margin: 0 0 14px;
+    color: #667085;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 .task-add-btn {
     flex: 0 0 auto;
     height: 44px;
@@ -8102,8 +8130,14 @@ button {
     .task-board-actions,
     .task-board-search,
     .task-board-filter,
-    .task-add-btn {
+    .task-add-btn,
+    .activity-log-date-filter,
+    .activity-log-reset-btn {
         width: 100%;
+    }
+
+    .activity-log-search {
+        min-width: 0;
     }
 
     .task-pagination {
