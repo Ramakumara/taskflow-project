@@ -511,6 +511,8 @@ async function deleteTask(id) {
 }
 
 let activityLogEntries = [];
+let activityLogPage = 1;
+const activityLogPageSize = 5;
 
 function escapeActivityLogHtml(value) {
     return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -525,12 +527,32 @@ function escapeActivityLogHtml(value) {
 function getActivityLogFilterElements() {
     return {
         search: document.getElementById("activityLogSearch"),
+        user: document.getElementById("activityLogUserFilter"),
         action: document.getElementById("activityLogActionFilter"),
         startDate: document.getElementById("activityLogStartDate"),
         endDate: document.getElementById("activityLogEndDate"),
         summary: document.getElementById("activity-log-filter-summary"),
-        body: document.getElementById("activity-log-body")
+        body: document.getElementById("activity-log-body"),
+        pagination: document.getElementById("activityLogPagination")
     };
+}
+
+function populateActivityLogUserFilter(logs) {
+    const { user } = getActivityLogFilterElements();
+    if (!user) return;
+
+    const selectedValue = user.value || "all";
+    const users = [...new Set(
+        (Array.isArray(logs) ? logs : [])
+            .map(log => String(log?.user_email || log?.username || "").trim())
+            .filter(Boolean)
+    )].sort((a, b) => a.localeCompare(b));
+
+    user.innerHTML = `<option value="all">All Users</option>${users.map(item => `
+        <option value="${escapeActivityLogHtml(item)}">${escapeActivityLogHtml(item)}</option>
+    `).join("")}`;
+
+    user.value = users.includes(selectedValue) ? selectedValue : "all";
 }
 
 function populateActivityLogActionFilter(logs) {
@@ -552,8 +574,9 @@ function populateActivityLogActionFilter(logs) {
 }
 
 function getActivityLogFilteredEntries() {
-    const { search, action, startDate, endDate } = getActivityLogFilterElements();
+    const { search, user, action, startDate, endDate } = getActivityLogFilterElements();
     const searchValue = String(search?.value || "").trim().toLowerCase();
+    const userValue = String(user?.value || "all").trim().toLowerCase();
     const actionValue = String(action?.value || "all").trim().toLowerCase();
     const startValue = startDate?.value || "";
     const endValue = endDate?.value || "";
@@ -562,10 +585,10 @@ function getActivityLogFilteredEntries() {
 
     return activityLogEntries.filter(log => {
         const actionText = String(log?.action || "").trim();
+        const userText = String(log?.user_email || log?.username || "").trim();
         const timestamp = log?.timestamp ? new Date(log.timestamp) : null;
         const haystack = [
-            log?.user_email,
-            log?.username,
+            userText,
             actionText,
             log?.target,
             log?.details
@@ -575,6 +598,7 @@ function getActivityLogFilteredEntries() {
             .toLowerCase();
 
         if (searchValue && !haystack.includes(searchValue)) return false;
+        if (userValue !== "all" && userText.toLowerCase() !== userValue) return false;
         if (actionValue !== "all" && actionText.toLowerCase() !== actionValue) return false;
         if ((start || end) && (!timestamp || Number.isNaN(timestamp.getTime()))) return false;
         if (start && timestamp < start) return false;
@@ -584,20 +608,27 @@ function getActivityLogFilteredEntries() {
 }
 
 function renderActivityLogRows(logs) {
-    const { body, summary } = getActivityLogFilterElements();
+    const { body, summary, pagination } = getActivityLogFilterElements();
     if (!body) return;
 
     if (!activityLogEntries.length) {
         body.innerHTML = `<tr><td colspan="4">No activity records found.</td></tr>`;
         if (summary) summary.textContent = "No activity records available.";
+        if (pagination) pagination.innerHTML = "";
         return;
     }
 
     const filteredLogs = Array.isArray(logs) ? logs : getActivityLogFilteredEntries();
+    const totalPages = Math.max(Math.ceil(filteredLogs.length / activityLogPageSize), 1);
+    activityLogPage = Math.min(Math.max(activityLogPage, 1), totalPages);
+    const startIndex = (activityLogPage - 1) * activityLogPageSize;
+    const pageLogs = filteredLogs.slice(startIndex, startIndex + activityLogPageSize);
+
     if (!filteredLogs.length) {
         body.innerHTML = `<tr><td colspan="4">No activity records match the current filters.</td></tr>`;
+        if (pagination) pagination.innerHTML = "";
     } else {
-        body.innerHTML = filteredLogs.map(log => {
+        body.innerHTML = pageLogs.map(log => {
             const details = [log?.target, log?.details].filter(Boolean).join(" - ") || "-";
 
             return `
@@ -609,6 +640,21 @@ function renderActivityLogRows(logs) {
                 </tr>
             `;
         }).join("");
+
+        if (pagination) {
+            pagination.innerHTML = `
+                <span class="app-pagination-summary">${filteredLogs.length ? `Showing ${startIndex + 1} to ${startIndex + pageLogs.length} of ${filteredLogs.length} activity records` : "Showing 0 activity records"}</span>
+                <div class="task-pagination-controls app-pagination-controls">
+                    <button class="task-page-btn app-page-btn" type="button" onclick="setActivityLogPage(${activityLogPage - 1})" ${activityLogPage <= 1 ? "disabled" : ""} aria-label="Previous activity log page">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="task-page-current app-page-current">${activityLogPage}</span>
+                    <button class="task-page-btn app-page-btn" type="button" onclick="setActivityLogPage(${activityLogPage + 1})" ${activityLogPage >= totalPages ? "disabled" : ""} aria-label="Next activity log page">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            `;
+        }
     }
 
     if (summary) {
@@ -622,25 +668,34 @@ function handleActivityLogFiltersChange() {
         endDate.value = startDate.value;
     }
 
+    activityLogPage = 1;
     renderActivityLogRows();
 }
 
 function resetActivityLogFilters() {
-    const { search, action, startDate, endDate } = getActivityLogFilterElements();
+    const { search, user, action, startDate, endDate } = getActivityLogFilterElements();
     if (search) search.value = "";
+    if (user) user.value = "all";
     if (action) action.value = "all";
     if (startDate) startDate.value = "";
     if (endDate) endDate.value = "";
+    activityLogPage = 1;
     renderActivityLogRows(activityLogEntries);
+}
+
+function setActivityLogPage(page) {
+    activityLogPage = page;
+    renderActivityLogRows();
 }
 
 async function loadActivityLog() {
     const token = sessionStorage.getItem("token");
-    const { body, summary } = getActivityLogFilterElements();
+    const { body, summary, pagination } = getActivityLogFilterElements();
     if (!body) return;
 
     body.innerHTML = `<tr><td colspan="4">Loading activity log...</td></tr>`;
     if (summary) summary.textContent = "Loading activity records...";
+    if (pagination) pagination.innerHTML = "";
 
     try {
         const res = await fetch(`${BASE_URL}/activities`, {
@@ -651,12 +706,15 @@ async function loadActivityLog() {
             const error = await res.json().catch(() => ({}));
             body.innerHTML = `<tr><td colspan="4">${error.message || error.detail || "Unable to load activity log."}</td></tr>`;
             if (summary) summary.textContent = "Unable to load activity records.";
+            if (pagination) pagination.innerHTML = "";
             return;
         }
 
         const logs = await res.json();
         if (!Array.isArray(logs) || logs.length === 0) {
             activityLogEntries = [];
+            activityLogPage = 1;
+            populateActivityLogUserFilter([]);
             populateActivityLogActionFilter([]);
             body.innerHTML = `<tr><td colspan="4">No activity records found.</td></tr>`;
             if (summary) summary.textContent = "No activity records available.";
@@ -666,6 +724,8 @@ async function loadActivityLog() {
         activityLogEntries = logs
             .slice()
             .sort((a, b) => new Date(b?.timestamp || 0) - new Date(a?.timestamp || 0));
+        activityLogPage = 1;
+        populateActivityLogUserFilter(activityLogEntries);
         populateActivityLogActionFilter(activityLogEntries);
         renderActivityLogRows(activityLogEntries);
         return;
@@ -693,6 +753,8 @@ async function loadActivityLog() {
         if (summary) summary.textContent = "Unable to load activity records.";
     }
 }
+
+window.setActivityLogPage = setActivityLogPage;
 
 async function exportActivityLog() {
     const token = sessionStorage.getItem("token");

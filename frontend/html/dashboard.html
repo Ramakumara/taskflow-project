@@ -328,12 +328,15 @@
                             <i class="fas fa-search"></i>
                             <input id="activityLogSearch" type="text" placeholder="Search user, action, target, details..." oninput="handleActivityLogFiltersChange()" aria-label="Search activity log">
                         </label>
+                        <select id="activityLogUserFilter" class="task-board-filter" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by user">
+                            <option value="all">All Users</option>
+                        </select>
                         <select id="activityLogActionFilter" class="task-board-filter" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by action">
                             <option value="all">All Actions</option>
                         </select>
                         <input id="activityLogStartDate" class="task-board-filter activity-log-date-filter" type="date" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log from date">
                         <input id="activityLogEndDate" class="task-board-filter activity-log-date-filter" type="date" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log to date">
-                        <button class="files-action-btn secondary activity-log-reset-btn" type="button" onclick="resetActivityLogFilters()">
+                        <button class="activity-log-control-btn activity-log-reset-btn" type="button" onclick="resetActivityLogFilters()">
                             <i class="fas fa-rotate-left"></i>
                             Reset
                         </button>
@@ -354,6 +357,7 @@
                             </tbody>
                         </table>
                     </div>
+                    <div class="task-pagination" id="activityLogPagination"></div>
                 </section>
 
                 <div id="activity-export-modal" class="export-modal activity-export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="activity-export-title">

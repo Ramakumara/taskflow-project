@@ -4,7 +4,14 @@ const adminState = {
     tasks: [],
     notifications: [],
     searchTerm: "",
-    currentSection: "dashboard"
+    currentSection: "dashboard",
+    isUserModalOpen: false,
+    isCreatingUser: false,
+    newUserForm: {
+        username: "",
+        email: "",
+        role: "user"
+    }
 };
 
 let projectStatusChart = null;
@@ -25,6 +32,12 @@ const adminTaskFilters = {
     status: "all",
     page: 1,
     pageSize: 5
+};
+const adminUserFilters = {
+    page: 1,
+    pageSize: 5,
+    searchTerm: "",
+    role: "all"
 };
 
 function getTaskAssignments(task) {
@@ -95,6 +108,7 @@ function getTaskMemberStatusSearchText(task) {
 
 function initializeAdminDashboard() {
     setProfileAvatar();
+    applyAdminSettingsPreferences();
     refreshAdminData().then(() => {
         renderCurrentSection();
     });
@@ -176,6 +190,9 @@ function renderCurrentSection() {
         case "files":
             renderFilesView();
             break;
+        case "profile":
+            renderProfileView();
+            break;
         case "settings":
             renderSettingsView();
             break;
@@ -219,6 +236,12 @@ function goToFiles() {
     closeAdminProfileMenu();
     setActiveNav("files");
     renderFilesView();
+}
+
+function goToProfile() {
+    closeAdminProfileMenu();
+    setActiveNav("profile");
+    renderProfileView();
 }
 
 function goToSettings() {
@@ -271,6 +294,89 @@ function logoutFromAdmin() {
     }
     sessionStorage.clear();
     window.location.href = "/";
+}
+
+function loadAdminSettingsView() {
+    const themeSelect = document.getElementById("admin-settings-theme-select");
+    const languageSelect = document.getElementById("admin-settings-language-select");
+    if (themeSelect) themeSelect.value = sessionStorage.getItem("settings.theme") || "light";
+    if (languageSelect) languageSelect.value = sessionStorage.getItem("settings.language") || "english";
+    applyAdminSettingsPreferences();
+}
+
+function saveAdminSettingsPreference(key, value) {
+    sessionStorage.setItem(`settings.${key}`, String(value));
+    applyAdminSettingsPreferences();
+}
+
+function toggleAdminQuietNotifications() {
+    const nextValue = sessionStorage.getItem("settings.quietNotifications") !== "true";
+    saveAdminSettingsPreference("quietNotifications", nextValue);
+}
+
+function applyAdminSettingsPreferences() {
+    const quietNotifications = sessionStorage.getItem("settings.quietNotifications") === "true";
+    const theme = sessionStorage.getItem("settings.theme") || "light";
+    const language = sessionStorage.getItem("settings.language") || "english";
+
+    document.body.classList.toggle("quiet-admin-notifications", quietNotifications);
+    document.body.classList.toggle("admin-theme-dark", resolveAdminTheme(theme) === "dark");
+
+    const notificationState = document.getElementById("admin-settings-notification-state");
+    if (notificationState) {
+        notificationState.textContent = quietNotifications ? "Muted" : "On";
+        notificationState.classList.toggle("muted", quietNotifications);
+    }
+
+    updateAdminSettingsLanguage(language);
+}
+
+function resolveAdminTheme(theme) {
+    if (theme === "system") {
+        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    return theme;
+}
+
+function updateAdminSettingsLanguage(language) {
+    const copy = {
+        english: {
+            title: "Settings",
+            subtitle: "Manage your account and preferences.",
+            profileTitle: "Profile",
+            profileCopy: "View and update your personal information.",
+            notificationsTitle: "Notifications",
+            notificationsCopy: "Manage your notification preferences.",
+            securityTitle: "Security",
+            securityCopy: "Change your password and security settings.",
+            appearanceTitle: "Appearance",
+            appearanceCopy: "Choose your preferred theme.",
+            languageTitle: "Language",
+            languageCopy: "Select your preferred language."
+        },
+        hindi: {
+            title: "Settings",
+            subtitle: "Manage your account and preferences.",
+            profileTitle: "Profile",
+            profileCopy: "View and update your personal information.",
+            notificationsTitle: "Notifications",
+            notificationsCopy: "Manage your notification preferences.",
+            securityTitle: "Security",
+            securityCopy: "Change your password and security settings.",
+            appearanceTitle: "Appearance",
+            appearanceCopy: "Choose your preferred theme.",
+            languageTitle: "Language",
+            languageCopy: "Select your preferred language."
+        }
+    };
+
+    const values = copy[language] || copy.english;
+    document.querySelectorAll("[data-admin-settings-text]").forEach((node) => {
+        const key = node.dataset.adminSettingsText;
+        if (values[key]) {
+            node.textContent = values[key];
+        }
+    });
 }
 
 function renderDashboardView() {
@@ -450,13 +556,13 @@ function renderTasksView() {
                     </table>
                 </div>
                 <div class="admin-task-footer">
-                    <span>${tasks.length ? `Showing ${startIndex + 1} to ${startIndex + pageTasks.length} of ${tasks.length} tasks` : "Showing 0 tasks"}</span>
-                    <div class="admin-task-pagination-controls">
-                        <button class="admin-task-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page - 1})" ${adminTaskFilters.page <= 1 ? "disabled" : ""} aria-label="Previous task page">
+                    <span class="app-pagination-summary">${tasks.length ? `Showing ${startIndex + 1} to ${startIndex + pageTasks.length} of ${tasks.length} tasks` : "Showing 0 tasks"}</span>
+                    <div class="admin-task-pagination-controls app-pagination-controls">
+                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page - 1})" ${adminTaskFilters.page <= 1 ? "disabled" : ""} aria-label="Previous task page">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <span class="admin-task-page-current">${adminTaskFilters.page}</span>
-                        <button class="admin-task-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page + 1})" ${adminTaskFilters.page >= totalPages ? "disabled" : ""} aria-label="Next task page">
+                        <span class="admin-task-page-current app-page-current">${adminTaskFilters.page}</span>
+                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page + 1})" ${adminTaskFilters.page >= totalPages ? "disabled" : ""} aria-label="Next task page">
                             <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
@@ -490,7 +596,21 @@ async function adminDeleteTask(id) {
 }
 
 function renderUsersView() {
-    const users = filterCollection(adminState.users, (user) => [user.username, user.email, user.role]);
+    const users = filterCollection(adminState.users, (user) => [user.username, user.email, user.role])
+        .filter((user) => {
+            const localSearch = String(adminUserFilters.searchTerm || "").trim().toLowerCase();
+            const roleFilter = String(adminUserFilters.role || "all").trim().toLowerCase();
+            const haystack = [user.username, user.email, user.role].filter(Boolean).join(" ").toLowerCase();
+
+            if (localSearch && !haystack.includes(localSearch)) return false;
+            if (roleFilter !== "all" && String(user.role || "").trim().toLowerCase() !== roleFilter) return false;
+            return true;
+        });
+    const currentEmail = String(sessionStorage.getItem("email") || "").trim().toLowerCase();
+    const totalPages = Math.max(Math.ceil(users.length / adminUserFilters.pageSize), 1);
+    adminUserFilters.page = Math.min(Math.max(adminUserFilters.page, 1), totalPages);
+    const startIndex = (adminUserFilters.page - 1) * adminUserFilters.pageSize;
+    const pageUsers = users.slice(startIndex, startIndex + adminUserFilters.pageSize);
 
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view">
@@ -498,8 +618,28 @@ function renderUsersView() {
                 <div>
                     <h3>Users</h3>
                 </div>
+                <button class="action-btn admin-add-user-btn" type="button" onclick="openAddUserModal()">
+                    <i class="fas fa-plus"></i>
+                    Add User
+                </button>
             </div>
             <div class="data-panel">
+                <div class="admin-user-toolbar">
+                    <label class="admin-search-field" for="adminUserSearch">
+                        <i class="fas fa-search"></i>
+                        <input id="adminUserSearch" type="text" placeholder="Search name, email, role..." value="${escapeHtml(adminUserFilters.searchTerm)}" oninput="setAdminUserSearch(this)" aria-label="Search users">
+                    </label>
+                    <select class="admin-task-filter admin-user-filter" onchange="setAdminUserRoleFilter(this.value)" aria-label="Filter users by role">
+                        <option value="all" ${adminUserFilters.role === "all" ? "selected" : ""}>All Roles</option>
+                        <option value="user" ${adminUserFilters.role === "user" ? "selected" : ""}>User</option>
+                        <option value="manager" ${adminUserFilters.role === "manager" ? "selected" : ""}>Manager</option>
+                        <option value="admin" ${adminUserFilters.role === "admin" ? "selected" : ""}>Admin</option>
+                    </select>
+                    <button class="action-btn secondary-btn admin-user-reset-btn" type="button" onclick="resetAdminUserFilters()">
+                        <i class="fas fa-rotate-left"></i>
+                        Reset
+                    </button>
+                </div>
                 <div class="data-table-wrap">
                     <table class="admin-table">
                         <thead>
@@ -511,13 +651,13 @@ function renderUsersView() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${users.length ? users.map((user) => `
+                            ${pageUsers.length ? pageUsers.map((user) => `
                                 <tr>
                                     <td>${escapeHtml(user.username || "Unknown User")}</td>
                                     <td>${escapeHtml(user.email || "-")}</td>
                                     <td>${escapeHtml(capitalize(user.role || "user"))}</td>
                                     <td>
-                                        ${user.email === sessionStorage.getItem("email") ? "<span class='disabled-action'>Current user</span>" : `
+                                        ${String(user.email || "").trim().toLowerCase() === currentEmail ? "<span class='disabled-action'>Current user</span>" : `
                                             <select class="admin-task-filter" aria-label="Change role for ${escapeHtml(user.email)}" onchange="changeUserRole('${escapeHtml(user.email)}', this.value)">
                                                 <option value="user" ${String(user.role || "user").toLowerCase() === "user" ? "selected" : ""}>User</option>
                                                 <option value="manager" ${String(user.role || "").toLowerCase() === "manager" ? "selected" : ""}>Manager</option>
@@ -531,9 +671,188 @@ function renderUsersView() {
                         </tbody>
                     </table>
                 </div>
+                <div class="admin-task-footer">
+                    <span class="app-pagination-summary">${users.length ? `Showing ${startIndex + 1} to ${startIndex + pageUsers.length} of ${users.length} users` : "Showing 0 users"}</span>
+                    <div class="admin-task-pagination-controls app-pagination-controls">
+                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminUserPage(${adminUserFilters.page - 1})" ${adminUserFilters.page <= 1 ? "disabled" : ""} aria-label="Previous users page">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span class="admin-task-page-current app-page-current">${adminUserFilters.page}</span>
+                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminUserPage(${adminUserFilters.page + 1})" ${adminUserFilters.page >= totalPages ? "disabled" : ""} aria-label="Next users page">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            ${adminState.isUserModalOpen ? renderAddUserModal() : ""}
+        </div>
+    `;
+}
+
+function setAdminUserPage(page) {
+    adminUserFilters.page = page;
+    renderUsersView();
+}
+
+function setAdminUserSearch(inputOrValue) {
+    const isInputElement = inputOrValue && typeof inputOrValue === "object" && "value" in inputOrValue;
+    const value = isInputElement ? inputOrValue.value : inputOrValue;
+    const cursorStart = isInputElement ? inputOrValue.selectionStart : null;
+    const cursorEnd = isInputElement ? inputOrValue.selectionEnd : null;
+
+    adminUserFilters.searchTerm = value || "";
+    adminUserFilters.page = 1;
+    renderUsersView();
+
+    if (isInputElement) {
+        const nextInput = document.getElementById("adminUserSearch");
+        if (nextInput) {
+            nextInput.focus();
+            const nextStart = typeof cursorStart === "number" ? cursorStart : nextInput.value.length;
+            const nextEnd = typeof cursorEnd === "number" ? cursorEnd : nextStart;
+            nextInput.setSelectionRange(nextStart, nextEnd);
+        }
+    }
+}
+
+function setAdminUserRoleFilter(value) {
+    adminUserFilters.role = value || "all";
+    adminUserFilters.page = 1;
+    renderUsersView();
+}
+
+function resetAdminUserFilters() {
+    adminUserFilters.searchTerm = "";
+    adminUserFilters.role = "all";
+    adminUserFilters.page = 1;
+    renderUsersView();
+}
+
+function renderAddUserModal() {
+    const form = adminState.newUserForm;
+
+    return `
+        <div class="admin-modal-backdrop" onclick="handleAddUserBackdrop(event)">
+            <div class="admin-modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-add-user-title" onclick="event.stopPropagation()">
+                <div class="admin-modal-head">
+                    <div>
+                        <h3 id="admin-add-user-title">Add User</h3>
+                        <p>Create a new account and assign the right access level.</p>
+                    </div>
+                    <button class="admin-modal-close" type="button" aria-label="Close add user modal" onclick="closeAddUserModal()">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+                <form class="admin-user-form" onsubmit="submitAddUser(event)">
+                    <div class="admin-user-form-section">
+                        <h4>User Information</h4>
+                        <label class="admin-form-field">
+                            <span>Name <strong>*</strong></span>
+                            <input type="text" id="admin-new-user-name" placeholder="Enter full name" value="${escapeHtml(form.username)}" oninput="updateAddUserField('username', this.value)" required>
+                        </label>
+                        <label class="admin-form-field">
+                            <span>Email <strong>*</strong></span>
+                            <input type="email" id="admin-new-user-email" placeholder="Enter email address" value="${escapeHtml(form.email)}" oninput="updateAddUserField('email', this.value)" required>
+                        </label>
+                        <label class="admin-form-field">
+                            <span>Role <strong>*</strong></span>
+                            <select id="admin-new-user-role" onchange="updateAddUserField('role', this.value)" required>
+                                <option value="user" ${form.role === "user" ? "selected" : ""}>User</option>
+                                <option value="manager" ${form.role === "manager" ? "selected" : ""}>Manager</option>
+                                <option value="admin" ${form.role === "admin" ? "selected" : ""}>Admin</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="admin-modal-actions">
+                        <button class="action-btn secondary-btn" type="button" onclick="closeAddUserModal()">Cancel</button>
+                        <button class="action-btn export-btn" type="submit" ${adminState.isCreatingUser ? "disabled" : ""}>
+                            ${adminState.isCreatingUser ? "Saving..." : "Save User"}
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     `;
+}
+
+function openAddUserModal() {
+    adminState.isUserModalOpen = true;
+    renderUsersView();
+}
+
+function closeAddUserModal() {
+    adminState.isUserModalOpen = false;
+    adminState.isCreatingUser = false;
+    adminState.newUserForm = {
+        username: "",
+        email: "",
+        role: "user"
+    };
+    renderUsersView();
+}
+
+function handleAddUserBackdrop(event) {
+    if (event.target.classList.contains("admin-modal-backdrop")) {
+        closeAddUserModal();
+    }
+}
+
+function updateAddUserField(field, value) {
+    adminState.newUserForm = {
+        ...adminState.newUserForm,
+        [field]: value
+    };
+}
+
+async function submitAddUser(event) {
+    event.preventDefault();
+
+    const token = sessionStorage.getItem("token");
+    if (!token) {
+        alert("Login required.");
+        return;
+    }
+
+    const payload = {
+        username: String(adminState.newUserForm.username || "").trim(),
+        email: String(adminState.newUserForm.email || "").trim().toLowerCase(),
+        role: String(adminState.newUserForm.role || "user").trim().toLowerCase()
+    };
+
+    if (!payload.username || !payload.email || !payload.role) {
+        alert("Please fill in all required fields.");
+        return;
+    }
+
+    adminState.isCreatingUser = true;
+    renderUsersView();
+
+    try {
+        const res = await fetch(`${BASE_URL}/admin/users`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+            throw new Error(data.detail || data.message || "Unable to create user");
+        }
+
+        await refreshAdminData();
+        adminUserFilters.page = 1;
+        closeAddUserModal();
+        renderUsersView();
+        showNotification(`User created. Temporary password: ${data.temporary_password}`);
+        alert(`User created successfully.\nTemporary password: ${data.temporary_password}`);
+    } catch (error) {
+        adminState.isCreatingUser = false;
+        renderUsersView();
+        alert(error.message || "Unable to create user");
+    }
 }
 
 async function changeUserRole(email, newRole) {
@@ -593,6 +912,8 @@ async function deleteUser(email) {
         alert(data.message || "User deletion completed.");
 
         await refreshAdminData();
+        const nextTotalPages = Math.max(Math.ceil(adminState.users.length / adminUserFilters.pageSize), 1);
+        adminUserFilters.page = Math.min(adminUserFilters.page, nextTotalPages);
         renderCurrentSection();
     } catch (error) {
         console.error("Failed to delete user", error);
@@ -1451,32 +1772,154 @@ async function adminDeleteFile(name) {
 }
 
 function renderSettingsView() {
+    document.getElementById("mainContent").innerHTML = `
+        <section class="settings-page admin-settings-page">
+            <div class="settings-heading">
+                <h1 class="settings-title" data-admin-settings-text="title">Settings</h1>
+                <p data-admin-settings-text="subtitle">Manage your account and preferences.</p>
+            </div>
+
+            <section class="settings-list-card">
+                <button class="settings-row" type="button" onclick="goToProfile()">
+                    <span class="settings-row-icon"><i class="far fa-user"></i></span>
+                    <span class="settings-row-copy">
+                        <strong data-admin-settings-text="profileTitle">Profile</strong>
+                        <small data-admin-settings-text="profileCopy">View and update your personal information.</small>
+                    </span>
+                    <i class="fas fa-chevron-right settings-row-chevron"></i>
+                </button>
+
+                <button class="settings-row" type="button" onclick="toggleAdminQuietNotifications()">
+                    <span class="settings-row-icon"><i class="far fa-bell"></i></span>
+                    <span class="settings-row-copy">
+                        <strong data-admin-settings-text="notificationsTitle">Notifications</strong>
+                        <small data-admin-settings-text="notificationsCopy">Manage your notification preferences.</small>
+                    </span>
+                    <span class="settings-status-pill" id="admin-settings-notification-state">On</span>
+                </button>
+
+                <button class="settings-row" type="button" onclick="window.location.href='/forgot-page'">
+                    <span class="settings-row-icon"><i class="fas fa-lock"></i></span>
+                    <span class="settings-row-copy">
+                        <strong data-admin-settings-text="securityTitle">Security</strong>
+                        <small data-admin-settings-text="securityCopy">Change your password and security settings.</small>
+                    </span>
+                    <i class="fas fa-chevron-right settings-row-chevron"></i>
+                </button>
+
+                <div class="settings-row">
+                    <span class="settings-row-icon"><i class="fas fa-palette"></i></span>
+                    <span class="settings-row-copy">
+                        <strong data-admin-settings-text="appearanceTitle">Appearance</strong>
+                        <small data-admin-settings-text="appearanceCopy">Choose your preferred theme.</small>
+                    </span>
+                    <select id="admin-settings-theme-select" class="settings-select" onchange="saveAdminSettingsPreference('theme', this.value)" aria-label="Choose appearance theme">
+                        <option value="light">Light</option>
+                        <option value="dark">Dark</option>
+                        <option value="system">System</option>
+                    </select>
+                </div>
+
+                <div class="settings-row">
+                    <span class="settings-row-icon"><i class="fas fa-globe"></i></span>
+                    <span class="settings-row-copy">
+                        <strong data-admin-settings-text="languageTitle">Language</strong>
+                        <small data-admin-settings-text="languageCopy">Select your preferred language.</small>
+                    </span>
+                    <select id="admin-settings-language-select" class="settings-select" onchange="saveAdminSettingsPreference('language', this.value)" aria-label="Choose language">
+                        <option value="english">English</option>
+                        <option value="hindi">Hindi</option>
+                    </select>
+                </div>
+            </section>
+        </section>
+    `;
+    loadAdminSettingsView();
+}
+
+function renderProfileView() {
     const username = sessionStorage.getItem("username") || "Admin";
-    const email = sessionStorage.getItem("email") || "Not available";
+    const email = sessionStorage.getItem("email") || "";
+    const role = sessionStorage.getItem("role") || "admin";
+    const roleText = capitalize(role);
+    const initial = (username || email || "A").charAt(0).toUpperCase();
 
     document.getElementById("mainContent").innerHTML = `
-        <div class="list-view">
-            <div class="view-header">
+        <section class="dashboard-profile-page admin-profile-page">
+            <div class="profile-page-head">
                 <div>
-                    <h3>Settings</h3>
+                    <h1 class="profile-page-title">My Profile</h1>
                 </div>
+                <button class="profile-action-btn" type="button" onclick="goToSettings()">
+                    <i class="fas fa-gear"></i>
+                    <span>Settings</span>
+                </button>
             </div>
-            <div class="settings-list">
-                <div class="settings-item">
-                    <div>
-                        <h4>Signed In User</h4>
-                        <p>${escapeHtml(username)}</p>
+
+            <div class="dashboard-profile-grid">
+                <section class="dashboard-profile-card profile-identity-card">
+                    <div class="profile-avatar-wrap">
+                        <div class="dashboard-profile-avatar-large">${escapeHtml(initial)}</div>
+                        <button type="button" class="profile-camera-btn" aria-label="Change photo">
+                            <i class="fas fa-camera"></i>
+                        </button>
                     </div>
-                    <span class="settings-badge">Admin</span>
-                </div>
-                <div class="settings-item">
-                    <div>
-                        <h4>Account Email</h4>
-                        <p>${escapeHtml(email)}</p>
+
+                    <h2>${escapeHtml(username)}</h2>
+                    <p>${escapeHtml(roleText)}</p>
+                </section>
+
+                <section class="dashboard-profile-card profile-details-card">
+                    <div class="profile-card-head">
+                        <div class="profile-card-icon"><i class="fas fa-id-card"></i></div>
+                        <div>
+                            <h3>Profile Details</h3>
+                            <p>Account information used across TaskFlow.</p>
+                        </div>
                     </div>
-                </div>
+
+                    <div class="profile-detail-list">
+                        <div class="profile-detail-row">
+                            <span>Full Name</span>
+                            <strong>${escapeHtml(username)}</strong>
+                        </div>
+                        <div class="profile-detail-row">
+                            <span>Email</span>
+                            <strong>${escapeHtml(email || "-")}</strong>
+                        </div>
+                        <div class="profile-detail-row">
+                            <span>Role</span>
+                            <strong>${escapeHtml(roleText)}</strong>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="dashboard-profile-card profile-details-card">
+                    <div class="profile-card-head">
+                        <div class="profile-card-icon"><i class="fas fa-shield-halved"></i></div>
+                        <div>
+                            <h3>Account Access</h3>
+                            <p>Manage security and active session actions.</p>
+                        </div>
+                    </div>
+
+                    <div class="profile-action-list">
+                        <button class="profile-list-button" type="button" onclick="window.location.href='/forgot-page'">
+                            <span><i class="fas fa-key"></i>Reset password</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="profile-list-button" type="button" onclick="goToSettings()">
+                            <span><i class="fas fa-sliders"></i>Dashboard preferences</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button class="profile-list-button danger" type="button" onclick="logoutFromAdmin()">
+                            <span><i class="fas fa-right-from-bracket"></i>Logout</span>
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </section>
             </div>
-        </div>
+        </section>
     `;
 }
 
@@ -2061,7 +2504,11 @@ window.goToTasks = goToTasks;
 window.goToUsers = goToUsers;
 window.goToReports = goToReports;
 window.goToFiles = goToFiles;
+window.goToProfile = goToProfile;
 window.goToSettings = goToSettings;
+window.saveAdminSettingsPreference = saveAdminSettingsPreference;
+window.toggleAdminQuietNotifications = toggleAdminQuietNotifications;
+window.applyAdminSettingsPreferences = applyAdminSettingsPreferences;
 window.toggleAdminNotifications = toggleAdminNotifications;
 window.markAdminNotificationRead = markAdminNotificationRead;
 window.markAllAdminNotificationsRead = markAllAdminNotificationsRead;
@@ -2073,5 +2520,14 @@ window.setAdminTaskProjectFilter = setAdminTaskProjectFilter;
 window.setAdminTaskStatusFilter = setAdminTaskStatusFilter;
 window.setAdminTaskPage = setAdminTaskPage;
 window.adminDeleteTask = adminDeleteTask;
+window.setAdminUserPage = setAdminUserPage;
+window.setAdminUserSearch = setAdminUserSearch;
+window.setAdminUserRoleFilter = setAdminUserRoleFilter;
+window.resetAdminUserFilters = resetAdminUserFilters;
+window.openAddUserModal = openAddUserModal;
+window.closeAddUserModal = closeAddUserModal;
+window.handleAddUserBackdrop = handleAddUserBackdrop;
+window.updateAddUserField = updateAddUserField;
+window.submitAddUser = submitAddUser;
 window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;

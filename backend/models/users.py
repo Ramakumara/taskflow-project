@@ -6,6 +6,12 @@ class UserRegister(BaseModel):
     email: EmailStr
     password: str
 
+class AdminCreateUser(BaseModel):
+    username: str
+    email: EmailStr
+    role: str = "user"
+    password: Optional[str] = None
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str

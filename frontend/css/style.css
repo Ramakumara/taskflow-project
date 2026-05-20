@@ -3878,16 +3878,6 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     color: #24324b;
 }
 
-.page-btn.active {
-    background: #2f7bff;
-    color: #fff;
-    border-color: #2f7bff;
-}
-
-.page-btn.dots {
-    background: #fff;
-}
-
 .assign-modal {
     position: fixed;
     inset: 0;
@@ -7891,16 +7881,50 @@ button {
 }
 
 .activity-log-search {
-    flex: 1 1 320px;
-    min-width: 240px;
+    flex: 1 1 300px;
+    min-width: 280px;
+    height: 44px;
 }
 
+.activity-log-toolbar .task-board-filter,
 .activity-log-date-filter {
     flex: 0 0 170px;
+    width: 170px;
+    height: 44px;
+}
+
+.activity-log-control-btn {
+    flex: 0 0 auto;
+    height: 44px;
+    padding: 0 18px;
+    border: 1px solid #dbe3ef;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #172033;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 750;
+    cursor: pointer;
+    box-shadow: none;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.activity-log-control-btn:hover {
+    background: #f8fbf9;
+    border-color: rgba(32, 184, 100, 0.35);
+}
+
+.activity-log-control-btn:focus-visible {
+    outline: 0;
+    border-color: rgba(32, 184, 100, 0.55);
+    box-shadow: 0 0 0 4px rgba(32, 184, 100, 0.1);
 }
 
 .activity-log-reset-btn {
-    flex: 0 0 auto;
+    min-width: 110px;
 }
 
 .activity-log-filter-summary {
@@ -8084,14 +8108,23 @@ button {
     font-weight: 650;
 }
 
-.task-pagination-controls {
+.app-pagination-summary {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.task-pagination-controls,
+.app-pagination-controls {
     display: flex;
     align-items: center;
     gap: 10px;
 }
 
 .task-page-btn,
-.task-page-current {
+.task-page-current,
+.page-btn,
+.app-page-current {
     width: 36px;
     height: 36px;
     border-radius: 8px;
@@ -8102,22 +8135,33 @@ button {
     font-weight: 850;
 }
 
-.task-page-btn {
+.task-page-btn,
+.page-btn,
+.app-page-btn {
     border: 1px solid #e2e8f0;
     background: #ffffff;
     color: #94a3b8;
     cursor: pointer;
 }
 
-.task-page-btn:disabled {
+.task-page-btn:disabled,
+.page-btn:disabled,
+.app-page-btn:disabled {
     cursor: not-allowed;
     opacity: 0.55;
 }
 
-.task-page-current {
+.task-page-current,
+.page-btn.active,
+.app-page-current {
     background: #0f9f55;
     color: #ffffff;
+    border: 1px solid #0f9f55;
     box-shadow: 0 8px 18px rgba(15, 159, 85, 0.2);
+}
+
+.files-table-footer .pagination {
+    gap: 10px;
 }
 
 @media (max-width: 900px) {
@@ -8132,7 +8176,8 @@ button {
     .task-board-filter,
     .task-add-btn,
     .activity-log-date-filter,
-    .activity-log-reset-btn {
+    .activity-log-reset-btn,
+    .activity-log-control-btn {
         width: 100%;
     }
 
@@ -8140,7 +8185,8 @@ button {
         min-width: 0;
     }
 
-    .task-pagination {
+    .task-pagination,
+    .files-table-footer {
         align-items: flex-start;
         flex-direction: column;
         padding: 14px 16px;

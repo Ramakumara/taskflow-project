@@ -560,13 +560,13 @@ function renderDashboardTaskPagination(start, end, total, page, totalPages) {
     if (!footer) return;
 
     footer.innerHTML = `
-        <span>${total ? `Showing ${start} to ${end} of ${total} tasks` : "Showing 0 tasks"}</span>
-        <div class="task-pagination-controls">
-            <button class="task-page-btn" type="button" onclick="setDashboardTaskPage(${page - 1})" ${page <= 1 ? "disabled" : ""} aria-label="Previous task page">
+        <span class="app-pagination-summary">${total ? `Showing ${start} to ${end} of ${total} tasks` : "Showing 0 tasks"}</span>
+        <div class="task-pagination-controls app-pagination-controls">
+            <button class="task-page-btn app-page-btn" type="button" onclick="setDashboardTaskPage(${page - 1})" ${page <= 1 ? "disabled" : ""} aria-label="Previous task page">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <span class="task-page-current">${page}</span>
-            <button class="task-page-btn" type="button" onclick="setDashboardTaskPage(${page + 1})" ${page >= totalPages ? "disabled" : ""} aria-label="Next task page">
+            <span class="task-page-current app-page-current">${page}</span>
+            <button class="task-page-btn app-page-btn" type="button" onclick="setDashboardTaskPage(${page + 1})" ${page >= totalPages ? "disabled" : ""} aria-label="Next task page">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -583,13 +583,13 @@ function renderProjectWorkspacePagination(start, end, total, page, totalPages) {
     if (!footer) return;
 
     footer.innerHTML = `
-        <span>${total ? `Showing ${start} to ${end} of ${total} tasks` : "Showing 0 tasks"}</span>
-        <div class="task-pagination-controls">
-            <button class="task-page-btn" type="button" onclick="setProjectWorkspaceTaskPage(${page - 1})" ${page <= 1 ? "disabled" : ""} aria-label="Previous project task page">
+        <span class="app-pagination-summary">${total ? `Showing ${start} to ${end} of ${total} tasks` : "Showing 0 tasks"}</span>
+        <div class="task-pagination-controls app-pagination-controls">
+            <button class="task-page-btn app-page-btn" type="button" onclick="setProjectWorkspaceTaskPage(${page - 1})" ${page <= 1 ? "disabled" : ""} aria-label="Previous project task page">
                 <i class="fas fa-chevron-left"></i>
             </button>
-            <span class="task-page-current">${page}</span>
-            <button class="task-page-btn" type="button" onclick="setProjectWorkspaceTaskPage(${page + 1})" ${page >= totalPages ? "disabled" : ""} aria-label="Next project task page">
+            <span class="task-page-current app-page-current">${page}</span>
+            <button class="task-page-btn app-page-btn" type="button" onclick="setProjectWorkspaceTaskPage(${page + 1})" ${page >= totalPages ? "disabled" : ""} aria-label="Next project task page">
                 <i class="fas fa-chevron-right"></i>
             </button>
         </div>
@@ -2542,38 +2542,17 @@ function updatePagination(totalPages) {
     const pagination = document.getElementById("files-pagination");
     if (!pagination) return;
 
-    const buttons = [];
-    const addPageButton = (label, page, active = false, disabled = false) => {
-        buttons.push(`
-            <button type="button" class="page-btn${active ? " active" : ""}${disabled ? " dots" : ""}" ${disabled ? "disabled" : ""} ${page ? `data-page="${page}" onclick="setFilesPage(${page})"` : ""}>${label}</button>
-        `);
-    };
-
-    pagination.innerHTML = "";
-    addPageButton('<i class="fas fa-chevron-left"></i>', Math.max(1, filesPage - 1), false, filesPage <= 1);
-
-    if (totalPages <= 5) {
-        for (let page = 1; page <= totalPages; page++) {
-            addPageButton(String(page), page, page === filesPage);
-        }
-    } else {
-        const pages = new Set([1, totalPages, filesPage, filesPage - 1, filesPage + 1]);
-        const ordered = Array.from(pages)
-            .filter(page => page >= 1 && page <= totalPages)
-            .sort((a, b) => a - b);
-
-        let last = 0;
-        ordered.forEach(page => {
-            if (page - last > 1) {
-                buttons.push('<button type="button" class="page-btn dots" disabled>...</button>');
-            }
-            addPageButton(String(page), page, page === filesPage);
-            last = page;
-        });
-    }
-
-    addPageButton('<i class="fas fa-chevron-right"></i>', Math.min(totalPages, filesPage + 1), false, filesPage >= totalPages);
-    pagination.innerHTML = buttons.join("");
+    pagination.innerHTML = `
+        <div class="pagination app-pagination-controls">
+            <button type="button" class="page-btn app-page-btn" onclick="setFilesPage(${Math.max(1, filesPage - 1)})" ${filesPage <= 1 ? "disabled" : ""} aria-label="Previous files page">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="page-btn active app-page-current" aria-current="page">${filesPage}</span>
+            <button type="button" class="page-btn app-page-btn" onclick="setFilesPage(${Math.min(totalPages, filesPage + 1)})" ${filesPage >= totalPages ? "disabled" : ""} aria-label="Next files page">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    `;
 }
 
 function setFilesTab(tab) {

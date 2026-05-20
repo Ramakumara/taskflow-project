@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Body, Query
 from database import db
-from models.users import UserRegister, UserLogin
+from models.users import UserRegister, UserLogin, AdminCreateUser
 from passlib.context import CryptContext
 from auth_utils import create_access_token
 from fastapi import Depends
@@ -11,6 +11,8 @@ from jose import JWTError, jwt
 import re
 import requests
 import os
+import secrets
+import string
 
 router = APIRouter()
 
@@ -37,6 +39,26 @@ def validate_password(password:str):
             detail="Password must be at least 8 character,\ninclude at least 1 number,\ninclude at least1 letter, \ninclude at least 1 symbol"
         )
 
+def generate_temporary_password(length: int = 12) -> str:
+    alphabet = string.ascii_letters + string.digits
+    symbols = "@$!%*#?&"
+
+    while True:
+        password = [
+            secrets.choice(string.ascii_lowercase),
+            secrets.choice(string.ascii_uppercase),
+            secrets.choice(string.digits),
+            secrets.choice(symbols)
+        ]
+        password.extend(secrets.choice(alphabet + symbols) for _ in range(max(length - 4, 4)))
+        secrets.SystemRandom().shuffle(password)
+        candidate = "".join(password[:length])
+        try:
+            validate_password(candidate)
+            return candidate
+        except HTTPException:
+            continue
+
 @router.post("/register")
 def register(user: UserRegister):
     existing_user = db.users.find_one({"email": user.email})
@@ -57,6 +79,52 @@ def register(user: UserRegister):
     record_activity(new_user, "User registered", "Account", f"Role: {new_user['role']}")
 
     return {"message": "User registered"}
+
+@router.post("/admin/users")
+def admin_create_user(
+    user: AdminCreateUser,
+    current_user: dict = Depends(require_roles(Role.ADMIN))
+):
+    username = str(user.username or "").strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="Name is required")
+
+    existing_user = db.users.find_one({"email": user.email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    normalized_role = normalize_role(user.role)
+    if normalized_role not in VALID_ROLES:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    temporary_password = (user.password or "").strip() or generate_temporary_password()
+    validate_password(temporary_password)
+    hashed_password = pwd_context.hash(temporary_password)
+
+    new_user = {
+        "username": username,
+        "email": user.email.strip().lower(),
+        "password": hashed_password,
+        "role": normalized_role
+    }
+
+    db.users.insert_one(new_user)
+    record_activity(
+        current_user,
+        "User created",
+        f"User: {new_user['email']}",
+        f"Role: {new_user['role']}"
+    )
+
+    return {
+        "message": "User created successfully",
+        "temporary_password": temporary_password,
+        "user": {
+            "username": new_user["username"],
+            "email": new_user["email"],
+            "role": new_user["role"]
+        }
+    }
 
 
 @router.post("/login")
