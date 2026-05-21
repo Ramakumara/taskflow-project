@@ -12,7 +12,7 @@ router = APIRouter()
 async def get_notifications(current_user: dict = Depends(get_current_user)):
     query = {}
     if current_user.get("role") != "admin":
-        query = {"email": current_user["email"]}
+        query = {"$or": [{"email": current_user["email"]}, {"user_id": current_user["email"]}]}
 
     notifications = list(
         db.notifications.find(
@@ -23,6 +23,7 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
     for n in notifications:
         n["id"] = str(n["_id"])
         del n["_id"]
+        n["read"] = bool(n.get("read", n.get("is_read", False)))
 
     return notifications
 
@@ -37,7 +38,8 @@ async def mark_notification_read(
     if not notification:
         raise HTTPException(status_code=404, detail="Notification not found")
 
-    if current_user.get("role") != "admin" and notification.get("email") != current_user.get("email"):
+    owner = notification.get("email") or notification.get("user_id")
+    if current_user.get("role") != "admin" and owner != current_user.get("email"):
         raise HTTPException(status_code=403, detail="Access denied")
 
     result = db.notifications.update_one(
@@ -49,6 +51,8 @@ async def mark_notification_read(
         {
             "$set": {
                 "read": True
+                ,
+                "is_read": True
             }
         }
     )
@@ -64,7 +68,7 @@ async def mark_all_notifications_read(
 ):
     query = {"read": False}
     if current_user.get("role") != "admin":
-        query["email"] = current_user["email"]
+        query["$or"] = [{"email": current_user["email"]}, {"user_id": current_user["email"]}]
 
     result = db.notifications.update_many(
 
@@ -73,6 +77,8 @@ async def mark_all_notifications_read(
         {
             "$set": {
                 "read": True
+                ,
+                "is_read": True
             }
         }
     )

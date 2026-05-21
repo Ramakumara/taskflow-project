@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230c974a'/%3E%3Cpath d='M18 34h12v12H18zm16-16h12v28H34z' fill='white'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/static/css/admin.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -29,6 +30,10 @@
                 <button class="nav-item" data-section="tasks" onclick="goToTasks()">
                     <i class="far fa-square-check"></i>
                     <span>Tasks</span>
+                </button>
+                <button class="nav-item" data-section="team" onclick="goToTeam()">
+                    <i class="fas fa-users"></i>
+                    <span>My Team</span>
                 </button>
                 <button class="nav-item" data-section="users" onclick="goToUsers()">
                     <i class="fas fa-user"></i>
@@ -114,8 +119,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="/static/javascript/api.js"></script>
-    <script src="/static/javascript/admin.js"></script>
+    <script src="/static/javascript/api.js?v=20260521-assign-fix"></script>
+    <script src="/static/javascript/admin.js?v=20260521-assign-fix"></script>
     <script>
         const role = sessionStorage.getItem("role");
 

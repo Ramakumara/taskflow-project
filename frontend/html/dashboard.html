@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230c974a'/%3E%3Cpath d='M18 34h12v12H18zm16-16h12v28H34z' fill='white'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet"
@@ -66,6 +67,12 @@
                     <i class="fas fa-search"></i>
                     <input id="projectSearch" type="text" placeholder="Search..." oninput="handleProjectSearch(event)">
                 </label>
+            </div>
+            <div>
+                <button id="taskAddButton" class="task-add-btn" type="button" onclick="openDashboardTaskCreate()">
+                    <i class="fas fa-plus"></i>
+                    <span>Add Task</span>
+                </button>
             </div>
 
             <div class="topbar-right">
@@ -185,7 +192,8 @@
                     <div class="create-panel">
                         <div class="create-panel-header">
                             <div>
-                                <h3>Create Workspace Items</h3>
+                                <h3 id="createPanelTitle">Create Workspace Items</h3>
+                                <p id="createPanelSubtitle" class="hidden"></p>
                             </div>
                             <button class="close-create-btn" type="button" onclick="hideCreate()">
                                 <i class="fas fa-xmark"></i>
@@ -201,12 +209,52 @@
                         </div>
 
                         <div class="card" id="task-section">
-                            <h3>Create Task</h3>
-                            <select id="project-select"></select>
-                            <input id="task-title" placeholder="Task title">
-                            <select id="assigned-to" multiple></select>
-                            <input id="deadline" type="date" placeholder="Deadline">
-                            <button class="button-btn" type="button" onclick="createTask()">Add Task</button>
+                            <div class="dashboard-task-modal-body">
+                                <label class="dashboard-task-field" for="project-select">
+                                    <span>Project <strong>*</strong></span>
+                                    <select id="project-select"></select>
+                                </label>
+                                <label class="dashboard-task-field" for="task-title">
+                                    <span>Task title <strong>*</strong></span>
+                                    <input id="task-title" placeholder="Enter task title">
+                                </label>
+                                <label class="dashboard-task-field" for="task-description">
+                                    <span>Description</span>
+                                    <input id="task-description" placeholder="Add task scope or delivery notes">
+                                </label>
+                                <label class="dashboard-task-field" for="deadline">
+                                    <span>Deadline</span>
+                                    <input id="deadline" type="date" placeholder="Deadline">
+                                </label>
+                                <label class="dashboard-task-field" for="task-priority">
+                                    <span>Priority</span>
+                                    <select id="task-priority">
+                                        <option value="Low">Low</option>
+                                        <option value="Medium" selected>Medium</option>
+                                        <option value="High">High</option>
+                                        <option value="Urgent">Urgent</option>
+                                    </select>
+                                </label>
+                                <div class="dashboard-task-field">
+                                    <span>Assign users <strong>*</strong></span>
+                                    <label class="dashboard-task-search" for="assigned-user-search">
+                                        <i class="fas fa-search"></i>
+                                        <input id="assigned-user-search" type="text" placeholder="Search users by name or email..." oninput="filterDashboardTaskAssignees(this.value)">
+                                    </label>
+                                    <div id="assigned-to-list" class="dashboard-task-user-list"></div>
+                                </div>
+                                <label class="dashboard-task-field" for="task-attachments">
+                                    <span>Attachments</span>
+                                    <input id="task-attachments" type="file" multiple>
+                                </label>
+                            </div>
+                            <div class="dashboard-task-modal-actions">
+                                <button class="dashboard-task-cancel-btn" type="button" onclick="hideCreate()">Cancel</button>
+                                <button class="dashboard-task-submit-btn" type="button" onclick="createTask()">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Assign Task</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -228,7 +276,7 @@
                             <h3>My Tasks</h3>
                         </div>
                         <div class="task-board-actions">
-                            <label class="task-board-search" for="taskSearchInput">
+                            <label class="team-search" for="taskSearchInput">
                                 <i class="fas fa-search"></i>
                                 <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="setDashboardTaskPage(1)">
                             </label>
@@ -321,27 +369,36 @@
                             <i class="fas fa-download"></i>
                             Export
                         </button>
-                        
                     </div>
                     <div class="activity-log-toolbar">
-                        <label class="task-board-search activity-log-search" for="activityLogSearch">
+                        <label class="team-search activity-log-search" for="activityLogSearch">
                             <i class="fas fa-search"></i>
                             <input id="activityLogSearch" type="text" placeholder="Search user, action, target, details..." oninput="handleActivityLogFiltersChange()" aria-label="Search activity log">
                         </label>
-                        <select id="activityLogUserFilter" class="task-board-filter" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by user">
-                            <option value="all">All Users</option>
-                        </select>
-                        <select id="activityLogActionFilter" class="task-board-filter" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by action">
-                            <option value="all">All Actions</option>
-                        </select>
-                        <input id="activityLogStartDate" class="task-board-filter activity-log-date-filter" type="date" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log from date">
-                        <input id="activityLogEndDate" class="task-board-filter activity-log-date-filter" type="date" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log to date">
+                        <div class="activity-log-date-control">
+                            <button class="activity-log-date-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
+                                <i class="fas fa-calendar-day"></i>
+                                <span id="activity-log-date-label">All dates</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div id="activity-log-date-popover" class="activity-log-date-popover hidden" onclick="event.stopPropagation()">
+                                <label>
+                                    <span>Start date</span>
+                                    <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
+                                </label>
+                                <label>
+                                    <span>End date</span>
+                                    <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
+                                </label>
+                                <button type="button" onclick="clearActivityLogDateRange()">Clear</button>
+                            </div>
+                        </div>
                         <button class="activity-log-control-btn activity-log-reset-btn" type="button" onclick="resetActivityLogFilters()">
                             <i class="fas fa-rotate-left"></i>
                             Reset
                         </button>
                     </div>
-                    <p id="activity-log-filter-summary" class="activity-log-filter-summary">Loading activity records...</p>
+                    
                     <div class="workspace-table-wrap">
                         <table class="workspace-table">
                             <thead>
@@ -955,8 +1012,8 @@
     </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="/static/javascript/api.js"></script>
-<script src="/static/javascript/dashboard.js"></script>
+<script src="/static/javascript/api.js?v=20260521-assign-fix"></script>
+<script src="/static/javascript/dashboard.js?v=20260521-assign-fix"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

@@ -373,6 +373,7 @@ let assignableUsers = [];
 let inlineAssignState = {};
 let inlineAssignTarget = "";
 let teamMemberCache = [];
+let expandedTeamProjects = {};
 let allUsersCache = [];
 let teamWorkspaceCache = {
     projects: [],
@@ -388,6 +389,7 @@ let dashboardTaskPage = 1;
 const dashboardTaskPageSize = 5;
 let projectWorkspaceTaskPage = 1;
 const projectWorkspaceTaskPageSize = 5;
+let expandedTaskAssigneeCards = {};
 
 function getUserDisplayName(email, users = []) {
     const lookup = String(email || "").trim().toLowerCase();
@@ -399,9 +401,28 @@ function getAvatarInitial(nameOrEmail) {
     return String(nameOrEmail || "?").trim().charAt(0).toUpperCase() || "?";
 }
 
+function isTaskAssigneeCardExpanded(taskId) {
+    return Boolean(expandedTaskAssigneeCards[String(taskId || "")]);
+}
+
+function toggleTaskAssigneeCard(taskId) {
+    const key = String(taskId || "");
+    if (!key) return;
+
+    expandedTaskAssigneeCards[key] = !isTaskAssigneeCardExpanded(key);
+    renderDashboardTaskBoard();
+
+    const workspaceView = document.getElementById("project-workspace-view");
+    if (workspaceView && !workspaceView.classList.contains("hidden")) {
+        loadProjectWorkspace();
+    }
+}
+
 function renderTaskAssigneeStatusList(task, users = [], options = {}) {
     const assignments = getTaskAssignments(task);
-    const visibleCount = options.limit || 3;
+    const baseVisibleCount = options.limit || 3;
+    const isExpanded = isTaskAssigneeCardExpanded(task?.id);
+    const visibleCount = isExpanded ? assignments.length : baseVisibleCount;
     const visibleAssignments = assignments.slice(0, visibleCount);
     const hiddenAssignments = assignments.slice(visibleCount);
     const remaining = hiddenAssignments.length;
@@ -427,14 +448,82 @@ function renderTaskAssigneeStatusList(task, users = [], options = {}) {
                 `;
             }).join("")}
             ${remaining ? `
-                <span class="task-more-btn" title="${escapeTeamHtml(hiddenAssignments.map(assignment => {
-                    const email = String(assignment.user_id || "Unassigned");
-                    const name = getUserDisplayName(email, users);
-                    return `${name} - ${normalizeMemberStatus(assignment.status)}`;
-                }).join(", "))}">+ ${remaining} more</span>
+                <button class="task-more-btn" type="button" onclick="toggleTaskAssigneeCard('${task.id}')">+ ${remaining} more</button>
+            ` : ""}
+            ${!remaining && isExpanded && assignments.length > baseVisibleCount ? `
+                <button class="task-more-btn" type="button" onclick="toggleTaskAssigneeCard('${task.id}')">Show less</button>
             ` : ""}
         </div>
     `;
+}
+
+function getTaskAttachmentItems(task) {
+    return Array.isArray(task?.attachments) ? task.attachments.filter(Boolean) : [];
+}
+
+function renderTaskAttachments(task) {
+    const attachments = getTaskAttachmentItems(task);
+    if (!attachments.length) return "";
+
+    return `
+        <div class="task-attachment-list">
+            ${attachments.map((attachment, index) => {
+                const name = typeof attachment === "string"
+                    ? attachment
+                    : (attachment?.name || attachment?.stored_name || `Attachment ${index + 1}`);
+                const storedName = typeof attachment === "string"
+                    ? attachment
+                    : (attachment?.stored_name || attachment?.name || "");
+
+                if (!storedName) return "";
+
+                return `
+                    <button
+                        class="task-attachment-chip"
+                        type="button"
+                        onclick="downloadTaskAttachment('${escapeTeamHtml(task.id)}', '${escapeTeamHtml(encodeURIComponent(storedName))}', '${escapeTeamHtml(encodeURIComponent(name))}')"
+                        title="${escapeTeamHtml(name)}"
+                    >
+                        <i class="fas fa-paperclip"></i>
+                        <span>${escapeTeamHtml(name)}</span>
+                    </button>
+                `;
+            }).join("")}
+        </div>
+    `;
+}
+
+async function downloadTaskAttachment(taskId, encodedStoredName, encodedFileName) {
+    const token = sessionStorage.getItem("token");
+    if (!token || !taskId || !encodedStoredName) return;
+
+    try {
+        const storedName = decodeURIComponent(encodedStoredName);
+        const fileName = encodedFileName ? decodeURIComponent(encodedFileName) : storedName;
+        const response = await fetch(`${BASE_URL}/tasks/${encodeURIComponent(taskId)}/attachments/${encodeURIComponent(storedName)}`, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.detail || data.message || "Unable to download attachment");
+        }
+
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Failed to download task attachment", error);
+        alert(error.message || "Unable to download attachment");
+    }
 }
 
 function populateDashboardTaskFilters(projects) {
@@ -492,6 +581,7 @@ function renderDashboardTaskBoard() {
     if (!list) return;
 
     const role = sessionStorage.getItem("role");
+    const table = document.querySelector(".task-board-table");
     const { projects, users } = dashboardTaskCache;
     const tasks = getFilteredDashboardTasks();
     const totalPages = Math.max(Math.ceil(tasks.length / dashboardTaskPageSize), 1);
@@ -503,6 +593,7 @@ function renderDashboardTaskBoard() {
 
     if (taskActionHeader) taskActionHeader.style.display = role === "manager" || role === "admin" ? "" : "none";
     if (taskAddButton) taskAddButton.style.display = role === "manager" ? "" : "none";
+    if (table) table.classList.toggle("task-board-table-user", role === "user");
 
     if (!tasks.length) {
         list.innerHTML = `<tr><td colspan="${role === "manager" || role === "admin" ? 6 : 5}" class="empty-state">No tasks found.</td></tr>`;
@@ -521,7 +612,12 @@ function renderDashboardTaskBoard() {
             : renderTaskAssigneeStatusList(task, users);
 
         row.innerHTML = `
-            <td class="task-title-cell">${escapeTeamHtml(task.title || "Untitled Task")}</td>
+            <td class="task-title-cell">
+                <div class="task-title-block">
+                    <span class="task-title-text">${escapeTeamHtml(task.title || "Untitled Task")}</span>
+                    ${renderTaskAttachments(task)}
+                </div>
+            </td>
             <td>${escapeTeamHtml(project?.name || "Unknown")}</td>
             <td>${assignedDisplay || "Unknown"}</td>
             <td>
@@ -530,7 +626,7 @@ function renderDashboardTaskBoard() {
                     : `<span class="status-pill ${statusClass}">${escapeTeamHtml(status)}</span>`
                 }
             </td>
-            <td>${escapeTeamHtml(task.deadline || "N/A")}</td>
+            <td>${escapeTeamHtml(formatDeadlineDate(task.deadline))}</td>
             ${role === "admin" || role === "manager" ? `
                 <td>
                     <button class="delete-btn" type="button" onclick="deleteTask('${task.id}')">Delete</button>
@@ -545,7 +641,7 @@ function renderDashboardTaskBoard() {
 function openDashboardTaskCreate() {
     setActiveMenu("dashboard");
     showView("dashboard-view");
-    openCreate();
+    openCreate("task");
     const taskTitle = document.getElementById("task-title");
     if (taskTitle) taskTitle.focus();
 }
@@ -717,6 +813,20 @@ function populateTeamProjectFilter(projects) {
         : "all";
 }
 
+function isTeamProjectExpanded(projectId, defaultExpanded = false) {
+    const key = String(projectId);
+    if (Object.prototype.hasOwnProperty.call(expandedTeamProjects, key)) {
+        return expandedTeamProjects[key];
+    }
+    return defaultExpanded;
+}
+
+function toggleTeamProject(projectId) {
+    const key = String(projectId);
+    expandedTeamProjects[key] = !isTeamProjectExpanded(key, true);
+    renderTeamWorkspace();
+}
+
 function renderTeamWorkspace() {
     const list = document.getElementById("team-members-list");
     if (!list) return;
@@ -774,12 +884,22 @@ function renderTeamWorkspace() {
         const projectNameMatches = !query || String(project.name || "").toLowerCase().includes(query);
         const memberRows = buildTeamMemberRows(projectTasks, userMap);
         const memberCount = buildTeamMemberRows(allProjectTasks, userMap).length;
+        const uniqueMembers = Array.from(
+            new Map(memberRows.map(member => [String(member.email || "").trim().toLowerCase(), member])).values()
+        );
+        const forceExpanded = selectedProject !== "all" || Boolean(query);
+        const isExpanded = isTeamProjectExpanded(project.id, forceExpanded || index === 0);
 
         if (!projectNameMatches && !projectTasks.length) return "";
 
         return `
-            <section class="team-project-card">
-                <div class="team-project-head">
+            <section class="team-project-card ${isExpanded ? "expanded" : "collapsed"}">
+                <button
+                    class="team-project-head"
+                    type="button"
+                    onclick="toggleTeamProject('${project.id}')"
+                    aria-expanded="${isExpanded ? "true" : "false"}"
+                >
                     <div class="team-project-title">
                         <span class="team-project-icon ${teamProjectColorClass(index)}">
                             <i class="fas fa-folder"></i>
@@ -787,9 +907,12 @@ function renderTeamWorkspace() {
                         <h3>${escapeTeamHtml(project.name || "Untitled Project")}</h3>
                         <span class="team-member-count">${memberCount} Member${memberCount === 1 ? "" : "s"}</span>
                     </div>
-                </div>
+                    <span class="team-project-toggle" aria-hidden="true">
+                        <i class="fas fa-chevron-down"></i>
+                    </span>
+                </button>
 
-                <div class="team-table-wrap">
+                <div class="team-table-wrap ${isExpanded ? "" : "hidden"}">
                     <table class="team-table">
                         <thead>
                             <tr>
@@ -799,35 +922,15 @@ function renderTeamWorkspace() {
                         </thead>
                        <tbody>
                         ${
-                            (() => {
-                                const uniqueMembers = Array.from(
-                                    new Map(memberRows.map(m => [m.email, m])).values()
-                                );
-
-                                return role === "user"
-                                    ? (
-                                        uniqueMembers.length
-                                        ? uniqueMembers.map(member => renderTeamMemberRow(member)).join("")
-                                        : `
-                                        <tr>
-                                            <td colspan="2" class="team-empty-row">
-                                                No members yet
-                                            </td>
-                                        </tr>
-                                        `
-                                    )
-                                    : (
-                                        uniqueMembers.length
-                                        ? uniqueMembers.map(member => renderTeamMemberRow(member)).join("")
-                                        : `
-                                        <tr>
-                                            <td colspan="2" class="team-empty-row">
-                                                No members yet
-                                            </td>
-                                        </tr>
-                                        `
-                                    );
-                            })()
+                            uniqueMembers.length
+                                ? uniqueMembers.map(member => renderTeamMemberRow(member)).join("")
+                                : `
+                                <tr>
+                                    <td colspan="2" class="team-empty-row">
+                                        No members yet
+                                    </td>
+                                </tr>
+                                `
                         }
                     </tbody>
                     </table>
@@ -917,7 +1020,7 @@ function openTeamAddMember(projectId) {
     sessionStorage.setItem("selectedProjectId", projectId);
     setActiveMenu("overview");
     showView("dashboard-view");
-    openCreate();
+    openCreate("task");
     const projectSelect = document.getElementById("project-select");
     if (projectSelect) projectSelect.value = projectId;
 }
@@ -925,7 +1028,7 @@ function openTeamAddMember(projectId) {
 function openTeamCreateProject() {
     setActiveMenu("overview");
     showView("dashboard-view");
-    openCreate();
+    openCreate("project");
     const projectName = document.getElementById("project-name");
     if (projectName) projectName.focus();
 }
@@ -1171,9 +1274,14 @@ async function loadProjectWorkspace() {
             const statusClass = memberStatusClass(t.status);
 
             row.innerHTML = `
-                <td>${t.title}</td>
+                <td class="task-title-cell">
+                    <div class="task-title-block">
+                        <span class="task-title-text">${escapeTeamHtml(t.title || "Untitled Task")}</span>
+                        ${renderTaskAttachments(t)}
+                    </div>
+                </td>
                 <td>${assignedDisplay || "Unknown"}</td>
-                <td>${t.deadline || "N/A"}</td>
+                <td>${formatDeadlineDate(t.deadline)}</td>
 
                 ${
                     role === "user"
@@ -1384,6 +1492,22 @@ function formatActivityTime(timestamp) {
     });
 }
 
+function formatDeadlineDate(value) {
+    if (!value) return "N/A";
+
+    const date = String(value).length === 10
+        ? new Date(`${value}T00:00:00`)
+        : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    }).replace(/ /g, "-");
+}
+
 function downloadActivityExport(logs, options) {
     const rows = buildActivityExportRows(logs, options.includeDetails);
     const format = options.format || "csv";
@@ -1556,9 +1680,13 @@ let showAllTeam = false;
 function applyDashboardRoleVisibility() {
     const role = sessionStorage.getItem("role");
     const isUser = role === "user";
+    const isManager = role === "manager";
     const activityMenu = document.querySelector('[data-sidebar="activity-log"]');
     const reportMenu = document.querySelector('[data-sidebar="report"]');
+    const teamMenu = document.querySelector('[data-sidebar="team"]');
     const activityExportCard = document.querySelector('[data-export-section="activity"]');
+    const projectSection = document.getElementById("project-section");
+    const taskAddButton = document.getElementById("taskAddButton");
 
     if (activityMenu) {
         activityMenu.style.display = isUser ? "none" : "";
@@ -1568,8 +1696,20 @@ function applyDashboardRoleVisibility() {
         reportMenu.style.display = isUser ? "none" : "";
     }
 
+    if (teamMenu) {
+        teamMenu.style.display = isUser ? "none" : "";
+    }
+
     if (activityExportCard) {
         activityExportCard.style.display = isUser ? "none" : "";
+    }
+
+    if (projectSection) {
+        projectSection.style.display = isManager || isUser ? "none" : "";
+    }
+
+    if (taskAddButton) {
+        taskAddButton.style.display = isUser ? "none" : "";
     }
 
     if (isUser) {
@@ -2229,7 +2369,7 @@ async function exportCSV(options = {}) {
                 task.title || "Untitled Task",
                 getTaskAssignments(task).map(assignment => `${assignment.user_id} (${normalizeMemberStatus(assignment.status)})`).join(", ") || "Unassigned",
                 normalizeMemberStatus(task.status),
-                task.deadline || "No date"
+                task.deadline ? formatDeadlineDate(task.deadline) : "No date"
             ]);
         });
     }
@@ -2466,6 +2606,7 @@ function renderFiles() {
     const currentEmail = (sessionStorage.getItem("email") || "").trim().toLowerCase();
     pageItems.forEach(file => {
         const row = document.createElement("tr");
+        const fileKey = file.storage_name || file.name;
         const fileOwnerEmail = String(file.owner_email || "").trim().toLowerCase();
         const sharedWith = Array.isArray(file.shared_with) ? file.shared_with : [];
         const canDelete = role === "admin" || role === "manager" || fileOwnerEmail === currentEmail;
@@ -2476,10 +2617,10 @@ function renderFiles() {
         const actionButtons = [];
 
         if (canDownload) {
-            actionButtons.push(`<button class="action-btn" type="button" onclick="downloadFile('${encodeURIComponent(file.name)}')"><i class="fas fa-download"></i></button>`);
+            actionButtons.push(`<button class="action-btn" type="button" onclick="downloadFile('${encodeURIComponent(fileKey)}')"><i class="fas fa-download"></i></button>`);
         }
         if (canDelete) {
-            actionButtons.push(`<button class="delete-btn" type="button" onclick="deleteFile('${encodeURIComponent(file.name)}')">Delete</button>`);
+            actionButtons.push(`<button class="delete-btn" type="button" onclick="deleteFile('${encodeURIComponent(fileKey)}')">Delete</button>`);
         }
 
         row.innerHTML = `
@@ -2713,7 +2854,7 @@ async function assignFileToUser(filename, email) {
 }
 
 function renderAssignedControl(file) {
-    const key = encodeURIComponent(file.name);
+    const key = encodeURIComponent(file.storage_name || file.name);
     const selected = Array.isArray(file.shared_with) ? file.shared_with : [];
 
     const assignedLabel = selected.length
@@ -3229,10 +3370,16 @@ document.addEventListener("click", function () {
 async function loadNotifications() {
 
     const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
 
-    await fetch(`${BASE_URL}/notifications/cleanup`, {
-        method: "DELETE"
-    });
+    if (token && role === "admin") {
+        await fetch(`${BASE_URL}/notifications/cleanup`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+    }
 
     try {
 

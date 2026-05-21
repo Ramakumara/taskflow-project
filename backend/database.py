@@ -20,6 +20,13 @@ try:
 
     client.server_info()
     db = client[DB_NAME]
+    db.users.create_index("email", unique=True)
+    db.projects.create_index("assigned_manager")
+    db.projects.create_index("status")
+    db.tasks.create_index("project_id")
+    db.tasks.create_index("assigned_users")
+    db.notifications.create_index("user_id")
+    db.notifications.create_index("created_at")
     db.task_assignments.create_index(
         [("task_id", 1), ("user_id", 1)],
         name="task_id_1_user_id_1",

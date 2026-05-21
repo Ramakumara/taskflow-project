@@ -3,14 +3,36 @@ const adminState = {
     projects: [],
     tasks: [],
     notifications: [],
+    dashboardStats: null,
     searchTerm: "",
     currentSection: "dashboard",
     isUserModalOpen: false,
     isCreatingUser: false,
+    isProjectModalOpen: false,
+    isCreatingProject: false,
+    isTaskModalOpen: false,
+    isCreatingTask: false,
     newUserForm: {
         username: "",
         email: "",
         role: "user"
+    },
+    newProjectForm: {
+        name: "",
+        description: "",
+        assigned_manager: "",
+        start_date: "",
+        end_date: "",
+        status: "Planning"
+    },
+    newTaskForm: {
+        projectId: "",
+        title: "",
+        description: "",
+        priority: "Medium",
+        assignedTo: [],
+        deadline: "",
+        attachments: []
     }
 };
 
@@ -39,6 +61,16 @@ const adminUserFilters = {
     searchTerm: "",
     role: "all"
 };
+const adminTeamFilters = {
+    searchTerm: "",
+    projectId: "all"
+};
+let expandedAdminTaskAssigneeCards = {};
+let expandedAdminTeamProjects = {};
+
+function getManagerUsers() {
+    return adminState.users.filter((user) => String(user.role || "").toLowerCase() === "manager");
+}
 
 function getTaskAssignments(task) {
     if (Array.isArray(task?.assignments)) return task.assignments;
@@ -58,11 +90,25 @@ function getTaskMembers(task) {
     return getTaskAssignments(task).map(assignment => String(assignment.user_id || "").trim()).filter(Boolean);
 }
 
+function isAdminTaskAssigneeCardExpanded(taskId) {
+    return Boolean(expandedAdminTaskAssigneeCards[String(taskId || "")]);
+}
+
+function toggleAdminTaskAssigneeCard(taskId) {
+    const key = String(taskId || "");
+    if (!key) return;
+
+    expandedAdminTaskAssigneeCards[key] = !isAdminTaskAssigneeCardExpanded(key);
+    renderTasksView();
+}
+
 function renderAdminMemberStatuses(task) {
     const assignments = getTaskAssignments(task);
     if (!assignments.length) return `<span class="muted-text">Unassigned</span>`;
-    const visibleAssignments = assignments.slice(0, 3);
-    const hiddenAssignments = assignments.slice(3);
+    const baseVisibleCount = 3;
+    const isExpanded = isAdminTaskAssigneeCardExpanded(task?.id);
+    const visibleAssignments = assignments.slice(0, isExpanded ? assignments.length : baseVisibleCount);
+    const hiddenAssignments = assignments.slice(visibleAssignments.length);
 
     return `
         <div class="admin-task-assignee-card">
@@ -81,10 +127,10 @@ function renderAdminMemberStatuses(task) {
                 `;
             }).join("")}
             ${hiddenAssignments.length ? `
-                <span class="admin-task-more" title="${escapeHtml(hiddenAssignments.map(assignment => {
-                    const email = assignment.user_id || "Unassigned";
-                    return `${getAdminUserDisplayName(email)} - ${normalizeStatusLabel(assignment.status)}`;
-                }).join(", "))}">+ ${hiddenAssignments.length} more</span>
+                <button class="admin-task-more" type="button" onclick="toggleAdminTaskAssigneeCard('${task.id}')">+ ${hiddenAssignments.length} more</button>
+            ` : ""}
+            ${!hiddenAssignments.length && isExpanded && assignments.length > baseVisibleCount ? `
+                <button class="admin-task-more" type="button" onclick="toggleAdminTaskAssigneeCard('${task.id}')">Show less</button>
             ` : ""}
         </div>
     `;
@@ -121,7 +167,7 @@ async function refreshAdminData() {
     const token = sessionStorage.getItem("token");
 
     try {
-        const [usersRes, projectsRes, tasksRes] = await Promise.all([
+        const [usersRes, projectsRes, tasksRes, statsRes] = await Promise.all([
             fetch(`${BASE_URL}/users`, {
                 headers: {
                     "Authorization": "Bearer " + token
@@ -136,12 +182,18 @@ async function refreshAdminData() {
                 headers: {
                     "Authorization": "Bearer " + token
                 }
+            }),
+            fetch(`${BASE_URL}/admin/dashboard-stats`, {
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
             })
         ]);
 
         adminState.users = await usersRes.json();
         adminState.projects = await projectsRes.json();
         adminState.tasks = await tasksRes.json();
+        adminState.dashboardStats = statsRes.ok ? await statsRes.json().catch(() => null) : null;
         updateNotificationCount();
     } catch (error) {
         console.error("Failed to load admin data", error);
@@ -181,6 +233,9 @@ function renderCurrentSection() {
         case "tasks":
             renderTasksView();
             break;
+        case "team":
+            renderTeamView();
+            break;
         case "users":
             renderUsersView();
             break;
@@ -218,6 +273,12 @@ function goToTasks() {
     closeAdminProfileMenu();
     setActiveNav("tasks");
     renderTasksView();
+}
+
+function goToTeam() {
+    closeAdminProfileMenu();
+    setActiveNav("team");
+    renderTeamView();
 }
 
 function goToUsers() {
@@ -382,8 +443,15 @@ function updateAdminSettingsLanguage(language) {
 function renderDashboardView() {
     const main = document.getElementById("mainContent");
     const stats = computeDashboardStats();
+    const backendStats = adminState.dashboardStats || {};
     const recentTasks = getRecentTasks(stats.filteredTasks);
     const upcomingDeadlines = getUpcomingDeadlines(stats.filteredTasks);
+    const recentActivities = Array.isArray(backendStats.recent_activities) ? backendStats.recent_activities : [];
+    const completedTasks = backendStats.completed_tasks ?? stats.completedTasks;
+    const pendingTasks = backendStats.pending_tasks ?? stats.pendingTasks;
+    const totalTasks = backendStats.total_tasks ?? stats.filteredTasks.length;
+    const totalProjects = backendStats.total_projects ?? stats.filteredProjects.length;
+    const totalUsers = backendStats.total_users ?? stats.filteredUsers.length;
 
     main.innerHTML = `
         <div class="dashboard-view">
@@ -392,28 +460,59 @@ function renderDashboardView() {
                     <div class="stat-icon"><i class="fas fa-user"></i></div>
                     <div class="stat-text">
                         <span class="stat-label">Total Users</span>
-                        <span class="stat-value"><strong>${stats.filteredUsers.length}</strong></span>
+                        <span class="stat-value"><strong>${totalUsers}</strong></span>
                     </div>
                 </article>
                 <article class="stat-card green">
                     <div class="stat-icon"><i class="fas fa-folder"></i></div>
                     <div class="stat-text">
                         <span class="stat-label">Total Projects</span>
-                        <span class="stat-value"><strong>${stats.filteredProjects.length}</strong></span>
+                        <span class="stat-value"><strong>${totalProjects}</strong></span>
                     </div>
                 </article>
                 <article class="stat-card orange">
                     <div class="stat-icon"><i class="fas fa-square-check"></i></div>
                     <div class="stat-text">
-                        <span class="stat-label">Tasks Completed</span>
-                        <span class="stat-value"><strong>${stats.completedTasks}</strong></span>
+                        <span class="stat-label">Completed Tasks</span>
+                        <span class="stat-value"><strong>${completedTasks}</strong></span>
                     </div>
                 </article>
                 <article class="stat-card red">
                     <div class="stat-icon"><i class="fas fa-clock"></i></div>
                     <div class="stat-text">
                         <span class="stat-label">Pending Tasks</span>
-                        <span class="stat-value"><strong>${stats.pendingTasks}</strong></span>
+                        <span class="stat-value"><strong>${pendingTasks}</strong></span>
+                    </div>
+                </article>
+            </section>
+
+            <section class="stats-grid">
+                <article class="stat-card green">
+                    <div class="stat-icon"><i class="fas fa-list-check"></i></div>
+                    <div class="stat-text">
+                        <span class="stat-label">Total Tasks</span>
+                        <span class="stat-value"><strong>${totalTasks}</strong></span>
+                    </div>
+                </article>
+                <article class="stat-card blue">
+                    <div class="stat-icon"><i class="fas fa-bell"></i></div>
+                    <div class="stat-text">
+                        <span class="stat-label">Unread Notifications</span>
+                        <span class="stat-value"><strong>${adminState.notifications.filter((item) => !item.read).length}</strong></span>
+                    </div>
+                </article>
+                <article class="stat-card orange">
+                    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
+                    <div class="stat-text">
+                        <span class="stat-label">In Progress</span>
+                        <span class="stat-value"><strong>${backendStats.in_progress_tasks ?? stats.inProgressTasks ?? 0}</strong></span>
+                    </div>
+                </article>
+                <article class="stat-card red">
+                    <div class="stat-icon"><i class="fas fa-file-lines"></i></div>
+                    <div class="stat-text">
+                        <span class="stat-label">Reports Ready</span>
+                        <span class="stat-value"><strong>${backendStats.reports_generated_at ? "Live" : "Preview"}</strong></span>
                     </div>
                 </article>
             </section>
@@ -467,6 +566,44 @@ function renderDashboardView() {
                     </div>
                 </aside>
             </section>
+
+            <section class="dashboard-grid">
+                <article class="panel">
+                    <h3>Recent Activities</h3>
+                    <div class="deadlines-list">
+                        ${recentActivities.length ? recentActivities.map((activity) => `
+                            <div class="deadline-item">
+                                <span class="deadline-icon" style="background:#e7f8ee;color:#08783f;"><i class="fas fa-bolt"></i></span>
+                                <div class="deadline-copy">
+                                    <strong>${escapeHtml(activity.action || "Activity")}</strong>
+                                    <span>${escapeHtml(activity.username || activity.user_email || "User")} · ${escapeHtml(activity.target || activity.details || "TaskFlow update")}</span>
+                                </div>
+                            </div>
+                        `).join("") : `<div class="empty-state">No recent activity yet.</div>`}
+                    </div>
+                </article>
+                <article class="panel">
+                    <h3>Admin Snapshot</h3>
+                    <div class="legend-list">
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background:#22c55e"></span>
+                            <div class="legend-copy"><span>Manager-led projects</span><strong>${adminState.projects.filter((project) => project.assigned_manager).length}</strong></div>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background:#2563eb"></span>
+                            <div class="legend-copy"><span>Projects without manager</span><strong>${adminState.projects.filter((project) => !project.assigned_manager).length}</strong></div>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background:#f97316"></span>
+                            <div class="legend-copy"><span>Tasks with multiple assignees</span><strong>${adminState.tasks.filter((task) => getTaskAssignments(task).length > 1).length}</strong></div>
+                        </div>
+                        <div class="legend-item">
+                            <span class="legend-dot" style="background:#ef4444"></span>
+                            <div class="legend-copy"><span>Users in system</span><strong>${adminState.users.length}</strong></div>
+                        </div>
+                    </div>
+                </article>
+            </section>
         </div>
     `;
 
@@ -480,19 +617,361 @@ function renderProjectsView() {
         project.description,
         project.owner_email
     ]);
+    const projectStats = computeAdminProjectStats(filteredProjects);
 
     document.getElementById("mainContent").innerHTML = `
-        <div class="list-view">
-            <div class="view-header">
-                <div>
-                    <h3>Projects</h3>
+        <div class="list-view project-admin-view">
+            <section class="project-summary-grid">
+                ${renderAdminProjectStatCard("fa-folder", "Total Projects", projectStats.totalProjects, "green")}
+                ${renderAdminProjectStatCard("fa-list-check", "Total Tasks", projectStats.totalTasks, "mint")}
+                ${renderAdminProjectStatCard("fa-chart-line", "Completion Rate", `${projectStats.completionRate}%`, "emerald")}
+            </section>
+
+            <section class="data-panel project-board-panel">
+                <div class="project-board-head">
+                    <div>
+                        <h3>Projects</h3>
+                        <p>Manage your active projects and keep delivery moving.</p>
+                    </div>
+                    <button class="action-btn admin-add-user-btn" type="button" onclick="openAdminProjectModal()">
+                        <i class="fas fa-plus"></i>
+                        Create Project
+                    </button>
                 </div>
-            </div>
-            <div class="list-grid">
-                ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="data-panel empty-state">No projects found.</div>`}
-            </div>
+                <div class="admin-project-grid">
+                    ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
+                    <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
+                        <span>+ Create Project</span>
+                    </button>
+                </div>
+            </section>
+            ${adminState.isProjectModalOpen ? renderAdminProjectModal() : ""}
         </div>
     `;
+}
+
+function computeAdminProjectStats(projects) {
+    const projectIds = new Set(projects.map((project) => String(project.id)));
+    const relatedTasks = adminState.tasks.filter((task) => projectIds.has(String(task.project_id)));
+    const completedTasks = relatedTasks.filter((task) => isCompletedStatus(task.status)).length;
+    const completionRate = relatedTasks.length ? Math.round((completedTasks / relatedTasks.length) * 100) : 0;
+
+    return {
+        totalProjects: projects.length,
+        totalTasks: relatedTasks.length,
+        completionRate
+    };
+}
+
+function renderAdminProjectStatCard(icon, label, value, accentClass) {
+    return `
+        <article class="admin-project-stat-card ${accentClass}">
+            <span class="admin-project-stat-icon"><i class="fas ${icon}"></i></span>
+            <div class="admin-project-stat-copy">
+                <span>${escapeHtml(label)}</span>
+                <strong>${escapeHtml(value)}</strong>
+            </div>
+        </article>
+    `;
+}
+
+function renderAdminProjectModal() {
+    const managers = getManagerUsers();
+    return `
+        <div class="admin-modal-backdrop" onclick="handleAdminProjectBackdrop(event)">
+    
+            <div class="admin-modal-card admin-project-modal-card"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="admin-project-title"
+                onclick="event.stopPropagation()">
+
+                <!-- Modal Header -->
+                <div class="admin-modal-head">
+                    <div>
+                        <h3 id="admin-project-title">Create Project</h3>
+                        <p>Add a new project for your team and start organizing tasks.</p>
+                    </div>
+
+                    <button class="admin-modal-close"
+                        type="button"
+                        aria-label="Close create project modal"
+                        onclick="closeAdminProjectModal()">
+
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+
+                <!-- Form -->
+                <form class="admin-user-form" onsubmit="submitAdminProject(event)">
+
+                    <!-- Scrollable Body -->
+                    <div class="admin-modal-body">
+
+                        <div class="admin-user-form-section">
+
+                            <!-- Project Name -->
+                            <label class="admin-form-field">
+                                <span>Project name <strong>*</strong></span>
+
+                                <input
+                                    id="admin-project-name"
+                                    type="text"
+                                    value="${escapeHtml(adminState.newProjectForm.name)}"
+                                    oninput="updateAdminProjectField('name', this.value)"
+                                    placeholder="Enter project name"
+                                    maxlength="120"
+                                    required>
+                            </label>
+
+                            <!-- Description -->
+                            <label class="admin-form-field">
+                                <span>Description</span>
+
+                                <input
+                                    id="admin-project-description"
+                                    type="text"
+                                    value="${escapeHtml(adminState.newProjectForm.description)}"
+                                    oninput="updateAdminProjectField('description', this.value)"
+                                    placeholder="Short description for the team"
+                                    maxlength="220">
+                            </label>
+
+                            <!-- Manager -->
+                            <label class="admin-form-field">
+                                <span>Assign manager</span>
+
+                                <select
+                                    id="admin-project-manager"
+                                    oninput="updateAdminProjectField('assigned_manager', this.value)"
+                                    onchange="updateAdminProjectField('assigned_manager', this.value)">
+
+                                    <option value="">Select manager</option>
+
+                                    ${managers.map((manager) => `
+                                        <option
+                                            value="${escapeHtml(manager.email)}"
+                                            ${adminState.newProjectForm.assigned_manager === manager.email ? "selected" : ""}>
+
+                                            ${escapeHtml(manager.username || manager.email)}
+                                        </option>
+                                    `).join("")}
+                                </select>
+                            </label>
+
+                            <!-- Status -->
+                            <label class="admin-form-field">
+                                <span>Status</span>
+
+                                <select
+                                    id="admin-project-status"
+                                    oninput="updateAdminProjectField('status', this.value)"
+                                    onchange="updateAdminProjectField('status', this.value)">
+
+                                    ${["Planning", "Active", "Completed", "On Hold"].map((status) => `
+                                        <option
+                                            value="${status}"
+                                            ${adminState.newProjectForm.status === status ? "selected" : ""}>
+
+                                            ${status}
+                                        </option>
+                                    `).join("")}
+                                </select>
+                            </label>
+
+                            <!-- Start Date -->
+                            <label class="admin-form-field">
+                                <span>Start date</span>
+
+                                <input
+                                    id="admin-project-start-date"
+                                    type="date"
+                                    value="${escapeHtml(adminState.newProjectForm.start_date)}"
+                                    oninput="updateAdminProjectField('start_date', this.value)"
+                                    onchange="updateAdminProjectField('start_date', this.value)">
+                            </label>
+
+                            <!-- End Date -->
+                            <label class="admin-form-field">
+                                <span>End date</span>
+
+                                <input
+                                    id="admin-project-end-date"
+                                    type="date"
+                                    value="${escapeHtml(adminState.newProjectForm.end_date)}"
+                                    oninput="updateAdminProjectField('end_date', this.value)"
+                                    onchange="updateAdminProjectField('end_date', this.value)">
+                            </label>
+
+                        </div>
+
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="admin-modal-actions">
+
+                        <button
+                            class="action-btn secondary-btn"
+                            type="button"
+                            onclick="closeAdminProjectModal()">
+
+                            Cancel
+                        </button>
+
+                        <button
+                            class="action-btn admin-add-user-btn"
+                            type="submit"
+                            ${adminState.isCreatingProject ? "disabled" : ""}>
+
+                            <i class="fas fa-plus"></i>
+
+                            ${adminState.isCreatingProject ? "Creating..." : "Create Project"}
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+    `;
+}
+
+function openAdminProjectModal() {
+    adminState.newProjectForm = {
+        name: "",
+        description: "",
+        assigned_manager: "",
+        start_date: "",
+        end_date: "",
+        status: "Planning"
+    };
+    adminState.isProjectModalOpen = true;
+    renderProjectsView();
+}
+
+function closeAdminProjectModal() {
+    adminState.isProjectModalOpen = false;
+    adminState.isCreatingProject = false;
+    adminState.newProjectForm = {
+        name: "",
+        description: "",
+        assigned_manager: "",
+        start_date: "",
+        end_date: "",
+        status: "Planning"
+    };
+    renderProjectsView();
+}
+
+function handleAdminProjectBackdrop(event) {
+    if (event.target.classList.contains("admin-modal-backdrop")) {
+        closeAdminProjectModal();
+    }
+}
+
+function updateAdminProjectField(field, value) {
+    if (!(field in adminState.newProjectForm)) return;
+    adminState.newProjectForm[field] = value;
+}
+
+async function submitAdminProject(event) {
+    if (event) event.preventDefault();
+    if (adminState.isCreatingProject) return;
+
+    const token = sessionStorage.getItem("token");
+    const rawName = String(document.getElementById("admin-project-name")?.value || adminState.newProjectForm.name || "").trim();
+    const description = String(document.getElementById("admin-project-description")?.value || adminState.newProjectForm.description || "").trim();
+    const assignedManager = String(document.getElementById("admin-project-manager")?.value || adminState.newProjectForm.assigned_manager || "").trim();
+    const startDate = String(document.getElementById("admin-project-start-date")?.value || adminState.newProjectForm.start_date || "").trim();
+    const endDate = String(document.getElementById("admin-project-end-date")?.value || adminState.newProjectForm.end_date || "").trim();
+    const status = String(document.getElementById("admin-project-status")?.value || adminState.newProjectForm.status || "Planning").trim();
+    const name = rawName.replace(/^./, (char) => char.toUpperCase());
+
+    adminState.newProjectForm = {
+        name,
+        description,
+        assigned_manager: assignedManager,
+        start_date: startDate,
+        end_date: endDate,
+        status
+    };
+
+    if (!name) {
+        showNotification("Project name is required.", "warning");
+        return;
+    }
+    if (!assignedManager) {
+        showNotification("Please assign a manager before creating the project.", "warning");
+        return;
+    }
+    if (startDate && endDate && startDate > endDate) {
+        showNotification("End date must be after start date.", "warning");
+        return;
+    }
+
+    adminState.isCreatingProject = true;
+    renderProjectsView();
+
+    try {
+        const response = await fetch(`${BASE_URL}/projects`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                name,
+                project_name: name,
+                description,
+                assigned_manager: assignedManager || null,
+                start_date: startDate || null,
+                end_date: endDate || null,
+                status
+            })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.detail || "Unable to create project.");
+        }
+
+        const createdProject = data?.project || null;
+        const createdProjectId = createdProject?.id;
+        const normalizedAssignedManager = assignedManager.toLowerCase();
+        const normalizedSavedManager = String(createdProject?.assigned_manager || "").trim().toLowerCase();
+
+        if (createdProjectId && normalizedAssignedManager && normalizedSavedManager !== normalizedAssignedManager) {
+            const assignResponse = await fetch(`${BASE_URL}/projects/${encodeURIComponent(createdProjectId)}/assign-manager`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    assigned_manager: assignedManager
+                })
+            });
+
+            const assignData = await assignResponse.json().catch(() => ({}));
+            if (!assignResponse.ok) {
+                throw new Error(assignData.message || assignData.detail || "Project was created, but manager assignment failed.");
+            }
+        }
+
+        showNotification(data.message || `Project "${name}" created successfully.`);
+        if (socket?.readyState === WebSocket.OPEN) {
+            socket.send(`New Project Created: ${name}`);
+        }
+        await refreshAdminData();
+        closeAdminProjectModal();
+    } catch (error) {
+        console.error("Failed to create project", error);
+        adminState.isCreatingProject = false;
+        renderProjectsView();
+        showNotification(error.message || "Unable to create project.", "error");
+    }
 }
 
 function renderTasksView() {
@@ -525,6 +1004,10 @@ function renderTasksView() {
                     <h3>My Tasks</h3>
                 </div>
                 <div class="admin-task-actions">
+                    <button class="action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
+                        <i class="fas fa-plus"></i>
+                        Assign Task
+                    </button>
                     <select class="admin-task-filter" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
                         <option value="all">All Projects</option>
                         ${projectOptions}
@@ -537,6 +1020,7 @@ function renderTasksView() {
                     </select>
                 </div>
             </div>
+            ${adminState.isTaskModalOpen ? renderAdminTaskModal(stats.filteredProjects) : ""}
             <div class="data-panel task-table-panel">
                 <div class="data-table-wrap">
                     <table class="admin-table admin-task-table">
@@ -572,6 +1056,256 @@ function renderTasksView() {
     `;
 }
 
+function renderAdminTaskModal(projects) {
+    const assignableUsers = adminState.users.filter((user) => String(user.role || "").toLowerCase() === "user");
+
+    return `
+        <div class="admin-modal-backdrop" onclick="handleAdminTaskBackdrop(event)">
+            <div class="admin-modal-card admin-task-modal-card" role="dialog" aria-modal="true" aria-labelledby="admin-task-title" onclick="event.stopPropagation()">
+                <div class="admin-modal-head">
+                    <div>
+                        <h3 id="admin-task-title">Assign Task</h3>
+                        <p>Create a task and assign it to one or more users.</p>
+                    </div>
+                    <button class="admin-modal-close" type="button" aria-label="Close assign task modal" onclick="closeAdminTaskModal()">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+
+                <form class="admin-user-form" onsubmit="submitAdminTask(event)">
+                    <div class="admin-user-form-section">
+                        <label class="admin-form-field">
+                            <span>Project <strong>*</strong></span>
+                            <select onchange="updateAdminTaskField('projectId', this.value)" required>
+                                <option value="">Select project</option>
+                                ${projects.map((project) => `
+                                    <option value="${escapeHtml(String(project.id))}" ${String(adminState.newTaskForm.projectId) === String(project.id) ? "selected" : ""}>
+                                        ${escapeHtml(project.name || "Untitled Project")}
+                                    </option>
+                                `).join("")}
+                            </select>
+                        </label>
+
+                        <label class="admin-form-field">
+                            <span>Task title <strong>*</strong></span>
+                            <input type="text" value="${escapeHtml(adminState.newTaskForm.title)}" oninput="updateAdminTaskField('title', this.value)" placeholder="Enter task title" maxlength="160" required>
+                        </label>
+                        <label class="admin-form-field">
+                            <span>Description</span>
+                            <input type="text" value="${escapeHtml(adminState.newTaskForm.description)}" oninput="updateAdminTaskField('description', this.value)" placeholder="Task scope, notes, or delivery details" maxlength="220">
+                        </label>
+
+                        <label class="admin-form-field">
+                            <span>Deadline</span>
+                            <input type="date" value="${escapeHtml(adminState.newTaskForm.deadline)}" onchange="updateAdminTaskField('deadline', this.value)">
+                        </label>
+                        <label class="admin-form-field">
+                            <span>Priority</span>
+                            <select onchange="updateAdminTaskField('priority', this.value)">
+                                ${["Low", "Medium", "High", "Urgent"].map((priority) => `
+                                    <option value="${priority}" ${adminState.newTaskForm.priority === priority ? "selected" : ""}>${priority}</option>
+                                `).join("")}
+                            </select>
+                        </label>
+
+                        <div class="admin-form-field">
+                            <span>Assign users <strong>*</strong></span>
+                            <label class="admin-task-search-field" for="adminTaskAssigneeSearch">
+                                <i class="fas fa-search"></i>
+                                <input id="adminTaskAssigneeSearch" type="text" placeholder="Search users by name or email..." oninput="filterAdminTaskAssignees(this.value)">
+                            </label>
+                            <div class="admin-task-user-list">
+                                ${assignableUsers.length ? assignableUsers.map((user) => {
+                                    const checked = adminState.newTaskForm.assignedTo.includes(user.email);
+                                    return `
+                                        <label class="admin-task-user-option" data-user-search="${escapeHtml(`${String(user.username || "").toLowerCase()} ${String(user.email || "").toLowerCase()}`)}">
+                                            <input type="checkbox" value="${escapeHtml(user.email)}" ${checked ? "checked" : ""} onchange="toggleAdminTaskAssignee(this.value, this.checked)">
+                                            <span>${escapeHtml(user.username || user.email)}</span>
+                                            <small>${escapeHtml(user.email)}</small>
+                                        </label>
+                                    `;
+                                }).join("") : `<div class="project-empty-state admin-task-user-empty">No users available to assign.</div>`}
+                            </div>
+                        </div>
+                        <label class="admin-form-field">
+                            <span>Attachments</span>
+                            <input type="file" multiple onchange="updateAdminTaskAttachments(this.files)">
+                            <small>${adminState.newTaskForm.attachments.length ? `${adminState.newTaskForm.attachments.length} file(s) selected` : "Upload files after task creation automatically."}</small>
+                        </label>
+                    </div>
+                    <div class="admin-modal-actions">
+                        <button class="action-btn secondary-btn" type="button" onclick="closeAdminTaskModal()">Cancel</button>
+                        <button class="action-btn admin-add-user-btn" type="submit" ${adminState.isCreatingTask ? "disabled" : ""}>
+                            <i class="fas fa-plus"></i>
+                            ${adminState.isCreatingTask ? "Assigning..." : "Assign Task"}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+}
+
+function renderTeamView() {
+    const projectMap = new Map(adminState.projects.map((project) => [String(project.id), project]));
+    const userMap = new Map(
+        adminState.users.map((user) => [String(user.email || "").trim().toLowerCase(), user])
+    );
+    const searchValue = String(adminTeamFilters.searchTerm || "").trim().toLowerCase();
+
+    const visibleProjects = adminState.projects.filter((project) => {
+        if (adminTeamFilters.projectId !== "all" && String(project.id) !== String(adminTeamFilters.projectId)) {
+            return false;
+        }
+
+        if (!searchValue) return true;
+
+        const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
+        const members = buildAdminTeamRows(projectTasks, userMap);
+        const haystack = [
+            project.name,
+            ...projectTasks.map((task) => task.title),
+            ...members.flatMap((member) => [member.name, member.email])
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+        return haystack.includes(searchValue);
+    });
+
+    const projectOptions = adminState.projects.map((project) => `
+        <option value="${escapeHtml(String(project.id))}" ${String(adminTeamFilters.projectId) === String(project.id) ? "selected" : ""}>
+            ${escapeHtml(project.name || "Untitled Project")}
+        </option>
+    `).join("");
+
+    document.getElementById("mainContent").innerHTML = `
+        <div class="list-view admin-team-view">
+            <div class="view-header">
+                <div>
+                    <h3>My Team</h3>
+                    <p>Review team members grouped by project.</p>
+                </div>
+            </div>
+            <div class="data-panel">
+                <div class="admin-team-toolbar">
+                    <label class="admin-team-search" for="adminTeamSearch">
+                        <i class="fas fa-search"></i>
+                        <input
+                            id="adminTeamSearch"
+                            type="text"
+                            placeholder="Search projects or members..."
+                            value="${escapeHtml(adminTeamFilters.searchTerm)}"
+                            oninput="setAdminTeamSearch(this.value)"
+                        >
+                    </label>
+                    <select class="admin-team-filter" onchange="setAdminTeamProjectFilter(this.value)" aria-label="Filter team projects">
+                        <option value="all">All Projects</option>
+                        ${projectOptions}
+                    </select>
+                </div>
+                <div class="admin-team-project-list">
+                    ${visibleProjects.length ? visibleProjects.map((project, index) => renderAdminTeamProject(project, projectMap, userMap, index)).join("") : `<div class="empty-state">No team members found.</div>`}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function renderAdminTeamProject(project, projectMap, userMap, index) {
+    const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
+    const members = buildAdminTeamRows(projectTasks, userMap);
+    const isExpanded = isAdminTeamProjectExpanded(project.id, index === 0 || adminTeamFilters.projectId !== "all" || Boolean(adminTeamFilters.searchTerm));
+
+    return `
+        <section class="admin-team-project-card ${isExpanded ? "expanded" : "collapsed"}">
+            <button class="admin-team-project-head" type="button" onclick="toggleAdminTeamProject('${escapeHtml(String(project.id))}')" aria-expanded="${isExpanded ? "true" : "false"}">
+                <div class="admin-team-project-title">
+                    <span class="admin-team-project-icon">
+                        <i class="fas fa-folder"></i>
+                    </span>
+                    <h4>${escapeHtml(project.name || "Untitled Project")}</h4>
+                    <span class="admin-team-member-count">${members.length} Member${members.length === 1 ? "" : "s"}</span>
+                </div>
+                <span class="admin-team-project-toggle" aria-hidden="true">
+                    <i class="fas fa-chevron-down"></i>
+                </span>
+            </button>
+            <div class="admin-team-table-wrap ${isExpanded ? "" : "hidden"}">
+                <table class="admin-table admin-team-table">
+                    <thead>
+                        <tr>
+                            <th>Member</th>
+                            <th>Email</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${members.length ? members.map((member) => renderAdminTeamMemberRow(member)).join("") : `<tr><td colspan="2" class="empty-state">No members yet.</td></tr>`}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    `;
+}
+
+function buildAdminTeamRows(tasks, userMap) {
+    const members = new Map();
+
+    tasks.forEach((task) => {
+        getTaskAssignments(task).forEach((assignment) => {
+            const email = String(assignment.user_id || "").trim().toLowerCase();
+            if (!email || members.has(email)) return;
+
+            const user = userMap.get(email) || {};
+            members.set(email, {
+                email: assignment.user_id || email,
+                name: user.username || assignment.user_id || email
+            });
+        });
+    });
+
+    return Array.from(members.values()).sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function renderAdminTeamMemberRow(member) {
+    return `
+        <tr>
+            <td>
+                <span class="admin-team-member-cell">
+                    <span class="admin-team-avatar">${escapeHtml(getInitial(member.name || member.email))}</span>
+                    <span>${escapeHtml(member.name || "Unknown")}</span>
+                </span>
+            </td>
+            <td>${escapeHtml(member.email || "-")}</td>
+        </tr>
+    `;
+}
+
+function isAdminTeamProjectExpanded(projectId, defaultExpanded = false) {
+    const key = String(projectId || "");
+    if (Object.prototype.hasOwnProperty.call(expandedAdminTeamProjects, key)) {
+        return expandedAdminTeamProjects[key];
+    }
+    return defaultExpanded;
+}
+
+function toggleAdminTeamProject(projectId) {
+    const key = String(projectId || "");
+    expandedAdminTeamProjects[key] = !isAdminTeamProjectExpanded(key, true);
+    renderTeamView();
+}
+
+function setAdminTeamSearch(value) {
+    adminTeamFilters.searchTerm = String(value || "");
+    renderTeamView();
+}
+
+function setAdminTeamProjectFilter(value) {
+    adminTeamFilters.projectId = value || "all";
+    renderTeamView();
+}
+
 function setAdminTaskProjectFilter(value) {
     adminTaskFilters.projectId = value || "all";
     adminTaskFilters.page = 1;
@@ -589,9 +1323,197 @@ function setAdminTaskPage(page) {
     renderTasksView();
 }
 
+function openAdminTaskModal(projectId = "") {
+    adminState.isTaskModalOpen = true;
+    adminState.newTaskForm = {
+        projectId: projectId || (adminTaskFilters.projectId !== "all" ? String(adminTaskFilters.projectId) : ""),
+        title: "",
+        description: "",
+        priority: "Medium",
+        assignedTo: [],
+        deadline: "",
+        attachments: []
+    };
+    renderTasksView();
+}
+
+function closeAdminTaskModal() {
+    adminState.isTaskModalOpen = false;
+    adminState.isCreatingTask = false;
+    adminState.newTaskForm = {
+        projectId: "",
+        title: "",
+        description: "",
+        priority: "Medium",
+        assignedTo: [],
+        deadline: "",
+        attachments: []
+    };
+    renderTasksView();
+}
+
+function handleAdminTaskBackdrop(event) {
+    if (event.target.classList.contains("admin-modal-backdrop")) {
+        closeAdminTaskModal();
+    }
+}
+
+function updateAdminTaskField(field, value) {
+    if (!(field in adminState.newTaskForm)) return;
+    adminState.newTaskForm[field] = value;
+}
+
+function updateAdminTaskAttachments(fileList) {
+    adminState.newTaskForm.attachments = Array.from(fileList || []);
+    renderTasksView();
+}
+
+function toggleAdminTaskAssignee(email, checked) {
+    const selected = new Set(adminState.newTaskForm.assignedTo);
+    if (checked) {
+        selected.add(email);
+    } else {
+        selected.delete(email);
+    }
+    adminState.newTaskForm.assignedTo = Array.from(selected);
+}
+
+function filterAdminTaskAssignees(value) {
+    const query = String(value || "").trim().toLowerCase();
+    document.querySelectorAll(".admin-task-user-option").forEach((option) => {
+        const haystack = String(option.dataset.userSearch || "");
+        option.style.display = !query || haystack.includes(query) ? "" : "none";
+    });
+}
+
+async function submitAdminTask(event) {
+    if (event) event.preventDefault();
+    if (adminState.isCreatingTask) return;
+
+    const token = sessionStorage.getItem("token");
+    const projectId = String(adminState.newTaskForm.projectId || "").trim();
+    const title = String(adminState.newTaskForm.title || "").trim();
+    const description = String(adminState.newTaskForm.description || "").trim();
+    const priority = String(adminState.newTaskForm.priority || "Medium").trim();
+    const assignedTo = adminState.newTaskForm.assignedTo.filter(Boolean);
+    const deadline = String(adminState.newTaskForm.deadline || "").trim();
+    const attachments = Array.isArray(adminState.newTaskForm.attachments) ? adminState.newTaskForm.attachments : [];
+
+    if (!projectId) {
+        showNotification("Please select a project.", "warning");
+        return;
+    }
+    if (!title) {
+        showNotification("Task title is required.", "warning");
+        return;
+    }
+    if (!assignedTo.length) {
+        showNotification("Select at least one user to assign.", "warning");
+        return;
+    }
+
+    adminState.isCreatingTask = true;
+    renderTasksView();
+
+    try {
+        const response = await fetch(`${BASE_URL}/tasks`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                title,
+                task_title: title,
+                project_id: projectId,
+                description,
+                priority,
+                assigned_to: assignedTo,
+                assigned_users: assignedTo,
+                status: "Pending",
+                deadline,
+                due_date: deadline
+            })
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.detail || "Unable to assign task.");
+        }
+
+        if (attachments.length && data?.task?.id) {
+            for (const file of attachments) {
+                const formData = new FormData();
+                formData.append("file", file);
+                await fetch(`${BASE_URL}/tasks/${encodeURIComponent(data.task.id)}/attachments`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    },
+                    body: formData
+                });
+            }
+        }
+
+        showNotification(data.message || `Task "${title}" assigned successfully.`);
+        if (socket?.readyState === WebSocket.OPEN) {
+            socket.send(`New Task Added: ${title}`);
+        }
+        await refreshAdminData();
+        adminTaskFilters.projectId = projectId;
+        closeAdminTaskModal();
+    } catch (error) {
+        console.error("Failed to assign task", error);
+        adminState.isCreatingTask = false;
+        renderTasksView();
+        showNotification(error.message || "Unable to assign task.", "error");
+    }
+}
+
 async function adminDeleteTask(id) {
     await deleteTask(id);
     await refreshAdminData();
+    renderTasksView();
+}
+
+async function adminDeleteProject(id) {
+    const token = sessionStorage.getItem("token");
+    if (!id) return;
+
+    if (!confirm("Delete this project?")) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/projects/${encodeURIComponent(id)}`, {
+            method: "DELETE",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.detail || "Unable to delete project.");
+        }
+
+        showNotification(data.message || "Project deleted successfully.");
+        if (socket?.readyState === WebSocket.OPEN) {
+            socket.send("Project Deleted");
+        }
+        await refreshAdminData();
+        renderProjectsView();
+    } catch (error) {
+        console.error("Failed to delete project", error);
+        showNotification(error.message || "Unable to delete project.", "error");
+    }
+}
+
+function openAdminProjectWorkspace(projectId) {
+    if (!projectId) return;
+    adminTaskFilters.projectId = String(projectId);
+    adminTaskFilters.page = 1;
+    setActiveNav("tasks");
     renderTasksView();
 }
 
@@ -1931,6 +2853,7 @@ function computeDashboardStats() {
 
     const completedTasks = filteredTasks.filter((task) => isCompletedStatus(task.status)).length;
     const pendingTasks = filteredTasks.filter((task) => isPendingStatus(task.status)).length;
+    const inProgressTasks = filteredTasks.filter((task) => isInProgressStatus(task.status)).length;
     const statusBreakdown = buildProjectStatus(filteredTasks);
     const weeklyOverview = buildWeeklyTaskOverview(filteredTasks);
 
@@ -1940,6 +2863,7 @@ function computeDashboardStats() {
         filteredTasks,
         completedTasks,
         pendingTasks,
+        inProgressTasks,
         statusBreakdown,
         weeklyOverview,
         projectMap
@@ -2039,14 +2963,25 @@ function getTaskDayIndex(task, fallbackIndex) {
 function getRecentTasks(tasks) {
     return [...tasks]
         .sort((a, b) => compareDatesDesc(a.deadline, b.deadline) || String(a.title || "").localeCompare(String(b.title || "")))
-        .slice(0, 4);
+        .slice(0, 3);
 }
 
 function getUpcomingDeadlines(tasks) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     return [...tasks]
-        .filter((task) => task.deadline)
+        .filter((task) => {
+            if (!task.deadline) return false;
+
+            const date = new Date(task.deadline);
+            if (Number.isNaN(date.getTime())) return false;
+
+            date.setHours(0, 0, 0, 0);
+            return date >= today;
+        })
         .sort((a, b) => compareDatesAsc(a.deadline, b.deadline))
-        .slice(0, 3);
+        .slice(0, 4);
 }
 
 function renderStatusLegend(items) {
@@ -2114,16 +3049,106 @@ function renderDeadlines(tasks, projectMap) {
 function renderProjectCard(project) {
     const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
     const completedCount = projectTasks.filter((task) => isCompletedStatus(task.status)).length;
+    const completionRate = projectTasks.length ? Math.round((completedCount / projectTasks.length) * 100) : 0;
+    const managerName = project.assigned_manager ? getAdminUserDisplayName(project.assigned_manager) : "Unassigned";
+    const managers = getManagerUsers();
+    const managerControl = project.assigned_manager
+        ? `<span class="admin-project-manager-pill">${escapeHtml(managerName)}</span>`
+        : `
+            <select class="admin-project-manager-select" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" onchange="assignAdminProjectManager(event, '${escapeHtml(project.id)}', this.value)">
+                <option value="" selected disabled>Assign manager</option>
+                ${managers.map((manager) => `
+                    <option value="${escapeHtml(manager.email)}">
+                        ${escapeHtml(manager.username || manager.email)}
+                    </option>
+                `).join("")}
+            </select>
+        `;
 
     return `
-        <article class="mini-card">
-            <h4>${escapeHtml(project.name || "Untitled Project")}</h4>
-            <p>${escapeHtml(project.description || "No description available.")}</p>
-            <span>Owner: ${escapeHtml(project.owner_email || "Unknown")}</span>
-            <span>Tasks: ${projectTasks.length}</span>
-            <span>Completed: ${completedCount}</span>
+        <article class="admin-project-card manager-project-card" onclick="openAdminProjectWorkspace('${escapeHtml(project.id)}')">
+            <div class="manager-project-card-header"></div>
+            <div class="manager-project-card-body">
+                <div class="admin-project-card-copy">
+                    <h4>${escapeHtml(project.name || "Untitled Project")}</h4>
+                    <p>${projectTasks.length} ${projectTasks.length === 1 ? "Task" : "Tasks"} · Manager: ${escapeHtml(managerName)}</p>
+                    <span>${completionRate}% Complete · ${escapeHtml(project.status || "Planning")}</span>
+                </div>
+                <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+                    ${managerControl}
+                    <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">Delete</button>
+                </div>
+            </div>
         </article>
     `;
+}
+
+async function assignAdminProjectManager(event, projectId, managerEmail) {
+    if (event) event.stopPropagation();
+    const token = sessionStorage.getItem("token");
+    const normalizedManagerEmail = String(managerEmail || "").trim().toLowerCase();
+
+    if (!token || !projectId) {
+        showNotification("Unable to assign manager right now.", "error");
+        return;
+    }
+
+    if (!normalizedManagerEmail) {
+        showNotification("Please select a manager.", "warning");
+        await refreshAdminData();
+        renderProjectsView();
+        return;
+    }
+
+    try {
+        const projectIndex = adminState.projects.findIndex((project) => String(project.id) === String(projectId));
+        let response = await fetch(`${BASE_URL}/projects/${encodeURIComponent(projectId)}/assign-manager`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                assigned_manager: normalizedManagerEmail
+            })
+        });
+
+        if (response.status === 404) {
+            response = await fetch(`${BASE_URL}/projects/${encodeURIComponent(projectId)}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    assigned_manager: normalizedManagerEmail
+                })
+            });
+        }
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.detail || "Unable to assign manager.");
+        }
+
+        if (projectIndex >= 0) {
+            adminState.projects[projectIndex] = {
+                ...adminState.projects[projectIndex],
+                ...(data.project || {}),
+                assigned_manager: String(data?.project?.assigned_manager || normalizedManagerEmail).trim().toLowerCase(),
+                owner_email: String(data?.project?.owner_email || normalizedManagerEmail).trim().toLowerCase()
+            };
+        }
+
+        await refreshAdminData();
+        renderProjectsView();
+        showNotification(data.message || "Manager assigned successfully.");
+    } catch (error) {
+        console.error("Failed to assign manager", error);
+        await refreshAdminData();
+        renderProjectsView();
+        showNotification(error.message || "Unable to assign manager.", "error");
+    }
 }
 
 function renderProjectStatusChart(items) {
@@ -2458,11 +3483,11 @@ function formatDate(value) {
         return value;
     }
 
-    return date.toLocaleDateString("en-US", {
+    return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
         month: "short",
-        day: "numeric",
         year: "numeric"
-    });
+    }).replace(/ /g, "-");
 }
 
 function isOverdue(value) {
@@ -2501,6 +3526,7 @@ window.handleAdminSearch = handleAdminSearch;
 window.goToDashboard = goToDashboard;
 window.goToProjects = goToProjects;
 window.goToTasks = goToTasks;
+window.goToTeam = goToTeam;
 window.goToUsers = goToUsers;
 window.goToReports = goToReports;
 window.goToFiles = goToFiles;
@@ -2519,7 +3545,26 @@ window.toggleAdminReportList = toggleAdminReportList;
 window.setAdminTaskProjectFilter = setAdminTaskProjectFilter;
 window.setAdminTaskStatusFilter = setAdminTaskStatusFilter;
 window.setAdminTaskPage = setAdminTaskPage;
+window.toggleAdminTeamProject = toggleAdminTeamProject;
+window.setAdminTeamSearch = setAdminTeamSearch;
+window.setAdminTeamProjectFilter = setAdminTeamProjectFilter;
 window.adminDeleteTask = adminDeleteTask;
+window.openAdminTaskModal = openAdminTaskModal;
+window.closeAdminTaskModal = closeAdminTaskModal;
+window.handleAdminTaskBackdrop = handleAdminTaskBackdrop;
+window.updateAdminTaskField = updateAdminTaskField;
+window.updateAdminTaskAttachments = updateAdminTaskAttachments;
+window.toggleAdminTaskAssignee = toggleAdminTaskAssignee;
+window.filterAdminTaskAssignees = filterAdminTaskAssignees;
+window.submitAdminTask = submitAdminTask;
+window.openAdminProjectModal = openAdminProjectModal;
+window.closeAdminProjectModal = closeAdminProjectModal;
+window.handleAdminProjectBackdrop = handleAdminProjectBackdrop;
+window.updateAdminProjectField = updateAdminProjectField;
+window.submitAdminProject = submitAdminProject;
+window.assignAdminProjectManager = assignAdminProjectManager;
+window.adminDeleteProject = adminDeleteProject;
+window.openAdminProjectWorkspace = openAdminProjectWorkspace;
 window.setAdminUserPage = setAdminUserPage;
 window.setAdminUserSearch = setAdminUserSearch;
 window.setAdminUserRoleFilter = setAdminUserRoleFilter;

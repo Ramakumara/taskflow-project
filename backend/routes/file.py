@@ -1,11 +1,13 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.responses import FileResponse
+from bson import ObjectId
 import os
 import shutil
 from datetime import datetime
 
 from auth_utils import get_current_user
 from database import db
+from taskflow_utils import get_visible_task_filter, normalize_assignment_emails
 
 router = APIRouter()
 
@@ -65,7 +67,8 @@ def _serialize_file(doc):
     except OSError:
         pass
 
-    filename = doc.get("name", "")
+    filename = doc.get("display_name") or doc.get("name", "")
+    storage_name = doc.get("stored_name") or doc.get("name", "")
     ext = os.path.splitext(filename)[1].lower().lstrip(".")
     mime_map = {
         "pdf": "pdf",
@@ -92,6 +95,7 @@ def _serialize_file(doc):
 
     return {
         "name": filename,
+        "storage_name": storage_name,
         "path": doc.get("path"),
         "size": size,
         "uploaded_at": modified,
@@ -100,6 +104,9 @@ def _serialize_file(doc):
         "owner_name": doc.get("owner_name"),
         "owner_role": doc.get("owner_role"),
         "shared_with": doc.get("shared_with", []),
+        "source": doc.get("source", "upload"),
+        "task_id": doc.get("task_id"),
+        "task_title": doc.get("task_title"),
         "type": mime_map.get(ext, "folder" if not ext else ext),
     }
 
@@ -116,6 +123,63 @@ def _format_size(num_bytes):
     return "-"
 
 
+def _ensure_task_attachment_files(current_user: dict):
+    visible_tasks = list(
+        db.tasks.find(
+            get_visible_task_filter(current_user),
+            {
+                "_id": 1,
+                "task_title": 1,
+                "title": 1,
+                "attachments": 1,
+                "assigned_to": 1,
+                "assigned_users": 1,
+                "created_by": 1,
+                "assigned_by": 1,
+                "updated_at": 1,
+            },
+        )
+    )
+
+    for task in visible_tasks:
+        task_id = str(task.get("_id"))
+        shared_with = normalize_assignment_emails(task.get("assigned_users") or task.get("assigned_to") or [])
+        owner_email = task.get("assigned_by") or task.get("created_by")
+        owner = db.users.find_one({"email": owner_email}, {"_id": 0, "email": 1, "username": 1, "role": 1}) if owner_email else None
+
+        for attachment in task.get("attachments") or []:
+            if not isinstance(attachment, dict):
+                continue
+
+            stored_name = attachment.get("stored_name") or attachment.get("name")
+            file_path = attachment.get("path")
+            if not stored_name or not file_path:
+                continue
+
+            db.files.update_one(
+                {"stored_name": stored_name},
+                {
+                    "$set": {
+                        "name": stored_name,
+                        "display_name": attachment.get("name") or stored_name,
+                        "stored_name": stored_name,
+                        "path": file_path,
+                        "size": os.path.getsize(file_path) if os.path.exists(file_path) else None,
+                        "uploaded_at": attachment.get("uploaded_at"),
+                        "owner_email": owner_email,
+                        "owner_name": owner.get("username") if owner else owner_email,
+                        "owner_role": owner.get("role") if owner else "manager",
+                        "shared_with": shared_with,
+                        "source": "task_attachment",
+                        "task_id": task_id,
+                        "task_title": task.get("task_title") or task.get("title"),
+                        "updated_at": task.get("updated_at"),
+                    }
+                },
+                upsert=True,
+            )
+
+
 @router.post("/upload")
 async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
@@ -126,6 +190,8 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
     db.files.insert_one(
         {
             "name": file.filename,
+            "display_name": file.filename,
+            "stored_name": file.filename,
             "path": file_path,
             "size": os.path.getsize(file_path),
             "uploaded_at": datetime.utcnow().isoformat(),
@@ -141,6 +207,7 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
 
 @router.get("")
 def list_files(current_user: dict = Depends(get_current_user)):
+    _ensure_task_attachment_files(current_user)
     query = {}
     if current_user.get("role") == "admin":
         query = {}
@@ -178,7 +245,7 @@ def list_files(current_user: dict = Depends(get_current_user)):
 
 @router.get("/download/{filename}")
 def download_file(filename: str, current_user: dict = Depends(get_current_user)):
-    file = db.files.find_one({"name": filename})
+    file = db.files.find_one({"$or": [{"name": filename}, {"stored_name": filename}]})
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -189,15 +256,15 @@ def download_file(filename: str, current_user: dict = Depends(get_current_user))
         if not allowed:
             raise HTTPException(status_code=403, detail="Access denied")
 
-    file_path = os.path.join(UPLOAD_DIR, filename)
+    file_path = file.get("path") or os.path.join(UPLOAD_DIR, file.get("stored_name") or file.get("name") or filename)
     if not os.path.exists(file_path):
         raise HTTPException(status_code=404, detail="File not found")
-    return FileResponse(file_path, filename=filename)
+    return FileResponse(file_path, filename=file.get("display_name") or file.get("name") or filename)
 
 
 @router.delete("/{filename}")
 def delete_file(filename: str, current_user: dict = Depends(get_current_user)):
-    file = db.files.find_one({"name": filename})
+    file = db.files.find_one({"$or": [{"name": filename}, {"stored_name": filename}]})
 
     if file:
         if not _can_manage_file(file, current_user):
@@ -205,7 +272,18 @@ def delete_file(filename: str, current_user: dict = Depends(get_current_user)):
 
         if os.path.exists(file["path"]):
             os.remove(file["path"])
-        db.files.delete_one({"name": filename})
+        db.files.delete_one({"_id": file["_id"]})
+        if file.get("source") == "task_attachment" and file.get("task_id"):
+            task_object_id = None
+            try:
+                task_object_id = ObjectId(str(file.get("task_id")))
+            except Exception:
+                task_object_id = None
+            if task_object_id:
+                db.tasks.update_one(
+                    {"_id": task_object_id},
+                    {"$pull": {"attachments": {"stored_name": file.get("stored_name") or file.get("name")}}},
+                )
         return {"message": "Deleted"}
 
     raise HTTPException(status_code=404, detail="Not found")
@@ -213,7 +291,7 @@ def delete_file(filename: str, current_user: dict = Depends(get_current_user)):
 
 @router.post("/{filename}/share")
 def share_file(filename: str, payload: dict, current_user: dict = Depends(get_current_user)):
-    file = db.files.find_one({"name": filename})
+    file = db.files.find_one({"$or": [{"name": filename}, {"stored_name": filename}]})
     if not file:
         raise HTTPException(status_code=404, detail="Not found")
 
@@ -237,7 +315,7 @@ def share_file(filename: str, payload: dict, current_user: dict = Depends(get_cu
     shared_with = [str(item).strip() for item in shared_with if str(item).strip()]
 
     db.files.update_one(
-        {"name": filename},
+        {"_id": file["_id"]},
         {"$set": {"shared_with": shared_with}},
     )
     return {"message": "Shared"}

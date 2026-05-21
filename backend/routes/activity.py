@@ -20,19 +20,19 @@ def get_team_emails(current_user: dict):
         return None
 
     if role == "manager":
-        project_ids = [project["_id"] for project in db.projects.find({"owner_email": email}, {"_id": 1})]
+        project_ids = [project["_id"] for project in db.projects.find({"assigned_manager": email}, {"_id": 1})]
         if not project_ids:
             return []
 
-        member_emails = db.tasks.distinct("assigned_to", {"project_id": {"$in": project_ids}})
+        member_emails = db.tasks.distinct("assigned_users", {"project_id": {"$in": project_ids}})
         team_emails = sorted({str(member).strip() for member in member_emails if member and str(member).strip().lower() != email.lower()})
         return team_emails
 
-    project_ids = db.tasks.distinct("project_id", {"assigned_to": email})
+    project_ids = db.tasks.distinct("project_id", {"assigned_users": email})
     if not project_ids:
         return [email]
 
-    member_emails = db.tasks.distinct("assigned_to", {"project_id": {"$in": project_ids}})
+    member_emails = db.tasks.distinct("assigned_users", {"project_id": {"$in": project_ids}})
     team_emails = sorted({str(member).strip() for member in member_emails if member})
     if email not in team_emails:
         team_emails.append(email)

@@ -1,204 +1,425 @@
-from fastapi import APIRouter, HTTPException
-from database import db
-from models.projects import ProjectCreate
+from datetime import datetime
+
 from bson import ObjectId
-from fastapi import Depends
+from fastapi import APIRouter, Depends, HTTPException
+import re
+
 from auth_utils import get_current_user
+from database import db
+from models.projects import AssignManagerPayload, ProjectCreate, ProjectUpdate
+from rbac import Permission, Role, normalize_role, require_permission, require_roles
 from routes.activity import record_activity
-from rbac import Role, Permission, require_permission
+from taskflow_utils import (
+    add_notification,
+    get_visible_project_filter,
+    get_visible_task_filter,
+    normalize_assignment_emails,
+    normalize_project_status,
+    safe_object_id,
+    serialize_project,
+    serialize_task,
+    utc_now_iso,
+)
 
 router = APIRouter()
 
-STATUS_LABELS = {
-    "todo": "Pending",
-    "pending": "Pending",
-    "in progress": "In Progress",
-    "progress": "In Progress",
-    "done": "Completed",
-    "completed": "Completed"
-}
 
-def normalize_assignment_status(status):
-    return STATUS_LABELS.get(str(status or "Pending").strip().lower(), "Pending")
+def _resolve_project_name(payload: ProjectCreate | ProjectUpdate) -> str:
+    return str(payload.project_name or payload.name or "").strip()
 
-def calculate_task_status(assignments):
-    statuses = [normalize_assignment_status(a.get("status")) for a in assignments]
 
-    if statuses and all(status == "Completed" for status in statuses):
-        return "Completed"
+def _normalize_manager_email(email: str | None) -> str | None:
+    value = str(email or "").strip().lower()
+    return value or None
 
-    if any(status != "Pending" for status in statuses):
-        return "In Progress"
 
-    return "Pending"
+def _requested_manager_email(
+    payload: ProjectCreate | ProjectUpdate | AssignManagerPayload,
+) -> str | None:
+    return _normalize_manager_email(
+        getattr(payload, "assigned_manager", None)
+        or getattr(payload, "manager_email", None)
+        or getattr(payload, "owner_email", None)
+    )
 
-def format_mongo(doc):
-    doc["id"] = str(doc["_id"])
-    del doc["_id"]
-    return doc
 
-def format_assignment(doc):
-    return {
-        "id": str(doc.get("_id")),
-        "task_id": str(doc.get("task_id")),
-        "user_id": doc.get("user_id"),
-        "status": normalize_assignment_status(doc.get("status")),
-        "assigned_date": doc.get("assigned_date"),
-        "completion_date": doc.get("completion_date")
-    }
-
-def ensure_task_assignments(doc):
-    assignments = list(db.task_assignments.find({"task_id": doc["_id"]}))
-    if assignments:
-        return assignments
-
-    assigned_to = doc.get("assigned_to", [])
-    if not isinstance(assigned_to, list):
-        assigned_to = [assigned_to] if assigned_to else []
-
-    assignments_to_insert = [
-        {
-            "task_id": doc["_id"],
-            "user_id": str(email),
-            "status": normalize_assignment_status(doc.get("status")),
-            "assigned_date": None,
-            "completion_date": None
+def _validate_manager(email: str | None) -> dict | None:
+    normalized_email = _normalize_manager_email(email)
+    if not normalized_email:
+        return None
+    manager = db.users.find_one({
+        "email": {
+            "$regex": f"^{re.escape(normalized_email)}$",
+            "$options": "i"
         }
-        for email in assigned_to
-        if email
-    ]
+    })
+    if not manager:
+        raise HTTPException(status_code=404, detail="Manager not found")
+    if normalize_role(manager.get("role")) != Role.MANAGER.value:
+        raise HTTPException(status_code=400, detail="Assigned user must have manager role")
+    manager["email"] = normalized_email
+    return manager
 
-    if assignments_to_insert:
-        db.task_assignments.insert_many(assignments_to_insert)
-        assignments = list(db.task_assignments.find({"task_id": doc["_id"]}))
-
-    return assignments
-
-def format_task(doc):
-    assignments = ensure_task_assignments(doc)
-    main_status = calculate_task_status(assignments)
-
-    doc["id"] = str(doc["_id"])
-    del doc["_id"]
-
-    if "project_id" in doc:
-        doc["project_id"] = str(doc["project_id"])
-
-    doc["status"] = main_status
-    doc["assignments"] = [format_assignment(assignment) for assignment in assignments]
-    doc["assigned_statuses"] = doc["assignments"]
-    doc["assigned_to"] = [assignment["user_id"] for assignment in doc["assignments"]]
-
-    return doc
-
-def format_team_user(doc):
-    return {
-        "email": doc.get("email"),
-        "username": doc.get("username"),
-        "role": doc.get("role")
-    }
 
 @router.post("/projects")
-def create_project(project: ProjectCreate, current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS))):
+def create_project(
+    project: ProjectCreate,
+    current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS)),
+):
+    current_role = normalize_role(current_user.get("role"))
+    project_name = _resolve_project_name(project)
+    if not project_name:
+        raise HTTPException(status_code=400, detail="Project name is required")
 
-    new_project = project.model_dump()
-    new_project["owner_email"] = current_user["email"]  
+    requested_manager = _requested_manager_email(project)
 
-    db.projects.insert_one(new_project)
+    if current_role == Role.ADMIN.value and not requested_manager:
+        raise HTTPException(status_code=400, detail="Assigned manager is required for admin-created projects")
+
+    manager = _validate_manager(requested_manager)
+    assigned_manager = (
+        str(manager.get("email")).strip().lower()
+        if manager
+        else str(current_user["email"]).strip().lower()
+        if current_role == Role.MANAGER.value
+        else None
+    )
+
+    document = {
+        "name": project_name,
+        "project_name": project_name,
+        "description": str(project.description or "").strip(),
+        "assigned_manager": assigned_manager,
+        "owner_email": assigned_manager,
+        "start_date": project.start_date,
+        "end_date": project.end_date,
+        "status": normalize_project_status(project.status),
+        "created_by": str(current_user.get("email") or "").strip().lower(),
+        "created_at": utc_now_iso(),
+        "updated_at": utc_now_iso(),
+    }
+
+    result = db.projects.insert_one(document)
+    if assigned_manager:
+        add_notification(
+            assigned_manager,
+            f"You were assigned to project '{project_name}'.",
+            "Project Assignment",
+        )
+
     record_activity(
         current_user,
         "Project created",
-        "Project",
-        f"Name: {new_project['name']}"
+        f"Project: {project_name}",
+        f"Manager: {assigned_manager or 'Unassigned'}",
     )
-    return {"message": "Project created"}
+
+    saved = db.projects.find_one({"_id": result.inserted_id})
+    return {
+        "message": "Project created successfully",
+        "project": serialize_project(saved),
+    }
 
 
 @router.get("/projects")
 def get_projects(current_user: dict = Depends(get_current_user)):
+    query = get_visible_project_filter(current_user)
+    data = list(db.projects.find(query).sort("created_at", -1))
 
-    if current_user["role"] == "manager":
-        data = list(db.projects.find({"owner_email": current_user["email"]}))
-    elif current_user["role"] == "admin":
-        data = list(db.projects.find())
-    else:
-        member_task_ids = db.task_assignments.distinct("task_id", {"user_id": current_user["email"]})
-        member_project_ids = db.tasks.distinct("project_id", {
-            "$or": [
-                {"_id": {"$in": member_task_ids}},
-                {"assigned_to": current_user["email"]}
-            ]
-        })
-        data = list(db.projects.find({"_id": {"$in": member_project_ids}})) if member_project_ids else []
-        
-    return [format_mongo(p) for p in data]
+    # Backfill legacy records opportunistically so manager visibility stays consistent.
+    for item in data:
+        normalized_owner = _normalize_manager_email(item.get("owner_email"))
+        normalized_manager = _normalize_manager_email(item.get("assigned_manager"))
+        updates = {}
+
+        if normalized_manager and normalized_manager != item.get("assigned_manager"):
+            updates["assigned_manager"] = normalized_manager
+        if normalized_owner and normalized_owner != item.get("owner_email"):
+            updates["owner_email"] = normalized_owner
+
+        if not normalized_manager and normalized_owner:
+            owner_user = db.users.find_one({"email": normalized_owner}, {"role": 1})
+            if owner_user and normalize_role(owner_user.get("role")) == Role.MANAGER.value:
+                updates["assigned_manager"] = normalized_owner
+                updates["owner_email"] = normalized_owner
+                item["assigned_manager"] = normalized_owner
+                item["owner_email"] = normalized_owner
+
+        if updates:
+            updates["updated_at"] = utc_now_iso()
+            db.projects.update_one(
+                {"_id": item["_id"]},
+                {"$set": updates},
+            )
+            item.update(updates)
+
+    return [serialize_project(item) for item in data]
 
 
 @router.get("/projects/team-workspace")
 def get_team_workspace(current_user: dict = Depends(get_current_user)):
-    user_email = current_user["email"]
+    projects = list(db.projects.find(get_visible_project_filter(current_user)).sort("created_at", -1))
+    project_ids = [item["_id"] for item in projects]
+    tasks = list(db.tasks.find({"project_id": {"$in": project_ids}}).sort("created_at", -1)) if project_ids else []
 
-    if current_user["role"] == "admin":
-        projects = list(db.projects.find())
-    elif current_user["role"] == "manager":
-        projects = list(db.projects.find({"owner_email": user_email}))
-    else:
-        member_task_ids = db.task_assignments.distinct("task_id", {"user_id": user_email})
-        member_project_ids = db.tasks.distinct("project_id", {"_id": {"$in": member_task_ids}})
-        legacy_project_ids = db.tasks.distinct("project_id", {"assigned_to": user_email})
-        member_project_ids = list(set(member_project_ids + legacy_project_ids))
-        projects = list(db.projects.find({"_id": {"$in": member_project_ids}})) if member_project_ids else []
-
-    project_ids = [project["_id"] for project in projects]
-    tasks = list(db.tasks.find({"project_id": {"$in": project_ids}})) if project_ids else []
-    
-    member_emails_set = set()
+    member_emails = set()
     for task in tasks:
-        assigned = task.get("assigned_to", [])
-        assignments = ensure_task_assignments(task)
-        if assignments:
-            for assignment in assignments:
-                email = assignment.get("user_id")
-                if email: member_emails_set.add(str(email).strip())
-        elif isinstance(assigned, list):
-            for email in assigned:
-                if email: member_emails_set.add(str(email).strip())
-        elif assigned:
-            member_emails_set.add(str(assigned).strip())
-    member_emails = sorted(member_emails_set)
+        for email in normalize_assignment_emails(task.get("assigned_users") or task.get("assigned_to") or []):
+            if email:
+                member_emails.add(str(email).strip().lower())
+    if normalize_role(current_user.get("role")) == Role.USER.value and current_user.get("email"):
+        member_emails.add(current_user["email"])
 
-    users = list(db.users.find({"email": {"$in": member_emails}})) if member_emails else []
+    users = list(db.users.find({"email": {"$in": list(member_emails)}})) if member_emails else []
 
     return {
-        "projects": [format_mongo(project) for project in projects],
-        "tasks": [format_task(task) for task in tasks],
-        "users": [format_team_user(user) for user in users]
+        "projects": [serialize_project(project) for project in projects],
+        "tasks": [serialize_task(task) for task in tasks],
+        "users": [
+            {
+                "email": user.get("email"),
+                "username": user.get("username"),
+                "role": user.get("role"),
+            }
+            for user in users
+        ],
+    }
+
+
+@router.put("/projects/{project_id}")
+def update_project(
+    project_id: str,
+    payload: ProjectUpdate,
+    current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS)),
+):
+    object_id = safe_object_id(project_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid project id")
+
+    project = db.projects.find_one({"_id": object_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    current_email = str(current_user.get("email") or "").strip().lower()
+    project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
+    if normalize_role(current_user.get("role")) != Role.ADMIN.value and project_manager != current_email:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    updates = {}
+    project_name = _resolve_project_name(payload)
+    if project_name:
+        updates["name"] = project_name
+        updates["project_name"] = project_name
+    if payload.description is not None:
+        updates["description"] = str(payload.description).strip()
+    if payload.status is not None:
+        updates["status"] = normalize_project_status(payload.status)
+    if payload.start_date is not None:
+        updates["start_date"] = payload.start_date
+    if payload.end_date is not None:
+        updates["end_date"] = payload.end_date
+    requested_manager = _requested_manager_email(payload)
+    if requested_manager is not None:
+        manager = _validate_manager(requested_manager)
+        if manager:
+            updates["assigned_manager"] = str(manager["email"]).strip().lower()
+            updates["owner_email"] = str(manager["email"]).strip().lower()
+
+    if not updates:
+        raise HTTPException(status_code=400, detail="No project changes provided")
+
+    updates["updated_at"] = utc_now_iso()
+    db.projects.update_one({"_id": object_id}, {"$set": updates})
+
+    updated = db.projects.find_one({"_id": object_id})
+    record_activity(
+        current_user,
+        "Project updated",
+        f"Project: {updated.get('project_name') or updated.get('name')}",
+        ", ".join(sorted(updates.keys())),
+    )
+    return {
+        "message": "Project updated successfully",
+        "project": serialize_project(updated),
+    }
+
+
+@router.put("/projects/{project_id}/assign-manager")
+def assign_manager(
+    project_id: str,
+    payload: AssignManagerPayload,
+    current_user: dict = Depends(require_roles(Role.ADMIN)),
+):
+    object_id = safe_object_id(project_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid project id")
+
+    project = db.projects.find_one({"_id": object_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    manager = _validate_manager(_requested_manager_email(payload))
+    db.projects.update_one(
+        {"_id": object_id},
+        {
+            "$set": {
+                "assigned_manager": str(manager["email"]).strip().lower(),
+                "owner_email": str(manager["email"]).strip().lower(),
+                "updated_at": utc_now_iso(),
+            }
+        },
+    )
+
+    add_notification(
+        manager["email"],
+        f"You were assigned to manage project '{project.get('project_name') or project.get('name')}'.",
+        "Manager Assignment",
+    )
+    record_activity(
+        current_user,
+        "Manager assigned",
+        f"Project: {project.get('project_name') or project.get('name')}",
+        manager["email"],
+    )
+
+    updated = db.projects.find_one({"_id": object_id})
+    return {"message": "Manager assigned successfully", "project": serialize_project(updated)}
+
+
+@router.get("/projects/{project_id}/team")
+def get_project_team(
+    project_id: str,
+    current_user: dict = Depends(require_roles(Role.ADMIN, Role.MANAGER)),
+):
+    object_id = safe_object_id(project_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid project id")
+
+    project = db.projects.find_one({"_id": object_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    current_email = str(current_user.get("email") or "").strip().lower()
+    project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
+    if normalize_role(current_user.get("role")) != Role.ADMIN.value and project_manager != current_email:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    member_emails = db.tasks.distinct("assigned_users", {"project_id": object_id})
+    users = list(db.users.find({"email": {"$in": member_emails}})) if member_emails else []
+    return {
+        "project": serialize_project(project),
+        "members": [
+            {"email": user.get("email"), "username": user.get("username"), "role": user.get("role")}
+            for user in users
+        ],
+    }
+
+
+@router.get("/admin/dashboard-stats")
+def admin_dashboard_stats(current_user: dict = Depends(require_roles(Role.ADMIN))):
+    tasks = [serialize_task(item) for item in db.tasks.find(get_visible_task_filter(current_user))]
+    projects = [serialize_project(item) for item in db.projects.find(get_visible_project_filter(current_user))]
+    activities = list(db.activity_log.find().sort("timestamp", -1).limit(8))
+
+    completed_tasks = [task for task in tasks if task.get("overall_status") == "Completed"]
+    pending_tasks = [task for task in tasks if task.get("overall_status") == "Pending"]
+    in_progress_tasks = [task for task in tasks if task.get("overall_status") == "In Progress"]
+
+    project_progress = []
+    for project in projects:
+        project_tasks = [task for task in tasks if str(task.get("project_id")) == str(project["id"])]
+        total = len(project_tasks)
+        completed = len([task for task in project_tasks if task.get("overall_status") == "Completed"])
+        project_progress.append(
+            {
+                "project_id": project["id"],
+                "project_name": project["project_name"],
+                "total_tasks": total,
+                "completed_tasks": completed,
+                "progress_percent": round((completed / total) * 100) if total else 0,
+                "status": project.get("status"),
+            }
+        )
+
+    return {
+        "total_users": db.users.count_documents({}),
+        "total_projects": len(projects),
+        "total_tasks": len(tasks),
+        "completed_tasks": len(completed_tasks),
+        "pending_tasks": len(pending_tasks),
+        "in_progress_tasks": len(in_progress_tasks),
+        "recent_activities": [
+            {
+                "id": str(item.get("_id")),
+                "user_email": item.get("user_email"),
+                "username": item.get("username"),
+                "action": item.get("action"),
+                "target": item.get("target"),
+                "details": item.get("details"),
+                "timestamp": item.get("timestamp").isoformat() if hasattr(item.get("timestamp"), "isoformat") else item.get("timestamp"),
+            }
+            for item in activities
+        ],
+        "project_progress": project_progress,
+        "notifications": db.notifications.count_documents({"read": False}),
+        "reports_generated_at": datetime.utcnow().isoformat(),
+    }
+
+
+@router.get("/reports/summary")
+def report_summary(current_user: dict = Depends(get_current_user)):
+    projects = [serialize_project(item) for item in db.projects.find(get_visible_project_filter(current_user))]
+    tasks = [serialize_task(item) for item in db.tasks.find(get_visible_task_filter(current_user))]
+
+    users = db.users.count_documents({})
+    completed = len([item for item in tasks if item.get("overall_status") == "Completed"])
+    pending = len([item for item in tasks if item.get("overall_status") == "Pending"])
+    progress = len([item for item in tasks if item.get("overall_status") == "In Progress"])
+
+    return {
+        "generated_at": datetime.utcnow().isoformat(),
+        "scope": current_user.get("role"),
+        "summary": {
+            "users": users if normalize_role(current_user.get("role")) == Role.ADMIN.value else None,
+            "projects": len(projects),
+            "tasks": len(tasks),
+            "completed_tasks": completed,
+            "pending_tasks": pending,
+            "in_progress_tasks": progress,
+        },
+        "projects": projects,
+        "tasks": tasks,
     }
 
 
 @router.delete("/projects/{project_id}")
-def delete_project(project_id: str, current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS))):
+def delete_project(
+    project_id: str,
+    current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS)),
+):
+    object_id = safe_object_id(project_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid project id")
 
-    project = db.projects.find_one({"_id": ObjectId(project_id)})
+    project = db.projects.find_one({"_id": object_id})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if current_user["role"] != Role.ADMIN.value and project.get("owner_email") != current_user["email"]:
+    current_email = str(current_user.get("email") or "").strip().lower()
+    project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
+    if normalize_role(current_user.get("role")) != Role.ADMIN.value and project_manager != current_email:
         raise HTTPException(status_code=403, detail="Not allowed")
 
-    project_name = project.get("name") if project else "Unknown project"
-
-    db.projects.delete_one({"_id": ObjectId(project_id)})
-    task_ids = db.tasks.distinct("_id", {"project_id": ObjectId(project_id)})
-    db.tasks.delete_many({"project_id": ObjectId(project_id)})
+    task_ids = db.tasks.distinct("_id", {"project_id": object_id})
+    db.projects.delete_one({"_id": object_id})
+    db.tasks.delete_many({"project_id": object_id})
     if task_ids:
         db.task_assignments.delete_many({"task_id": {"$in": task_ids}})
 
     record_activity(
         current_user,
         "Project deleted",
-        "Project",
-        f"Name: {project_name}"
+        f"Project: {project.get('project_name') or project.get('name')}",
+        "",
     )
-
     return {"message": "Project deleted"}

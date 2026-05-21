@@ -168,5 +168,3 @@ async def websocket_endpoint(websocket: WebSocket):
 
     except WebSocketDisconnect:
         clients.remove(websocket)
-
-

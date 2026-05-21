@@ -168,43 +168,8 @@ function logout() {
 }
 
 async function createProject() {
-    const token = sessionStorage.getItem("token");
-    const role = sessionStorage.getItem("role");
-
-    if (role !== "manager" && role !== "admin") {
-        alert("Only manager or admin can create project");
-        return;
-    }
-
-    const name = document.getElementById("project-name").value.trim().replace(/^./, c => c.toUpperCase());
-
-    if(!name) {
-        alert("project name is required");
-        return;
-    }
-
-    const res = await fetch(`${BASE_URL}/projects`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({
-            name,
-            description: "Sample project",
-            
-        })
-    });
-
-    const data = await res.json().catch(() => ({}));
-    const message = data?.message || (res.ok ? "Project created" : "Unable to create project");
-    alert(message);
-    socket.send(`New Project Created: ${name}`);
-    
-    document.getElementById("project-name").value = "";
-
-    loadProjects();
-    loadProjectDropdown();
+    alert("Create projects from the admin workspace so manager, status, and dates are saved correctly.");
+    window.location.href = "/admin-page";
 }
 
 async function loadProjects() {
@@ -245,12 +210,11 @@ async function loadProjects() {
             <div class="card-body">
                 <h4>${p.name}</h4>
                 <p>${projectTasks.length} Tasks</p>
+                <p>${p.assigned_manager || p.owner_email || "Unassigned manager"}</p>
+                <p>Status: ${p.status || "Planning"}</p>
+                <p>${formatProjectDateRange(p)}</p>
 
-                ${role === "manager" ? `
-                    <button class="delete-btn" onclick="event.stopPropagation(); deleteProject('${p.id}')">
-                        Delete
-                    </button>
-                ` : ""}
+                
             </div>
         `;
 
@@ -265,33 +229,92 @@ async function loadProjects() {
         list.appendChild(card);
     });
 
-    if (role === "manager") {
-        const addCard = document.createElement("div");
-        addCard.className = "project-card-ui add-card";
-        addCard.innerHTML = `<h4>+ Create Project</h4>`;
-        addCard.onclick = openCreate;
-
-        list.appendChild(addCard);
-    }
-
     if (typeof loadDashboardSummary === "function") {
         loadDashboardSummary();
     }
 }
 
-function openCreate() {
+function formatProjectDateRange(project) {
+    const start = String(project?.start_date || "").trim();
+    const end = String(project?.end_date || "").trim();
+
+    if (start && end) return `${start} to ${end}`;
+    if (start) return `Starts ${start}`;
+    if (end) return `Ends ${end}`;
+    return "No dates set";
+}
+
+function openCreate(mode = "project") {
+    const role = sessionStorage.getItem("role");
+    if (mode === "project" && role !== "admin") {
+        alert("Projects are created from the admin workspace.");
+        return;
+    }
+    if (mode === "project") {
+        alert("Create projects from the admin workspace so manager, status, and dates are saved correctly.");
+        window.location.href = "/admin-page";
+        return;
+    }
+
     const section = document.getElementById("create-section");
+    const projectSection = document.getElementById("project-section");
+    const taskSection = document.getElementById("task-section");
+    const title = document.getElementById("createPanelTitle");
+    const subtitle = document.getElementById("createPanelSubtitle");
 
     if (!section) {
         console.error("create-section not found ");
         return;
     }
 
+    const createMode = mode === "task" ? "task" : "project";
+    section.dataset.createMode = createMode;
     section.classList.remove("hidden");
+
+    if (projectSection) {
+        projectSection.classList.toggle("hidden", createMode !== "project");
+        projectSection.style.display = createMode === "project" ? "" : "none";
+    }
+    if (taskSection) {
+        taskSection.classList.toggle("hidden", createMode !== "task");
+        taskSection.style.display = createMode === "task" ? "" : "none";
+    }
+    if (title) {
+        title.textContent = createMode === "task" ? "Assign Task" : "Create Project";
+    }
+    if (subtitle) {
+        const hasSubtitle = createMode === "task";
+        subtitle.textContent = hasSubtitle ? "Create a task and assign it to one or more users." : "";
+        subtitle.classList.toggle("hidden", !hasSubtitle);
+    }
+
+    if (createMode === "task") {
+        loadProjectDropdown();
+        loadUsers();
+    }
 }
 
 function hideCreate() {
-    document.getElementById("create-section").classList.add("hidden");
+    const section = document.getElementById("create-section");
+    const projectSection = document.getElementById("project-section");
+    const taskSection = document.getElementById("task-section");
+    const search = document.getElementById("assigned-user-search");
+    if (section) {
+        section.classList.add("hidden");
+        delete section.dataset.createMode;
+    }
+    if (projectSection) {
+        projectSection.classList.remove("hidden");
+        projectSection.style.display = "";
+    }
+    if (taskSection) {
+        taskSection.classList.remove("hidden");
+        taskSection.style.display = "";
+    }
+    if (search) {
+        search.value = "";
+    }
+    filterDashboardTaskAssignees("");
 }
 
 async function loadProjectDropdown() {
@@ -304,6 +327,7 @@ async function loadProjectDropdown() {
 
     const select = document.getElementById("project-select");
     if (!select) return;
+    const currentValue = select.value;
 
     select.innerHTML = "<option value=''>Select Project</option>";
 
@@ -313,6 +337,10 @@ async function loadProjectDropdown() {
         option.text = p.name;
         select.appendChild(option);
     });
+
+    if (currentValue && Array.from(select.options).some(option => String(option.value) === String(currentValue))) {
+        select.value = currentValue;
+    }
 }
 
 async function loadUsers() {
@@ -323,39 +351,28 @@ async function loadUsers() {
     });
     const users = await res.json();
 
-    const select = document.getElementById("assigned-to");
-    if (!select) return;
+    const list = document.getElementById("assigned-to-list");
+    if (!list) return;
 
     if (!Array.isArray(users)) {
-        select.innerHTML = "<option value=''>No users available</option>";
+        list.innerHTML = `<div class="dashboard-task-user-empty">No users available</div>`;
         return;
     }
 
     const userRoleUsers = users.filter(u => u.role === "user");
 
     if (userRoleUsers.length === 0) {
-        select.innerHTML = "<option value=''>No registered users</option>";
+        list.innerHTML = `<div class="dashboard-task-user-empty">No registered users</div>`;
         return;
     }
 
-    userRoleUsers.forEach(u => {
-        const option = document.createElement("option");
-        option.value = u.email;
-        option.textContent = u.email;
-        select.appendChild(option);
-    });
-
-    if (select.tomselect) {
-        select.tomselect.destroy();
-    }
-
-    new TomSelect("#assigned-to", {
-        placeholder: "Assign Users",
-        create: false,
-        maxItems: null,
-        plugins: ['remove_button'],
-    });
-    select.tomselect.clear();
+    list.innerHTML = userRoleUsers.map((user) => `
+        <label class="dashboard-task-user-option" data-user-search="${escapeHtml(`${String(user.username || "").toLowerCase()} ${String(user.email || "").toLowerCase()}`)}">
+            <input type="checkbox" value="${escapeHtml(user.email)}">
+            <span>${escapeHtml(user.username || user.email)}</span>
+            <small>${escapeHtml(user.email)}</small>
+        </label>
+    `).join("");
 }
 
 async function createTask() {
@@ -368,12 +385,12 @@ async function createTask() {
     }
 
     const title = document.getElementById("task-title").value.trim();
-    const assigneeSelect = document.getElementById("assigned-to");
-    const assigned_to = assigneeSelect?.tomselect
-        ? assigneeSelect.tomselect.getValue()
-        : Array.from(assigneeSelect?.selectedOptions || []).map(opt => opt.value);
+    const description = document.getElementById("task-description").value.trim();
+    const assigned_to = Array.from(document.querySelectorAll("#assigned-to-list input:checked")).map(input => input.value);
     const deadline = document.getElementById("deadline").value;
+    const priority = document.getElementById("task-priority").value;
     const project_id = document.getElementById("project-select").value;
+    const attachments = Array.from(document.getElementById("task-attachments")?.files || []);
 
     if (!project_id) {
         alert("Please select a project");
@@ -398,24 +415,47 @@ async function createTask() {
         },
         body: JSON.stringify({
             title,
+            task_title: title,
             project_id,
+            description,
+            priority,
             assigned_to,
+            assigned_users: assigned_to,
             status: "Pending",
-            deadline
+            deadline,
+            due_date: deadline
         })
     });
 
     const data = await res.json().catch(() => ({}));
     alert(data?.message || data?.detail || (res.ok ? "Task created" : "Unable to create task"));
     if (!res.ok) return;
+
+    if (attachments.length && data?.task?.id) {
+        for (const file of attachments) {
+            const formData = new FormData();
+            formData.append("file", file);
+            await fetch(`${BASE_URL}/tasks/${encodeURIComponent(data.task.id)}/attachments`, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                body: formData
+            });
+        }
+    }
     socket.send(`New Task Added: ${title}`);
     document.getElementById("task-title").value = "";
-    if (assigneeSelect?.tomselect) {
-        assigneeSelect.tomselect.clear();
-    } else if (assigneeSelect) {
-        assigneeSelect.value = "";
-    }
+    document.getElementById("task-description").value = "";
+    document.querySelectorAll("#assigned-to-list input:checked").forEach(input => {
+        input.checked = false;
+    });
+    const search = document.getElementById("assigned-user-search");
+    if (search) search.value = "";
+    filterDashboardTaskAssignees("");
     document.getElementById("deadline").value = "";
+    document.getElementById("task-priority").value = "Medium";
+    document.getElementById("task-attachments").value = "";
     document.getElementById("project-select").value = "";
 
 
@@ -423,6 +463,14 @@ async function createTask() {
     if (typeof loadAllTasks === "function") loadAllTasks();
     if (typeof loadProjectWorkspace === "function") loadProjectWorkspace();
     document.getElementById("create-section").classList.add("hidden");
+}
+
+function filterDashboardTaskAssignees(value) {
+    const query = String(value || "").trim().toLowerCase();
+    document.querySelectorAll(".dashboard-task-user-option").forEach((option) => {
+        const haystack = String(option.dataset.userSearch || "");
+        option.style.display = !query || haystack.includes(query) ? "" : "none";
+    });
 }
 
 async function updateStatus(id, status) {
@@ -668,6 +716,7 @@ function handleActivityLogFiltersChange() {
         endDate.value = startDate.value;
     }
 
+    updateActivityLogDateLabel();
     activityLogPage = 1;
     renderActivityLogRows();
 }
@@ -679,6 +728,7 @@ function resetActivityLogFilters() {
     if (action) action.value = "all";
     if (startDate) startDate.value = "";
     if (endDate) endDate.value = "";
+    updateActivityLogDateLabel();
     activityLogPage = 1;
     renderActivityLogRows(activityLogEntries);
 }
@@ -686,6 +736,66 @@ function resetActivityLogFilters() {
 function setActivityLogPage(page) {
     activityLogPage = page;
     renderActivityLogRows();
+}
+
+function formatActivityLogRangeDate(value) {
+    if (!value) return "";
+
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    });
+}
+
+function updateActivityLogDateLabel() {
+    const label = document.getElementById("activity-log-date-label");
+    const startInput = document.getElementById("activityLogStartDate");
+    const endInput = document.getElementById("activityLogEndDate");
+    if (!label) return;
+
+    const startDate = startInput?.value || "";
+    const endDate = endInput?.value || "";
+
+    if (startDate && endDate) {
+        label.textContent = `${formatActivityLogRangeDate(startDate)} to ${formatActivityLogRangeDate(endDate)}`;
+        return;
+    }
+
+    if (startDate) {
+        label.textContent = `From ${formatActivityLogRangeDate(startDate)}`;
+        return;
+    }
+
+    if (endDate) {
+        label.textContent = `Until ${formatActivityLogRangeDate(endDate)}`;
+        return;
+    }
+
+    label.textContent = "All dates";
+}
+
+function toggleActivityLogDatePicker(event) {
+    if (event) event.stopPropagation();
+    const popover = document.getElementById("activity-log-date-popover");
+    if (popover) popover.classList.toggle("hidden");
+}
+
+function onActivityLogDateChange() {
+    updateActivityLogDateLabel();
+    handleActivityLogFiltersChange();
+}
+
+function clearActivityLogDateRange() {
+    const startInput = document.getElementById("activityLogStartDate");
+    const endInput = document.getElementById("activityLogEndDate");
+    if (startInput) startInput.value = "";
+    if (endInput) endInput.value = "";
+    updateActivityLogDateLabel();
+    handleActivityLogFiltersChange();
 }
 
 async function loadActivityLog() {
@@ -755,6 +865,14 @@ async function loadActivityLog() {
 }
 
 window.setActivityLogPage = setActivityLogPage;
+
+document.addEventListener("click", event => {
+    const popover = document.getElementById("activity-log-date-popover");
+    const dateControl = document.querySelector(".activity-log-date-control");
+    if (popover && dateControl && !popover.classList.contains("hidden") && !dateControl.contains(event.target)) {
+        popover.classList.add("hidden");
+    }
+});
 
 async function exportActivityLog() {
     const token = sessionStorage.getItem("token");
@@ -837,6 +955,22 @@ function formatDateTime(value) {
         minute: "2-digit",
         hour12: true
     });
+}
+
+function formatDeadlineDate(value) {
+    if (!value) return "N/A";
+
+    const date = String(value).length === 10
+        ? new Date(`${value}T00:00:00`)
+        : new Date(value);
+
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric"
+    }).replace(/ /g, "-");
 }
 
 function setAvatar() {
@@ -1002,7 +1136,7 @@ function loadProjectPage() {
                 row.innerHTML = `
                     <td>${t.title}</td>
                     <td>${assignedDisplay || "Unknown"}</td>
-                    <td>${t.deadline || "N/A"}</td>
+                    <td>${formatDeadlineDate(t.deadline)}</td>
 
                     ${
                         role === "user"

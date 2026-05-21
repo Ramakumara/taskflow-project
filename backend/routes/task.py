@@ -1,298 +1,475 @@
-from fastapi import APIRouter, HTTPException
-from database import db
-from models.tasks import TaskCreate, TaskUpdate
-from bson import ObjectId
-from fastapi import Depends
-from auth_utils import get_current_user
-from auth_utils import send_task_email, send_reminder_email
-from routes.activity import record_activity
-from rbac import Role, Permission, require_permission
-from datetime import datetime, timedelta
 from datetime import datetime
-import pytz
 
-india = pytz.timezone("Asia/Kolkata")
+from bson import ObjectId
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse
+
+from auth_utils import get_current_user, send_reminder_email, send_task_email
+from database import db
+from models.tasks import TaskCommentCreate, TaskCreate, TaskUpdate
+from rbac import Permission, Role, require_permission
+from routes.activity import record_activity
+from taskflow_utils import (
+    add_notification,
+    calculate_overall_status,
+    ensure_task_assignments,
+    get_visible_task_filter,
+    normalize_assignment_emails,
+    normalize_priority,
+    normalize_task_status,
+    safe_object_id,
+    serialize_task,
+    sync_task_status,
+    utc_now_iso,
+)
 
 router = APIRouter()
 
-STATUS_LABELS = {
-    "todo": "Pending",
-    "pending": "Pending",
-    "in progress": "In Progress",
-    "progress": "In Progress",
-    "done": "Completed",
-    "completed": "Completed"
-}
+UPLOAD_DIR = "uploads"
 
-def normalize_assignment_status(status):
-    return STATUS_LABELS.get(str(status or "Pending").strip().lower(), "Pending")
 
-def calculate_task_status(assignments):
-    statuses = [normalize_assignment_status(a.get("status")) for a in assignments]
+def _project_for_task(project_id: str, current_user: dict) -> dict:
+    object_id = safe_object_id(project_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid project id")
 
-    if statuses and all(status == "Completed" for status in statuses):
-        return "Completed"
+    project = db.projects.find_one({"_id": object_id})
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
 
-    if any(status != "Pending" for status in statuses):
-        return "In Progress"
+    if current_user.get("role") == Role.ADMIN.value:
+        return project
+    current_email = str(current_user.get("email") or "").strip().lower()
+    project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
+    if project_manager != current_email:
+        raise HTTPException(status_code=403, detail="Not allowed")
+    return project
 
-    return "Pending"
 
-def format_assignment(doc):
-    return {
-        "id": str(doc.get("_id")),
-        "task_id": str(doc.get("task_id")),
-        "user_id": doc.get("user_id"),
-        "status": normalize_assignment_status(doc.get("status")),
-        "assigned_date": doc.get("assigned_date"),
-        "completion_date": doc.get("completion_date")
-    }
+def _task_title(value: TaskCreate | TaskUpdate) -> str:
+    return str(value.task_title or value.title or "").strip()
 
-def ensure_task_assignments(task):
-    task_id = task["_id"]
-    assignments = list(db.task_assignments.find({"task_id": task_id}))
 
-    if assignments:
-        return assignments
+def _task_due_date(value: TaskCreate | TaskUpdate) -> str | None:
+    return value.due_date or value.deadline
 
-    assigned_to = task.get("assigned_to", [])
-    if not isinstance(assigned_to, list):
-        assigned_to = [assigned_to] if assigned_to else []
 
-    now = datetime.utcnow()
-    initial_status = normalize_assignment_status(task.get("status"))
-    new_assignments = []
+def _task_assignees(value: TaskCreate | TaskUpdate) -> list[str]:
+    return normalize_assignment_emails(value.assigned_users or value.assigned_to or [])
 
-    for email in assigned_to:
-        if not email:
-            continue
 
-        new_assignments.append({
-            "task_id": task_id,
-            "user_id": str(email),
-            "status": initial_status,
-            "assigned_date": now.isoformat(),
-            "completion_date": now.isoformat() if initial_status == "Completed" else None
-        })
+def _validate_assignees(emails: list[str]) -> list[dict]:
+    if not emails:
+        raise HTTPException(status_code=400, detail="At least one assignee is required")
 
-    if new_assignments:
-        db.task_assignments.insert_many(new_assignments)
-        assignments = list(db.task_assignments.find({"task_id": task_id}))
+    users = list(db.users.find({"email": {"$in": emails}}))
+    if len(users) != len(emails):
+        raise HTTPException(status_code=400, detail="One or more users not found")
+    return users
 
-    return assignments
 
-def sync_task_status(task_id):
-    assignments = list(db.task_assignments.find({"task_id": ObjectId(task_id)}))
-    main_status = calculate_task_status(assignments)
-    db.tasks.update_one({"_id": ObjectId(task_id)}, {"$set": {"status": main_status}})
-    return main_status
-
-def format_task(doc):
-    assignments = ensure_task_assignments(doc)
-    main_status = calculate_task_status(assignments)
-
-    db.tasks.update_one(
-        {"_id": doc["_id"]},
-        {"$set": {"status": main_status}}
-    )
-
-    doc["id"] = str(doc["_id"])
-    del doc["_id"]
-
-    if "project_id" in doc:
-        doc["project_id"] = str(doc["project_id"])
-
-    doc["status"] = main_status
-    doc["assignments"] = [format_assignment(a) for a in assignments]
-    doc["assigned_statuses"] = doc["assignments"]
-    doc["assigned_to"] = [a["user_id"] for a in doc["assignments"]]
-
-    return doc
+async def _notify_task_assignment(users: list[dict], task_title: str, assigned_by: str, due_date: str | None):
+    for user in users:
+        add_notification(
+            user.get("email"),
+            f"You were assigned task '{task_title}'.",
+            "New Task Assigned",
+        )
+        try:
+            await send_task_email(user["email"], task_title, assigned_by)
+            if due_date:
+                due = datetime.strptime(due_date, "%Y-%m-%d")
+                if (due.date() - datetime.utcnow().date()).days == 1:
+                    await send_reminder_email(user["email"], task_title, due_date)
+        except Exception:
+            pass
 
 
 @router.post("/tasks")
-async def create_task(task: TaskCreate, current_user: dict = Depends(require_permission(Permission.ASSIGN_TASKS))):
+async def create_task(
+    task: TaskCreate,
+    current_user: dict = Depends(require_permission(Permission.ASSIGN_TASKS)),
+):
+    project = _project_for_task(task.project_id, current_user)
+    title = _task_title(task)
+    assignees = _task_assignees(task)
+    users = _validate_assignees(assignees)
 
-    is_admin = current_user["role"] == Role.ADMIN.value
+    if not title:
+        raise HTTPException(status_code=400, detail="Task title is required")
 
-    project = db.projects.find_one({"_id": ObjectId(task.project_id)})
-    if not project or (not is_admin and project.get("owner_email") != current_user["email"]):
-        raise HTTPException(status_code=403, detail="Not allowed")
+    now = utc_now_iso()
+    document = {
+        "title": title,
+        "task_title": title,
+        "project_id": project["_id"],
+        "description": str(task.description or "").strip(),
+        "deadline": _task_due_date(task),
+        "due_date": _task_due_date(task),
+        "priority": normalize_priority(task.priority),
+        "assigned_to": assignees,
+        "assigned_users": assignees,
+        "status": "Pending",
+        "overall_status": "Pending",
+        "attachments": task.attachments or [],
+        "comments": [],
+        "created_by": current_user.get("email"),
+        "assigned_by": current_user.get("email"),
+        "created_at": now,
+        "updated_at": now,
+    }
 
-    user_emails = list(dict.fromkeys(str(email) for email in task.assigned_to))
-    if not user_emails:
-        raise HTTPException(status_code=400, detail="At least one assignee is required")
-
-    users = list(db.users.find({"email": {"$in": user_emails}}))
-    if len(users) != len(user_emails):
-        raise HTTPException(status_code=400, detail="One or more users not found")
-
-    new_task = task.model_dump()
-    new_task["project_id"] = ObjectId(task.project_id)
-    new_task["assigned_by"] = current_user["email"]
-    new_task["assigned_to"] = user_emails
-    new_task["status"] = "Pending"
-    new_task["created_at"] = datetime.utcnow().isoformat()
-    new_task["updated_at"] = new_task["created_at"]
-
-    result = db.tasks.insert_one(new_task)
-    now = datetime.utcnow()
-    db.task_assignments.insert_many([
+    result = db.tasks.insert_one(document)
+    assignment_rows = [
         {
             "task_id": result.inserted_id,
             "user_id": user["email"],
             "status": "Pending",
-            "assigned_date": now.isoformat(),
-            "completion_date": None
+            "assigned_date": now,
+            "completion_date": None,
         }
         for user in users
-    ])
+    ]
+    db.task_assignments.insert_many(assignment_rows)
 
-    deadline = None
-    if task.deadline:
-        deadline = datetime.strptime(task.deadline, "%Y-%m-%d").date()
-    today = datetime.now().date()
+    await _notify_task_assignment(users, title, current_user.get("email"), document["due_date"])
 
-    for user in users:
-        db.notifications.insert_one({
-            "email": user["email"],
-            "title": "New Task Assigned",
-            "message": f"You were assigned task '{new_task.get('title')}'",
-            "time": datetime.now(india).isoformat(),
-            "read": False,
-            "created_at": datetime.utcnow()
-        })
-
-        await send_task_email(
-            email=user["email"],
-            task_title=new_task.get("title"),
-            assigned_by=current_user["email"]   
-        )
-
-        if deadline and deadline == today + timedelta(days=1):
-            await send_reminder_email(
-                email=user["email"],
-                task_title=new_task.get("title"),
-                deadline=str(deadline)
-            )
-
-    assigned_to_str = ", ".join(user_emails)
     record_activity(
         current_user,
         "Task created",
-        f"Task: {new_task.get('title')}",
-        f"Assigned to: {assigned_to_str}"
+        f"Task: {title}",
+        f"Project: {project.get('project_name') or project.get('name')}; assignees: {', '.join(assignees)}",
     )
 
-    return {"message": "Task created and email sent"}
+    saved = db.tasks.find_one({"_id": result.inserted_id})
+    return {"message": "Task created successfully", "task": serialize_task(saved)}
 
 
 @router.get("/tasks")
 def get_tasks(current_user: dict = Depends(get_current_user)):
-
-    if current_user["role"] == "admin":
-        data = list(db.tasks.find().sort("_id", -1))
-    elif current_user["role"] == "manager":
-        project_ids = [
-            project["_id"]
-            for project in db.projects.find({"owner_email": current_user["email"]}, {"_id": 1})
-        ]
-        data = list(db.tasks.find({"project_id": {"$in": project_ids}}).sort("_id", -1)) if project_ids else []
-    else:
-        task_ids = db.task_assignments.distinct("task_id", {"user_id": current_user["email"]})
-        data = list(db.tasks.find({
-            "$or": [
-                {"_id": {"$in": task_ids}},
-                {"assigned_to": current_user["email"]}
-            ]
-        }).sort("_id", -1))
-
-    return [format_task(t) for t in data]
+    data = list(db.tasks.find(get_visible_task_filter(current_user)).sort("created_at", -1))
+    return [serialize_task(item) for item in data]
 
 
 @router.put("/tasks/{task_id}")
 def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(get_current_user)):
+    object_id = safe_object_id(task_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid task id")
 
-    task = db.tasks.find_one({"_id": ObjectId(task_id)})
-
+    task = db.tasks.find_one({"_id": object_id})
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    ensure_task_assignments(task)
-    assignment = db.task_assignments.find_one({
-        "task_id": ObjectId(task_id),
-        "user_id": current_user["email"]
-    })
+    if current_user.get("role") == Role.USER.value:
+        assignment = db.task_assignments.find_one({"task_id": object_id, "user_id": current_user.get("email")})
+        if not assignment:
+            raise HTTPException(status_code=403, detail="Not allowed")
 
-    if not assignment:
-        raise HTTPException(status_code=403, detail="Not allowed")
+        status = normalize_task_status(update.status)
+        db.task_assignments.update_one(
+            {"_id": assignment["_id"]},
+            {
+                "$set": {
+                    "status": status,
+                    "completion_date": utc_now_iso() if status == "Completed" else None,
+                }
+            },
+        )
+        overall_status = sync_task_status(object_id)
+        project = db.projects.find_one({"_id": task.get("project_id")})
+        if project and project.get("assigned_manager"):
+            add_notification(
+                project["assigned_manager"],
+                f"{current_user['email']} updated '{task.get('task_title') or task.get('title')}' to {status}.",
+                "Task Updated",
+            )
+        record_activity(
+            current_user,
+            "Task updated",
+            f"Task: {task.get('task_title') or task.get('title')}",
+            f"My status: {status}; overall: {overall_status}",
+        )
+        saved = db.tasks.find_one({"_id": object_id})
+        return {"message": "Task updated", "task": serialize_task(saved)}
 
-    status = normalize_assignment_status(update.status)
-    completion_date = datetime.utcnow().isoformat() if status == "Completed" else None
+    project = _project_for_task(str(task.get("project_id")), current_user)
+    updates = {}
 
-    db.task_assignments.update_one(
-        {"_id": assignment["_id"]},
-        {"$set": {
-            "status": status,
-            "completion_date": completion_date
-        }}
-    )
+    title = _task_title(update)
+    if title:
+        updates["title"] = title
+        updates["task_title"] = title
+    if update.description is not None:
+        updates["description"] = str(update.description).strip()
+    if _task_due_date(update) is not None:
+        updates["deadline"] = _task_due_date(update)
+        updates["due_date"] = _task_due_date(update)
+    if update.priority is not None:
+        updates["priority"] = normalize_priority(update.priority)
 
-    main_status = sync_task_status(task_id)
+    assignees = _task_assignees(update)
+    if assignees:
+        users = _validate_assignees(assignees)
+        updates["assigned_to"] = assignees
+        updates["assigned_users"] = assignees
+        existing = {
+            row["user_id"]: row
+            for row in db.task_assignments.find({"task_id": object_id})
+        }
+        for email in assignees:
+            if email not in existing:
+                db.task_assignments.insert_one(
+                    {
+                        "task_id": object_id,
+                        "user_id": email,
+                        "status": "Pending",
+                        "assigned_date": utc_now_iso(),
+                        "completion_date": None,
+                    }
+                )
+        db.task_assignments.delete_many({"task_id": object_id, "user_id": {"$nin": assignees}})
+        for user in users:
+            add_notification(
+                user["email"],
+                f"You were added to task '{title or task.get('task_title') or task.get('title')}'.",
+                "Task Assignment Updated",
+            )
+        db.files.update_many(
+            {"task_id": str(object_id), "source": "task_attachment"},
+            {"$set": {"shared_with": assignees, "updated_at": utc_now_iso()}},
+        )
 
-    db.tasks.update_one(
-        {"_id": ObjectId(task_id)},
-        {"$set": {"status": main_status, "updated_at": datetime.utcnow().isoformat()}}
-    )
+    if update.status is not None:
+        updates["status"] = normalize_task_status(update.status)
+        updates["overall_status"] = normalize_task_status(update.status)
 
-    project = db.projects.find_one({"_id": task["project_id"]})
+    if not updates:
+        raise HTTPException(status_code=400, detail="No task changes provided")
 
-    manager_email = project.get("owner_email") if project else None
+    updates["updated_at"] = utc_now_iso()
+    db.tasks.update_one({"_id": object_id}, {"$set": updates})
 
-    if manager_email:
-        db.notifications.insert_one({
-
-            "email": manager_email,
-
-            "title": "Task Updated",
-
-            "message": f"{current_user['email']} updated task '{task['title']}' to {status}",
-
-            "time": datetime.now(india).isoformat(),
-
-            "read": False,
-
-            "created_at": datetime.utcnow()
-        })
+    if update.status is not None and not assignees:
+        assignments = ensure_task_assignments(task)
+        if assignments:
+            db.task_assignments.update_many(
+                {"task_id": object_id},
+                {"$set": {"status": updates["status"]}},
+            )
+        sync_task_status(object_id)
+    else:
+        sync_task_status(object_id)
 
     record_activity(
         current_user,
         "Task updated",
-        f"Task: {task.get('title')}",
-        f"{current_user['email']} status: {status}; task status: {main_status}"
+        f"Task: {title or task.get('task_title') or task.get('title')}",
+        f"Project: {project.get('project_name') or project.get('name')}",
     )
-
-    return {"message": "Task updated"}
+    saved = db.tasks.find_one({"_id": object_id})
+    return {"message": "Task updated successfully", "task": serialize_task(saved)}
 
 
 @router.put("/tasks/{task_id}/assignments/me")
-def update_my_task_assignment(task_id: str, update: TaskUpdate, current_user: dict = Depends(get_current_user)):
+def update_my_task_assignment(
+    task_id: str,
+    update: TaskUpdate,
+    current_user: dict = Depends(get_current_user),
+):
     return update_task(task_id, update, current_user)
 
 
-@router.delete("/tasks/{task_id}")
-def delete_task(task_id: str, current_user: dict = Depends(require_permission(Permission.MANAGE_TEAM_TASKS))):
+@router.get("/manager/team-members")
+def get_manager_team_members(current_user: dict = Depends(require_permission(Permission.MANAGE_TEAM_TASKS))):
+    query = get_visible_task_filter(current_user)
+    tasks = list(db.tasks.find(query))
+    emails = set()
+    for task in tasks:
+        emails.update(normalize_assignment_emails(task.get("assigned_users") or task.get("assigned_to") or []))
+    users = list(db.users.find({"email": {"$in": list(emails)}})) if emails else []
+    return [
+        {
+            "email": user.get("email"),
+            "username": user.get("username"),
+            "role": user.get("role"),
+        }
+        for user in users
+    ]
 
-    task = db.tasks.find_one({"_id": ObjectId(task_id)})
+
+@router.post("/tasks/{task_id}/comments")
+def add_task_comment(
+    task_id: str,
+    payload: TaskCommentCreate,
+    current_user: dict = Depends(get_current_user),
+):
+    object_id = safe_object_id(task_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid task id")
+
+    task = db.tasks.find_one({"_id": object_id})
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    if current_user["role"] != "admin":
-        project = db.projects.find_one({"_id": task["project_id"]})
-        if not project or project.get("owner_email") != current_user["email"]:
-            raise HTTPException(status_code=403, detail="Not allowed")
+    visible = list(db.tasks.find({"_id": object_id, **get_visible_task_filter(current_user)}))
+    if not visible:
+        raise HTTPException(status_code=403, detail="Not allowed")
 
-    db.tasks.delete_one({"_id": ObjectId(task_id)})
-    db.task_assignments.delete_many({"task_id": ObjectId(task_id)})
+    comment = {
+        "id": str(ObjectId()),
+        "author": current_user.get("email"),
+        "author_name": current_user.get("username"),
+        "content": payload.content.strip(),
+        "created_at": utc_now_iso(),
+    }
+    if not comment["content"]:
+        raise HTTPException(status_code=400, detail="Comment cannot be empty")
 
+    db.tasks.update_one({"_id": object_id}, {"$push": {"comments": comment}, "$set": {"updated_at": utc_now_iso()}})
+    record_activity(
+        current_user,
+        "Task comment added",
+        f"Task: {task.get('task_title') or task.get('title')}",
+        comment["content"],
+    )
+    saved = db.tasks.find_one({"_id": object_id})
+    return {"message": "Comment added", "task": serialize_task(saved)}
+
+
+@router.post("/tasks/{task_id}/attachments")
+async def upload_task_attachment(
+    task_id: str,
+    file: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user),
+):
+    import os
+    import shutil
+
+    object_id = safe_object_id(task_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid task id")
+
+    task = db.tasks.find_one({"_id": object_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    visible = list(db.tasks.find({"_id": object_id, **get_visible_task_filter(current_user)}))
+    if not visible:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    filename = f"{utc_now_iso().replace(':', '-')}_{file.filename}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    attachment = {
+        "name": file.filename,
+        "stored_name": filename,
+        "path": file_path,
+        "uploaded_by": current_user.get("email"),
+        "uploaded_at": utc_now_iso(),
+    }
+    db.tasks.update_one({"_id": object_id}, {"$push": {"attachments": attachment}, "$set": {"updated_at": utc_now_iso()}})
+    db.files.insert_one(
+        {
+            "name": filename,
+            "display_name": file.filename,
+            "stored_name": filename,
+            "path": file_path,
+            "size": attachment.get("size") or os.path.getsize(file_path),
+            "uploaded_at": attachment["uploaded_at"],
+            "owner_email": current_user.get("email"),
+            "owner_name": current_user.get("username") or current_user.get("email"),
+            "owner_role": current_user.get("role"),
+            "shared_with": normalize_assignment_emails(task.get("assigned_users") or task.get("assigned_to") or []),
+            "source": "task_attachment",
+            "task_id": str(object_id),
+            "task_title": task.get("task_title") or task.get("title"),
+        }
+    )
+    record_activity(
+        current_user,
+        "Task attachment uploaded",
+        f"Task: {task.get('task_title') or task.get('title')}",
+        file.filename,
+    )
+    saved = db.tasks.find_one({"_id": object_id})
+    return {"message": "Attachment uploaded", "task": serialize_task(saved), "attachment": attachment}
+
+
+@router.get("/tasks/{task_id}/attachments/{stored_name}")
+def download_task_attachment(
+    task_id: str,
+    stored_name: str,
+    current_user: dict = Depends(get_current_user),
+):
+    import os
+
+    object_id = safe_object_id(task_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid task id")
+
+    task = db.tasks.find_one({"_id": object_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    visible = list(db.tasks.find({"_id": object_id, **get_visible_task_filter(current_user)}))
+    if not visible:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    attachments = task.get("attachments") or []
+    attachment = next(
+        (
+            item for item in attachments
+            if isinstance(item, dict) and str(item.get("stored_name") or "") == str(stored_name)
+        ),
+        None,
+    )
+
+    if not attachment:
+        raise HTTPException(status_code=404, detail="Attachment not found")
+
+    file_path = attachment.get("path")
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Attachment file not found")
+
+    return FileResponse(file_path, filename=attachment.get("name") or stored_name)
+
+
+@router.delete("/tasks/{task_id}")
+def delete_task(
+    task_id: str,
+    current_user: dict = Depends(require_permission(Permission.MANAGE_TEAM_TASKS)),
+):
+    object_id = safe_object_id(task_id)
+    if not object_id:
+        raise HTTPException(status_code=400, detail="Invalid task id")
+
+    task = db.tasks.find_one({"_id": object_id})
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    _project_for_task(str(task.get("project_id")), current_user)
+    attachment_docs = list(db.files.find({"task_id": str(object_id), "source": "task_attachment"}))
+    for attachment_doc in attachment_docs:
+        path = attachment_doc.get("path")
+        if path:
+            try:
+                import os
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError:
+                pass
+    db.tasks.delete_one({"_id": object_id})
+    db.task_assignments.delete_many({"task_id": object_id})
+    db.files.delete_many({"task_id": str(object_id), "source": "task_attachment"})
+
+    record_activity(
+        current_user,
+        "Task deleted",
+        f"Task: {task.get('task_title') or task.get('title')}",
+        "",
+    )
     return {"message": "Task deleted"}
