@@ -934,7 +934,7 @@ function renderTeamWorkspace() {
                         }
                     </tbody>
                     </table>
-                </div>
+                
 
                 ${role === "manager" ? `
                     <button class="team-add-member-btn" type="button" onclick="openTeamAddMember('${project.id}')">
@@ -942,6 +942,7 @@ function renderTeamWorkspace() {
                         <span>Add Member</span>
                     </button>
                 ` : ""}
+                </div>
             </section>
         `;
     }).filter(Boolean);

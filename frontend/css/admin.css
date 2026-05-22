@@ -3719,3 +3719,436 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* =========================
+   ADMIN SHARED MODULE SYSTEM
+========================= */
+:root {
+    --admin-page-gap: 22px;
+    --admin-card-radius: 22px;
+    --admin-control-radius: 14px;
+    --admin-card-padding: 24px;
+    --admin-control-height: 46px;
+    --admin-shadow-soft: 0 14px 34px rgba(15, 23, 42, 0.06);
+    --admin-shadow-hover: 0 18px 40px rgba(15, 23, 42, 0.1);
+}
+
+.common-page-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--admin-page-gap);
+}
+
+.common-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.common-page-title {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+}
+
+.common-page-title h1 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+}
+
+.common-page-title p {
+    margin: 0;
+    max-width: 760px;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.common-page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.common-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.common-search-box,
+.common-filter-select,
+.common-action-btn,
+.common-toolbar .admin-activity-date-control .action-btn {
+    min-height: var(--admin-control-height);
+    border-radius: var(--admin-control-radius);
+}
+
+.common-search-box {
+    flex: 1 1 320px;
+    min-width: min(320px, 100%);
+    padding: 0 16px;
+    border: 1px solid #dbe4ef;
+    background: rgba(255, 255, 255, 0.92);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #64748b;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.common-search-box i {
+    font-size: 15px;
+}
+
+.common-search-box input {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    outline: 0;
+    padding: 0;
+    background: transparent;
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.common-search-box input::placeholder {
+    color: #94a3b8;
+}
+
+.common-search-box:focus-within,
+.common-filter-select:focus,
+.admin-activity-date-popover input:focus {
+    border-color: rgba(32, 184, 100, 0.48);
+    box-shadow: 0 0 0 4px rgba(32, 184, 100, 0.11);
+}
+
+.common-filter-select {
+    min-width: 190px;
+    padding: 0 16px;
+    border: 1px solid #dbe4ef;
+    background: #ffffff;
+    color: #172033;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.common-action-btn,
+.action-btn.common-icon-btn {
+    min-height: var(--admin-control-height);
+    padding: 0 18px;
+    border-radius: var(--admin-control-radius);
+    font-size: 14px;
+    font-weight: 800;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+
+.common-action-btn:hover,
+.action-btn.common-icon-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+}
+
+.action-btn.common-icon-btn {
+    width: var(--admin-control-height);
+    min-width: var(--admin-control-height);
+    padding: 0;
+}
+
+.common-content-card {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #e3ebf5;
+    border-radius: var(--admin-card-radius);
+    box-shadow: var(--admin-shadow-soft);
+    padding: var(--admin-card-padding);
+    overflow: hidden;
+}
+
+.common-section-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.common-section-head h3,
+.common-section-head p {
+    margin: 0;
+}
+
+.common-section-head h3 {
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.common-section-head p {
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.55;
+}
+
+.common-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #edf2f7;
+    border-radius: 18px;
+    background: #ffffff;
+}
+
+.admin-module-page .admin-table,
+.admin-module-page .admin-compact-table {
+    min-width: 100%;
+}
+
+.admin-module-page .admin-table thead th,
+.admin-module-page .admin-compact-table thead th,
+.admin-module-page .admin-compact-table th {
+    background: #f8fafc;
+    color: #475467 !important;
+    font-size: 12px !important;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.admin-module-page .admin-table tbody td,
+.admin-module-page .admin-compact-table tbody td,
+.admin-module-page .admin-compact-table td {
+    color: #172033;
+    font-size: 14px !important;
+}
+
+.admin-module-page .admin-table tbody tr:hover,
+.admin-module-page .admin-compact-table tbody tr:hover {
+    background: #f7fbf8;
+}
+
+.admin-module-page .empty-state {
+    padding: 34px 20px;
+    color: #64748b;
+}
+
+.common-content-card.task-table-panel,
+.common-content-card.admin-activity-log-panel,
+.admin-files-page .common-content-card {
+    padding: 0;
+}
+
+.common-content-card.task-table-panel .common-table-wrapper,
+.common-content-card.admin-activity-log-panel .common-table-wrapper,
+.admin-files-page .common-content-card .common-table-wrapper {
+    border: 0;
+    border-radius: 0;
+}
+
+.common-content-card.admin-activity-log-panel .admin-activity-log-meta {
+    padding: 22px 24px 0;
+}
+
+.common-content-card.admin-activity-log-panel .admin-activity-log-pagination,
+.admin-files-page .admin-task-footer,
+.task-management-view .admin-task-footer {
+    padding: 16px 24px 22px;
+}
+
+.project-summary-grid {
+    gap: 18px;
+}
+
+.admin-project-stat-card,
+.admin-team-project-card,
+.admin-project-card,
+.admin-project-create-card,
+.project-empty-state {
+    border-radius: 20px;
+}
+
+.admin-project-stat-card {
+    min-height: 108px;
+    padding: 24px;
+    border-color: #e3ebf5;
+    box-shadow: var(--admin-shadow-soft);
+}
+
+.admin-project-stat-copy strong {
+    font-size: 24px;
+}
+
+.admin-project-grid {
+    gap: 20px;
+}
+
+.admin-project-card {
+    border-color: #e3ebf5;
+    box-shadow: var(--admin-shadow-soft);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.admin-project-card:hover {
+    transform: translateY(-4px);
+    border-color: #d0dded;
+    box-shadow: var(--admin-shadow-hover);
+}
+
+.manager-project-card-header {
+    height: 54px;
+}
+
+.manager-project-card-body {
+    padding: 26px;
+}
+
+.admin-project-card-copy h4 {
+    font-size: 19px;
+    font-weight: 800;
+}
+
+.admin-project-card-copy p,
+.admin-project-card-copy span {
+    line-height: 1.55;
+}
+
+.admin-project-manager-pill,
+.admin-member-status,
+.status-pill {
+    min-height: 34px;
+}
+
+.admin-project-create-card {
+    border-width: 1.5px;
+    transition: transform 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.admin-project-create-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--admin-shadow-soft);
+}
+
+.admin-team-project-head {
+    min-height: 72px;
+    padding: 0 20px;
+    background: linear-gradient(180deg, #ffffff, #fbfdff);
+}
+
+.admin-team-project-title h4 {
+    font-size: 16px;
+}
+
+.admin-team-project-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+}
+
+.admin-task-assignee-card {
+    border-radius: 14px;
+    border-color: #e2e8f0;
+}
+
+.admin-filter-select,
+.admin-task-filter,
+.admin-team-filter,
+.admin-user-filter {
+    min-height: var(--admin-control-height);
+    border-radius: var(--admin-control-radius);
+}
+
+.admin-activity-date-control .action-btn {
+    min-height: var(--admin-control-height);
+    border-radius: var(--admin-control-radius);
+}
+
+.admin-activity-date-popover {
+    border-radius: 18px;
+    border-color: #e3ebf5;
+}
+
+.admin-activity-date-popover input {
+    min-height: var(--admin-control-height);
+    border-radius: 12px;
+}
+
+.admin-files-table td:last-child {
+    white-space: nowrap;
+}
+
+.admin-files-table td:last-child .action-btn + .action-btn {
+    margin-left: 8px;
+}
+
+@media (max-width: 1024px) {
+    .common-page-title h1 {
+        font-size: 26px;
+    }
+
+    .project-summary-grid,
+    .admin-project-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-activity-log-toolbar {
+        width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .content-area {
+        padding: 18px;
+    }
+
+    .common-page-card {
+        gap: 18px;
+    }
+
+    .common-page-header,
+    .common-section-head {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .common-page-header-actions,
+    .common-toolbar {
+        width: 100%;
+    }
+
+    .common-search-box,
+    .common-filter-select,
+    .common-action-btn,
+    .common-toolbar .admin-activity-date-control,
+    .common-toolbar .admin-activity-date-control .action-btn {
+        width: 100%;
+    }
+
+    .common-content-card {
+        padding: 18px;
+        border-radius: 18px;
+    }
+
+    .common-content-card.task-table-panel,
+    .common-content-card.admin-activity-log-panel,
+    .admin-files-page .common-content-card {
+        padding: 0;
+    }
+
+    .common-content-card.admin-activity-log-panel .admin-activity-log-meta,
+    .common-content-card.admin-activity-log-panel .admin-activity-log-pagination,
+    .admin-files-page .admin-task-footer,
+    .task-management-view .admin-task-footer {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+}

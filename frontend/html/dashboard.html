@@ -237,7 +237,7 @@
                                 </label>
                                 <div class="dashboard-task-field">
                                     <span>Assign users <strong>*</strong></span>
-                                    <label class="dashboard-task-search" for="assigned-user-search">
+                                    <label class="team-search" for="assigned-user-search">
                                         <i class="fas fa-search"></i>
                                         <input id="assigned-user-search" type="text" placeholder="Search users by name or email..." oninput="filterDashboardTaskAssignees(this.value)">
                                     </label>
@@ -270,75 +270,87 @@
             </div>
 
             <div id="tasks-view" class="hidden">
-                <section class="dashboard-section">
-                    <div class="section-head task-board-head">
-                        <div>
-                            <h3>My Tasks</h3>
+                <section class="common-page-card tasks-page">
+                    <div class="common-page-header">
+                        <div class="common-page-title">
+                            <h1>My Tasks</h1>
+                            <p>Track assignments, due dates, and progress across your workspace.</p>
                         </div>
-                        <button id="taskAddButton" class="task-add-btn" type="button" onclick="openDashboardTaskCreate()">
+                        <button id="taskAddButton" class="task-add-btn common-page-action" type="button" onclick="openDashboardTaskCreate()">
                             <i class="fas fa-plus"></i>
                             <span>Add Task</span>
                         </button>
-                        <div class="task-board-actions">
-                            <label class="team-search" for="taskSearchInput">
-                                <i class="fas fa-search"></i>
-                                <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="setDashboardTaskPage(1)">
-                            </label>
-                            <select id="taskProjectFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by project">
-                                <option value="all">All Projects</option>
-                            </select>
-                            <select id="taskStatusFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by status">
-                                <option value="all">All Status</option>
-                                <option value="Pending">Pending</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Completed">Completed</option>
-                            </select>
+                    </div>
+                    <div class="common-toolbar">
+                        <label class="team-search" for="taskSearchInput">
+                            <i class="fas fa-search"></i>
+                            <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="setDashboardTaskPage(1)">
+                        </label>
+                        <select id="taskProjectFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by project">
+                            <option value="all">All Projects</option>
+                        </select>
+                        <select id="taskStatusFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by status">
+                            <option value="all">All Status</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    <div class="common-content-card">
+                        <div class="workspace-table-wrap">
+                            <table class="workspace-table task-board-table">
+                                <thead>
+                                    <tr>
+                                        <th>Task</th>
+                                        <th>Project</th>
+                                        <th id="all-tasks-assigned-header">Assigned Users &amp; Status</th>
+                                        <th>Overall Status</th>
+                                        <th>Due Date</th>
+                                        <th id="task-action-header">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="all-tasks-list"></tbody>
+                            </table>
                         </div>
+                        <div class="task-pagination" id="dashboardTaskPagination"></div>
                     </div>
-                    <div class="workspace-table-wrap">
-                        <table class="workspace-table task-board-table">
-                            <thead>
-                                <tr>
-                                    <th>Task</th>
-                                    <th>Project</th>
-                                    <th id="all-tasks-assigned-header">Assigned Users &amp; Status</th>
-                                    <th>Overall Status</th>
-                                    <th>Due Date</th>
-                                    <th id="task-action-header">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="all-tasks-list"></tbody>
-                        </table>
-                    </div>
-                    <div class="task-pagination" id="dashboardTaskPagination"></div>
                 </section>
             </div>
 
             <div id="team-view" class="hidden">
-                <section class="team-page">
-                    <div class="team-toolbar">
+                <section class="common-page-card team-page">
+                    <div class="common-page-header">
+                        <div class="common-page-title">
+                            <h1>My Team</h1>
+                            <p>See who is involved in each project and keep collaboration aligned.</p>
+                        </div>
+                    </div>
+                    <div class="common-toolbar">
                         <label class="team-search" for="teamSearchInput">
                             <i class="fas fa-search"></i>
                             <input id="teamSearchInput" type="text" placeholder="Search projects or members..." oninput="renderTeamWorkspace()">
                         </label>
-
-                        <div class="team-toolbar-actions">
+                        <div class="common-toolbar-actions">
                             <select id="teamProjectFilter" class="team-filter-select" onchange="renderTeamWorkspace()" aria-label="Filter team projects">
                                 <option value="all">All Projects</option>
                             </select>
                         </div>
                     </div>
-
-                    <div id="team-members-list" class="team-project-list"></div>
+                    <div class="common-content-card">
+                        <div id="team-members-list" class="team-project-list"></div>
+                    </div>
                 </section>
             </div>
 
             <div id="calendar-view" class="hidden">
-                <section class="dashboard-section">
-                    <div class="section-head calendar-head">
-                        <div>
-                            <h3>Calendar</h3>
+                <section class="common-page-card calendar-page">
+                    <div class="common-page-header">
+                        <div class="common-page-title">
+                            <h1>Calendar</h1>
+                            <p>Review deadlines and scheduled work across the month.</p>
                         </div>
+                    </div>
+                    <div class="common-toolbar">
                         <div class="calendar-top-row">
                             <div class="calendar-nav-group">
                                 <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(-1)">
@@ -352,25 +364,27 @@
                             <select id="calendar-year-select" class="calendar-year-select" onchange="onCalendarYearChange(event)" aria-label="Select calendar year"></select>
                         </div>
                     </div>
-                    <div id="calendar-container" class="calendar-panel">
-                        <div id="calendar" class="calendar-grid"></div>
+                    <div class="common-content-card">
+                        <div id="calendar-container" class="calendar-panel">
+                            <div id="calendar" class="calendar-grid"></div>
+                        </div>
                     </div>
                 </section>
             </div>
 
             <div id="activity-view" class="hidden">
-                <section class="dashboard-section">
-                    <div class="section-head calendar-head">
-                        <div>
-                            <h3>Team Activity Log</h3>
+                <section class="common-page-card activity-page">
+                    <div class="common-page-header">
+                        <div class="common-page-title">
+                            <h1>Team Activity Log</h1>
                             <p>Review recent activity for your team members.</p>
                         </div>
-                        <button class="files-action-btn primary activity-export-trigger" type="button" onclick="exportActivityLog()">
+                        <button class="files-action-btn primary common-page-action activity-export-trigger" type="button" onclick="exportActivityLog()">
                             <i class="fas fa-download"></i>
                             Export
                         </button>
                     </div>
-                    <div class="activity-log-toolbar">
+                    <div class="common-toolbar">
                         <label class="team-search activity-log-search" for="activityLogSearch">
                             <i class="fas fa-search"></i>
                             <input id="activityLogSearch" type="text" placeholder="Search user, action, target, details..." oninput="handleActivityLogFiltersChange()" aria-label="Search activity log">
@@ -398,23 +412,24 @@
                             Reset
                         </button>
                     </div>
-                    
-                    <div class="workspace-table-wrap">
-                        <table class="workspace-table">
-                            <thead>
-                                <tr>
-                                    <th>Timestamp</th>
-                                    <th>User</th>
-                                    <th>Action</th>
-                                    <th>Details</th>
-                                </tr>
-                            </thead>
-                            <tbody id="activity-log-body">
-                                <tr><td colspan="4">Loading activity log...</td></tr>
-                            </tbody>
-                        </table>
+                    <div class="common-content-card">
+                        <div class="workspace-table-wrap">
+                            <table class="workspace-table">
+                                <thead>
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Action</th>
+                                        <th>Details</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="activity-log-body">
+                                    <tr><td colspan="4">Loading activity log...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="task-pagination" id="activityLogPagination"></div>
                     </div>
-                    <div class="task-pagination" id="activityLogPagination"></div>
                 </section>
 
                 <div id="activity-export-modal" class="export-modal activity-export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="activity-export-title">
@@ -483,42 +498,39 @@
             </div>
 
             <div id="report-view" class="hidden">
-                <section class="dashboard-section">
-                   <div id="report-content">
-
-                    <!-- Top Bar -->
-                    <div class="report-header">
-                        <div>
-                            <h2>Reports</h2>
+                <section id="report-content" class="common-page-card report-page">
+                    <div class="common-page-header">
+                        <div class="common-page-title">
+                            <h1>Reports</h1>
+                            <p>Monitor project health, team output, and delivery trends in one place.</p>
                         </div>
-                        <div class="report-actions">
-                            <div class="report-date-control">
-                                <button class="report-date-btn" type="button" onclick="toggleReportDatePicker(event)">
-                                    <i class="fas fa-calendar-day"></i>
-                                    <span id="report-date-label">All dates</span>
-                                    <i class="fas fa-chevron-down"></i>
-                                </button>
-                                <div id="report-date-popover" class="report-date-popover hidden" onclick="event.stopPropagation()">
-                                    <label>
-                                        <span>Start date</span>
-                                        <input id="report-start-date" type="date" onchange="onReportDateChange()" aria-label="Report start date">
-                                    </label>
-                                    <label>
-                                        <span>End date</span>
-                                        <input id="report-end-date" type="date" onchange="onReportDateChange()" aria-label="Report end date">
-                                    </label>
-                                    <button type="button" onclick="clearReportDateRange()">Clear</button>
-                                </div>
-                            </div>
-                            <button class="report-export-btn" type="button" onclick="openExportModal()">
+                        <div class="report-date-control">
+                            <button class="report-date-btn" type="button" onclick="toggleReportDatePicker(event)">
+                                <i class="fas fa-calendar-day"></i>
+                                <span id="report-date-label">All dates</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <button class="report-export-btn common-page-action" type="button" onclick="openExportModal()">
                                 <i class="fas fa-download"></i>
                                 Export
                             </button>
+                            <div id="report-date-popover" class="report-date-popover hidden" onclick="event.stopPropagation()">
+                                <label>
+                                    <span>Start date</span>
+                                    <input id="report-start-date" type="date" onchange="onReportDateChange()" aria-label="Report start date">
+                                </label>
+                                <label>
+                                    <span>End date</span>
+                                    <input id="report-end-date" type="date" onchange="onReportDateChange()" aria-label="Report end date">
+                                </label>
+                                <button type="button" onclick="clearReportDateRange()">Clear</button>
+                            </div>
                         </div>
+                        
                     </div>
-
-                    <!-- Cards -->
-                    <div class="report-cards">
+                    
+                    <div >
+                        <div class="report-cards">
 
                         <div class="report-card blue">
                             <div class="card-top">
@@ -565,10 +577,8 @@
                             <p class="percent red-text" id="report-overdue-percent">0%</p>
                         </div>
 
-                    </div>
-
-                    <!-- Charts -->
-                    <div class="report-grid">
+                        </div>
+                        <div class="report-grid">
                         <div class="chart-card-container status-report-card">
                             <h3>Tasks by Status</h3>
                             <div class="status-chart-layout">
@@ -585,10 +595,8 @@
                             <h3>Tasks by Project</h3>
                             <div class="chart-wrap"><canvas id="priorityChart"></canvas></div>
                         </div>
-                    </div>
-
-                    <!-- Tables -->
-                    <div class="report-tables">
+                        </div>
+                        <div class="report-tables">
                         <div class="report-table-card">
                             <h3>Project Summary</h3>
                             <table class="report-table">
@@ -625,10 +633,9 @@
                                 <button id="view-team-report" class="link-btn">View full team report</button>
                             </div>
                         </div>
+                        </div>
                     </div>
-
-                    </div>
-                    </section>
+                </section>
 
                     <div id="export-report-modal" class="export-modal hidden" role="dialog" aria-modal="true" aria-labelledby="export-report-title">
                         <div class="export-modal-backdrop" onclick="closeExportModal()"></div>
@@ -733,13 +740,14 @@
                 </div>
 
             <div id="files-view" class="hidden">
-                <section class="files-page">
-                    <div class="files-top-row">
-                        <div>
+                <section class="common-page-card files-page">
+                    <div class="common-page-header">
+                        <div class="common-page-title">
                             <h1 class="files-title">Files</h1>
+                            <p>Upload, organize, and review shared workspace files.</p>
                         </div>
                         <div class="files-actions">
-                            <button id="uploadBtn" class="files-action-btn primary" type="button" onclick="document.getElementById('file-input').click()">
+                            <button id="uploadBtn" class="files-action-btn primary common-page-action" type="button" onclick="document.getElementById('file-input').click()">
                                 <i class="fas fa-upload"></i>
                                 <span>Upload File</span>
                             </button>
@@ -747,13 +755,13 @@
                         </div>
                     </div>
 
-                    <div class="files-toolbar">
+                    <div class="common-toolbar">
                         <div class="files-tabs">
                             <button class="files-tab active" type="button" data-files-tab="all" onclick="setFilesTab('all')"><i class="fas fa-folder"></i>All Files</button>
                             <button class="files-tab" type="button" data-files-tab="my" onclick="setFilesTab('my')"><i class="fas fa-user"></i>My Files</button>
                             <button class="files-tab" type="button" data-files-tab="shared" onclick="setFilesTab('shared')"><i class="fas fa-users"></i>Shared with Me</button>
                         </div>
-                        <div class="files-toolbar-right">
+                        <div class="common-toolbar-actions files-toolbar-right">
                             <div class="files-category-dropdown">
                                 <button class="category-dropdown-btn" type="button" onclick="toggleCategoryDropdown()">
                                     Categories: <span id="selected-category-label">All Files</span>
@@ -789,137 +797,140 @@
                                 </div>
                             </div>
                             <div class="sort-container">
-
                                 <button class="files-sort" type="button" onclick="toggleFilesSort()">
                                     <span>Sort by: Name (A-Z)</span>
                                     <i class="fas fa-chevron-down"></i>
                                 </button>
-
                                 <div class="sort-options" id="sortOptions">
                                     <div onclick="setSort('name-asc')">Name (A-Z)</div>
                                     <div onclick="setSort('name-desc')">Name (Z-A)</div>
                                     <div onclick="setSort('date-desc')">Date (Newest)</div>
                                 </div>
-
                             </div>
                         </div>
                     </div>
 
-                    <div class="files-content-grid">
-                        <section class="files-table-card">
-                            <table class="files-table">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Name </th>
-                                        <th>Owner</th>
-                                        <th id="assigned-header">Assigned To</th>
-                                        <th>Size</th>
-                                        <th>Last Modified</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="files-table-body">
-                                    <tr><td colspan="7" class="empty-table">Loading files...</td></tr>
-                                </tbody>
-                            </table>
+                    <section class="common-content-card files-table-card">
+                        <table class="files-table">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Name </th>
+                                    <th>Owner</th>
+                                    <th id="assigned-header">Assigned To</th>
+                                    <th>Size</th>
+                                    <th>Last Modified</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="files-table-body">
+                                <tr><td colspan="7" class="empty-table">Loading files...</td></tr>
+                            </tbody>
+                        </table>
 
-                            <div class="files-table-footer">
-                                <p id="files-footer-copy">Showing 0 files</p>
-                                <div class="pagination" id="files-pagination"></div>
-                            </div>
-                        </section>
-                    </div>
+                        <div class="files-table-footer">
+                            <p id="files-footer-copy">Showing 0 files</p>
+                            <div class="pagination" id="files-pagination"></div>
+                        </div>
+                    </section>
                 </section>
             </div>
 
             <div id="profile-view" class="hidden">
-                <section class="dashboard-profile-page">
-                    <div class="profile-page-head">
-                        <div>
+                <section class="common-page-card dashboard-profile-page">
+                    <div class="common-page-head">
+                        <div class="common-page-title">
                             <h1 class="profile-page-title">My Profile</h1>
+                            <p>View the account details used across your TaskFlow workspace.</p>
                         </div>
-                        <button class="profile-action-btn" type="button" onclick="goToSettings()">
-                            <i class="fas fa-gear"></i>
-                            <span>Settings</span>
-                        </button>
+
                     </div>
+            
 
-                    <div class="dashboard-profile-grid">
-                        <section class="dashboard-profile-card profile-identity-card">
-                            <div class="profile-avatar-wrap">
-                                <div id="dashboard-profile-avatar-large" class="dashboard-profile-avatar-large">R</div>
-                                <button type="button" class="profile-camera-btn" aria-label="Change photo">
-                                    <i class="fas fa-camera"></i>
-                                </button>
-                            </div>
-
-                            <h2 id="dashboard-profile-name">Your Name</h2>
-                            <p id="dashboard-profile-role-text">User</p>
-
-                        </section>
-
-                        <section class="dashboard-profile-card profile-details-card">
-                            <div class="profile-card-head">
-                                <div class="profile-card-icon"><i class="fas fa-id-card"></i></div>
-                                <div>
-                                    <h3>Profile Details</h3>
-                                    <p>Account information used across TaskFlow.</p>
+                    <div class="common-content-card">
+                        <div class="dashboard-profile-grid">
+                            <section class="dashboard-profile-card profile-identity-card">
+                                <div class="profile-avatar-wrap">
+                                    <div id="dashboard-profile-avatar-large" class="dashboard-profile-avatar-large">R</div>
+                                    <button type="button" class="profile-camera-btn" aria-label="Change photo">
+                                        <i class="fas fa-camera"></i>
+                                    </button>
                                 </div>
-                            </div>
 
-                            <div class="profile-detail-list">
-                                <div class="profile-detail-row">
-                                    <span>Full Name</span>
-                                    <strong id="dashboard-profile-username">-</strong>
-                                </div>
-                                <div class="profile-detail-row">
-                                    <span>Email</span>
-                                    <strong id="dashboard-profile-email">-</strong>
-                                </div>
-                                <div class="profile-detail-row">
-                                    <span>Role</span>
-                                    <strong id="dashboard-profile-role">-</strong>
-                                </div>
-                            </div>
-                        </section>
+                                <h2 id="dashboard-profile-name">Your Name</h2>
+                                <p id="dashboard-profile-role-text">User</p>
 
-                        <section class="dashboard-profile-card profile-details-card">
-                            <div class="profile-card-head">
-                                <div class="profile-card-icon"><i class="fas fa-shield-halved"></i></div>
-                                <div>
-                                    <h3>Account Access</h3>
-                                    <p>Manage security and active session actions.</p>
-                                </div>
-                            </div>
+                            </section>
 
-                            <div class="profile-action-list">
-                                <button class="profile-list-button" type="button" onclick="window.location.href='/forgot-page'">
-                                    <span><i class="fas fa-key"></i>Reset password</span>
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                                <button class="profile-list-button" type="button" onclick="goToSettings()">
-                                    <span><i class="fas fa-sliders"></i>Dashboard preferences</span>
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                                <button class="profile-list-button danger" type="button" onclick="logout()">
-                                    <span><i class="fas fa-right-from-bracket"></i>Logout</span>
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </section>
+                            <section class="dashboard-profile-card profile-details-card">
+                                <div class="profile-card-head">
+                                    <div class="profile-card-icon"><i class="fas fa-id-card"></i></div>
+                                    <div>
+                                        <h3>Profile Details</h3>
+                                        <p>Account information used across TaskFlow.</p>
+                                    </div>
+                                </div>
+
+                                <div class="profile-detail-list">
+                                    <div class="profile-detail-row">
+                                        <span>Full Name</span>
+                                        <strong id="dashboard-profile-username">-</strong>
+                                    </div>
+                                    <div class="profile-detail-row">
+                                        <span>Email</span>
+                                        <strong id="dashboard-profile-email">-</strong>
+                                    </div>
+                                    <div class="profile-detail-row">
+                                        <span>Role</span>
+                                        <strong id="dashboard-profile-role">-</strong>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="dashboard-profile-card profile-details-card">
+                                <div class="profile-card-head">
+                                    <div class="profile-card-icon"><i class="fas fa-shield-halved"></i></div>
+                                    <div>
+                                        <h3>Account Access</h3>
+                                        <p>Manage security and active session actions.</p>
+                                    </div>
+                                </div>
+
+                                <div class="profile-action-list">
+                                    <button class="profile-list-button" type="button" onclick="window.location.href='/forgot-page'">
+                                        <span><i class="fas fa-key"></i>Reset password</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <button class="profile-list-button" type="button" onclick="goToSettings()">
+                                        <span><i class="fas fa-sliders"></i>Dashboard preferences</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                    <button class="profile-list-button danger" type="button" onclick="logout()">
+                                        <span><i class="fas fa-right-from-bracket"></i>Logout</span>
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </section>
+                        </div>
                     </div>
                 </section>
             </div>
 
             <div id="settings-view" class="hidden">
-                <section class="settings-page">
-                    <div class="settings-heading">
-                        <h1 class="settings-title" data-settings-text="title">Settings</h1>
-                        <p data-settings-text="subtitle">Manage your account and preferences.</p>
+                <section class="common-page-card settings-page">
+                    <div class="common-page-header">
+                        <div class="common-page-title">
+                            <h1 class="settings-title" data-settings-text="title">Settings</h1>
+                            <p data-settings-text="subtitle">Manage your account and preferences.</p>
+                        </div>
                     </div>
 
-                    <section class="settings-list-card">
+                    <div class="common-toolbar common-toolbar-settings">
+                        
+                    
+
+                    <section class="common-content-card settings-list-card">
+                        <section class="settings-list-card">
                         <button class="settings-row" type="button" onclick="goToProfile()">
                             <span class="settings-row-icon"><i class="far fa-user"></i></span>
                             <span class="settings-row-copy">
@@ -972,6 +983,7 @@
                             </select>
                         </div>
                     </section>
+                </div>
                 </section>
             </div>
 

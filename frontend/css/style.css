@@ -3404,6 +3404,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 .files-category-dropdown {
     position: relative;
+    
 }
 
 .category-dropdown-btn,
@@ -4372,7 +4373,8 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 16px;
-    margin-top: 15px;
+    margin-top: 40px;
+    margin-bottom: 20px;
 }
 
 .report-card {
@@ -7031,7 +7033,7 @@ button {
 
 #report-content .report-cards {
     gap: 14px;
-    margin-top: 12px;
+    margin-top: 40px;
 }
 
 #report-content .report-card {
@@ -8756,6 +8758,7 @@ button {
     display: flex;
     flex-direction: column;
     gap: 14px;
+    margin: 30px 30px 30px 30px !important;
 }
 
 .team-project-card {
@@ -9197,6 +9200,544 @@ button {
     font-size: clamp(36px, 6vw, 68px);
     font-weight: 800;
     letter-spacing: 0;
+}
+
+/* =========================
+   DASHBOARD COMMON PAGE SYSTEM
+========================= */
+.dashboard {
+    --common-page-gap: 18px;
+    --common-card-radius: 22px;
+    --common-control-height: 46px;
+    --common-control-radius: 14px;
+    --common-card-border: 1px solid rgba(216, 225, 238, 0.9);
+    --common-card-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+}
+
+.common-page-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--common-page-gap);
+    animation: dashboardPageEnter 0.24s ease;
+}
+
+.common-page-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.common-page-title {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+}
+
+.common-page-title h1,
+.common-page-title h2,
+.common-page-title h3 {
+    margin: 0;
+    color: #132038;
+    font-size: clamp(28px, 2vw, 34px);
+    line-height: 1.08;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.common-page-title p {
+    margin: 0;
+    color: var(--dashboard-muted);
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 720px;
+}
+
+.common-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 14px 16px;
+    border: var(--common-card-border);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 10px 26px rgba(148, 163, 184, 0.08);
+    backdrop-filter: blur(12px);
+}
+
+.common-toolbar-actions,
+.files-toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+
+.common-content-card {
+    background: #ffffff;
+    border: var(--common-card-border);
+    border-radius: var(--common-card-radius);
+    box-shadow: var(--common-card-shadow);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.common-content-card:hover {
+    border-color: rgba(187, 198, 214, 0.92);
+    box-shadow: 0 20px 38px rgba(15, 23, 42, 0.08);
+}
+
+.dashboard-section,
+.team-page,
+.files-page,
+.dashboard-profile-page,
+.settings-page {
+    padding-top: 0;
+}
+
+.dashboard .task-add-btn,
+.dashboard .files-action-btn.primary,
+.dashboard .report-export-btn,
+.dashboard .profile-action-btn,
+.dashboard .activity-export-trigger {
+    min-height: var(--common-control-height);
+    padding: 0 18px;
+    border: 1px solid var(--tf-primary);
+    border-radius: var(--common-control-radius);
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(22, 163, 74, 0.18);
+    font-size: 14px;
+    font-weight: 700;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.dashboard .task-add-btn:hover,
+.dashboard .files-action-btn.primary:hover,
+.dashboard .report-export-btn:hover,
+.dashboard .profile-action-btn:hover,
+.dashboard .activity-export-trigger:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #15803d, #166534);
+    border-color: #15803d;
+    box-shadow: 0 16px 28px rgba(22, 163, 74, 0.22);
+}
+
+.common-toolbar .team-search,
+.common-toolbar .task-board-filter,
+.common-toolbar .team-filter-select,
+.common-toolbar .category-dropdown-btn,
+.common-toolbar .storage-dropdown-btn,
+.common-toolbar .files-sort,
+.common-toolbar .activity-log-date-btn,
+.common-toolbar .report-date-btn,
+.common-toolbar .settings-select,
+.common-toolbar .profile-list-button,
+.common-toolbar .calendar-year-select,
+.common-toolbar .calendar-nav-btn {
+    min-height: var(--common-control-height);
+    border-radius: var(--common-control-radius);
+}
+
+.common-toolbar .team-search {
+    width: min(360px, 100%);
+    min-width: 240px;
+    height: var(--common-control-height);
+    padding: 0 16px;
+    border: 1px solid #d8e1ee;
+    background: #ffffff;
+    box-shadow: none;
+}
+
+.common-toolbar .team-search i {
+    color: #64748b;
+    font-size: 14px;
+}
+
+.common-toolbar .team-search input {
+    font-size: 14px;
+}
+
+.common-toolbar .task-board-filter,
+.common-toolbar .team-filter-select,
+.common-toolbar .category-dropdown-btn,
+.common-toolbar .storage-dropdown-btn,
+.common-toolbar .files-sort,
+.common-toolbar .activity-log-date-btn,
+.common-toolbar .report-date-btn,
+.common-toolbar .settings-select,
+.common-toolbar .calendar-year-select {
+    height: var(--common-control-height);
+    border: 1px solid #d8e1ee;
+    background: #ffffff;
+    color: #172033;
+    box-shadow: none;
+}
+
+.common-toolbar .task-board-filter,
+.common-toolbar .team-filter-select,
+.common-toolbar .settings-select,
+.common-toolbar .calendar-year-select {
+    min-width: 180px;
+    padding: 0 14px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.common-toolbar .category-dropdown-btn,
+.common-toolbar .storage-dropdown-btn,
+.common-toolbar .files-sort,
+.common-toolbar .activity-log-date-btn,
+.common-toolbar .report-date-btn,
+.common-toolbar .profile-list-button {
+    padding: 0 16px;
+}
+
+.common-toolbar .team-search:focus-within,
+.common-toolbar .task-board-filter:focus,
+.common-toolbar .team-filter-select:focus,
+.common-toolbar .category-dropdown-btn:hover,
+.common-toolbar .storage-dropdown-btn:hover,
+.common-toolbar .files-sort:hover,
+.common-toolbar .activity-log-date-btn:hover,
+.common-toolbar .activity-log-date-btn:focus-visible,
+.common-toolbar .report-date-btn:hover,
+.common-toolbar .report-date-btn:focus-visible,
+.common-toolbar .settings-select:focus,
+.common-toolbar .calendar-year-select:focus {
+    border-color: rgba(22, 163, 74, 0.45);
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.08);
+    outline: none;
+}
+
+.common-toolbar .calendar-top-row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.common-toolbar .calendar-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.common-toolbar .calendar-nav-title {
+    min-width: 180px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #172033;
+    text-align: center;
+}
+
+.common-toolbar .calendar-nav-btn {
+    width: var(--common-control-height);
+    min-width: var(--common-control-height);
+    border: 1px solid #d8e1ee;
+    background: #ffffff;
+    color: #172033;
+    box-shadow: none;
+}
+
+.common-toolbar .calendar-nav-btn:hover {
+    border-color: rgba(22, 163, 74, 0.45);
+    color: #15803d;
+    background: #f7fcf8;
+}
+
+.common-content-card .workspace-table-wrap,
+.common-content-card .calendar-panel {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+.common-content-card .workspace-table,
+.common-content-card .files-table {
+    width: 100%;
+}
+
+.common-content-card .task-pagination,
+.common-content-card .files-table-footer {
+    padding: 16px 20px 20px;
+}
+
+#report-content.report-page {
+    padding: 0;
+}
+
+.report-content-card {
+    padding: 24px;
+}
+
+#report-content .report-cards,
+#report-content .report-grid,
+#report-content .report-tables {
+    margin-top: 20px;
+}
+
+#report-content .report-tables {
+    gap: 18px;
+}
+
+
+
+.files-page .files-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.files-page .files-tabs {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.files-page .files-tab {
+    min-height: var(--common-control-height);
+    padding: 0 16px;
+    border: 1px solid #d8e1ee;
+    border-radius: var(--common-control-radius);
+    background: #ffffff;
+    color: #172033;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease;
+}
+
+.files-page .files-tab.active,
+.files-page .files-tab:hover {
+    border-color: rgba(22, 163, 74, 0.4);
+    background: #f4fbf6;
+    color: #15803d;
+}
+
+.files-page .files-table-card {
+    padding: 0;
+}
+
+.files-page .files-table-footer {
+    border-top: 1px solid #edf2f7;
+}
+
+.dashboard-profile-page .common-content-card {
+    padding: 22px;
+}
+
+.dashboard-profile-grid {
+    grid-template-columns: 320px minmax(0, 1fr);
+    gap: 18px;
+}
+
+.dashboard-profile-card {
+    border-radius: 18px;
+    box-shadow: none;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.common-toolbar-profile {
+    justify-content: flex-start;
+}
+
+.common-toolbar-profile .profile-list-button {
+    width: auto;
+    min-width: 210px;
+    background: #ffffff !important;
+    border: 1px solid #d8e1ee;
+    box-shadow: none;
+}
+
+.common-toolbar-profile .profile-list-button:hover {
+    transform: none;
+    border-color: rgba(22, 163, 74, 0.4);
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.06);
+}
+
+.settings-page .settings-list-card {
+    width: 100%;
+    padding: 8px 24px;
+    border: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+.settings-page .settings-row {
+    min-height: 82px;
+}
+
+.common-toolbar-settings {
+    justify-content: flex-start;
+}
+
+.common-toolbar-settings .profile-action-btn {
+    min-height: var(--common-control-height);
+}
+
+.activity-log-date-control,
+.report-date-control,
+.files-category-dropdown,
+.files-storage-dropdown,
+.sort-container {
+    position: relative;
+}
+
+body.dashboard-theme-dark .common-page-title h1,
+body.dashboard-theme-dark .common-page-title h2,
+body.dashboard-theme-dark .common-page-title h3 {
+    color: #f8fafc;
+}
+
+body.dashboard-theme-dark .common-page-title p {
+    color: #a8b3c7;
+}
+
+body.dashboard-theme-dark .common-toolbar,
+body.dashboard-theme-dark .common-content-card {
+    background: #182235;
+    border-color: #2d3a50;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+}
+
+body.dashboard-theme-dark .common-toolbar .team-search,
+body.dashboard-theme-dark .common-toolbar .task-board-filter,
+body.dashboard-theme-dark .common-toolbar .team-filter-select,
+body.dashboard-theme-dark .common-toolbar .category-dropdown-btn,
+body.dashboard-theme-dark .common-toolbar .storage-dropdown-btn,
+body.dashboard-theme-dark .common-toolbar .files-sort,
+body.dashboard-theme-dark .common-toolbar .activity-log-date-btn,
+body.dashboard-theme-dark .common-toolbar .report-date-btn,
+body.dashboard-theme-dark .common-toolbar .settings-select,
+body.dashboard-theme-dark .common-toolbar .profile-list-button,
+body.dashboard-theme-dark .common-toolbar .calendar-nav-btn,
+body.dashboard-theme-dark .common-toolbar .calendar-year-select {
+    background: #111827 !important;
+    border-color: #2d3a50;
+    color: #edf2f7;
+}
+
+body.dashboard-theme-dark .common-toolbar .team-search i,
+body.dashboard-theme-dark .common-toolbar .calendar-nav-title,
+body.dashboard-theme-dark .files-page .files-tab {
+    color: #edf2f7;
+}
+
+body.dashboard-theme-dark .files-page .files-tab {
+    background: #111827;
+    border-color: #2d3a50;
+}
+
+body.dashboard-theme-dark .files-page .files-tab.active,
+body.dashboard-theme-dark .files-page .files-tab:hover {
+    background: rgba(22, 163, 74, 0.12);
+    color: #86efac;
+    border-color: rgba(22, 163, 74, 0.35);
+}
+
+body.dashboard-theme-dark .dashboard-profile-card,
+body.dashboard-theme-dark .profile-detail-row,
+body.dashboard-theme-dark .settings-row,
+body.dashboard-theme-dark .files-page .files-table-footer {
+    border-color: #2d3a50;
+}
+
+body.dashboard-theme-dark .dashboard-profile-card {
+    background: linear-gradient(180deg, #182235 0%, #152033 100%);
+}
+
+@media (max-width: 960px) {
+    .common-page-header,
+    .common-toolbar {
+        align-items: stretch;
+    }
+
+    .common-toolbar-actions,
+    .files-toolbar-right {
+        width: 100%;
+    }
+
+    .dashboard-profile-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .common-page-card {
+        gap: 14px;
+    }
+
+    .common-toolbar,
+    .report-content-card,
+    .dashboard-profile-page .common-content-card {
+        padding: 16px;
+    }
+
+    .common-toolbar .team-search,
+    .common-toolbar .task-board-filter,
+    .common-toolbar .team-filter-select,
+    .common-toolbar .category-dropdown-btn,
+    .common-toolbar .storage-dropdown-btn,
+    .common-toolbar .files-sort,
+    .common-toolbar .activity-log-date-btn,
+    .common-toolbar .report-date-btn,
+    .common-toolbar .settings-select,
+    .common-toolbar .profile-list-button,
+    .common-toolbar .calendar-year-select,
+    .common-toolbar .calendar-top-row,
+    .common-toolbar-actions,
+    .files-toolbar-right,
+    .files-page .files-tabs {
+        width: 100%;
+    }
+
+    .common-page-action,
+    .dashboard .task-add-btn,
+    .dashboard .files-action-btn.primary,
+    .dashboard .report-export-btn,
+    .dashboard .profile-action-btn,
+    .dashboard .activity-export-trigger {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .common-toolbar .calendar-nav-group {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .common-toolbar-profile .profile-list-button {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .common-content-card .task-pagination,
+    .common-content-card .files-table-footer {
+        padding: 14px 16px 16px;
+    }
+}
+
+@keyframes dashboardPageEnter {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .login-container {

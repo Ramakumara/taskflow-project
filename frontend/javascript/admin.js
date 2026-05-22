@@ -65,6 +65,13 @@ const adminTeamFilters = {
     searchTerm: "",
     projectId: "all"
 };
+const adminFileFilters = {
+    searchTerm: "",
+    category: "all",
+    sort: "date-desc",
+    page: 1,
+    pageSize: 6
+};
 let expandedAdminTaskAssigneeCards = {};
 let expandedAdminTeamProjects = {};
 
@@ -320,6 +327,48 @@ function goToSettings() {
     renderSettingsView();
 }
 
+function renderCommonPageLayout({ pageClass = "", header, toolbar = "", content = "" }) {
+    return `
+        <section class="common-page-card ${pageClass}">
+            ${header}
+            ${toolbar}
+            ${content}
+        </section>
+    `;
+}
+
+function renderCommonPageHeader(title, subtitle, actionHtml = "") {
+    return `
+        <header class="common-page-header">
+            <div class="common-page-title">
+                <h1>${escapeHtml(title)}</h1>
+                ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ""}
+            </div>
+            ${actionHtml ? `<div class="common-page-header-actions">${actionHtml}</div>` : ""}
+        </header>
+    `;
+}
+
+function renderCommonSearchBox({ id, placeholder, value = "", oninput, ariaLabel = "" }) {
+    return `
+        <label class="common-search-box" for="${escapeHtml(id)}">
+            <i class="fas fa-search"></i>
+            <input
+                id="${escapeHtml(id)}"
+                type="text"
+                placeholder="${escapeHtml(placeholder)}"
+                value="${escapeHtml(value)}"
+                oninput="${escapeHtml(oninput)}"
+                ${ariaLabel ? `aria-label="${escapeHtml(ariaLabel)}"` : ""}
+            >
+        </label>
+    `;
+}
+
+function renderCommonContentCard(content, extraClass = "") {
+    return `<section class="common-content-card ${extraClass}">${content}</section>`;
+}
+
 function toggleAdminProfileMenu(event) {
     event.stopPropagation();
     const dropdown = document.getElementById("profileDropdown");
@@ -459,30 +508,41 @@ function renderDashboardView() {
 
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view project-admin-view">
-            <section class="project-summary-grid">
-                ${renderAdminProjectStatCard("fa-folder", "Total Projects", projectStats.totalProjects, "green")}
-                ${renderAdminProjectStatCard("fa-list-check", "Total Tasks", projectStats.totalTasks, "mint")}
-                ${renderAdminProjectStatCard("fa-chart-line", "Completion Rate", `${projectStats.completionRate}%`, "emerald")}
-            </section>
-
-            <section class="data-panel project-board-panel">
-                <div class="project-board-head">
-                    <div>
-                        <h3>Projects</h3>
-                        <p>Manage your active projects and keep delivery moving.</p>
-                    </div>
-                    <button class="action-btn admin-add-user-btn" type="button" onclick="openAdminProjectModal()">
-                        <i class="fas fa-plus"></i>
-                        Create Project
-                    </button>
-                </div>
-                <div class="admin-project-grid">
-                    ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
-                    <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
-                        <span>+ Create Project</span>
-                    </button>
-                </div>
-            </section>
+            ${renderCommonPageLayout({
+                pageClass: "admin-module-page admin-dashboard-page",
+                header: renderCommonPageHeader(
+                    "Dashboard",
+                    "Track delivery health, open work, and project momentum from one consistent workspace.",
+                    `
+                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminProjectModal()">
+                            <i class="fas fa-plus"></i>
+                            Create Project
+                        </button>
+                    `
+                ),
+                
+                content: `
+                    <section class="project-summary-grid">
+                        ${renderAdminProjectStatCard("fa-folder", "Total Projects", projectStats.totalProjects, "green")}
+                        ${renderAdminProjectStatCard("fa-list-check", "Total Tasks", projectStats.totalTasks, "mint")}
+                        ${renderAdminProjectStatCard("fa-chart-line", "Completion Rate", `${projectStats.completionRate}%`, "emerald")}
+                    </section>
+                    ${renderCommonContentCard(`
+                        <div class="project-board-head common-section-head">
+                            <div>
+                                <h3>Projects Overview</h3>
+                                <p>Open a workspace, assign ownership, and keep every project on track.</p>
+                            </div>
+                        </div>
+                        <div class="admin-project-grid">
+                            ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
+                            <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
+                                <span>+ Create Project</span>
+                            </button>
+                        </div>
+                    `, "project-board-panel")}
+                `
+            })}
             ${adminState.isProjectModalOpen ? renderAdminProjectModal() : ""}
         </div>
     `;
@@ -498,30 +558,51 @@ function renderProjectsView() {
 
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view project-admin-view">
-            <section class="project-summary-grid">
-                ${renderAdminProjectStatCard("fa-folder", "Total Projects", projectStats.totalProjects, "green")}
-                ${renderAdminProjectStatCard("fa-list-check", "Total Tasks", projectStats.totalTasks, "mint")}
-                ${renderAdminProjectStatCard("fa-chart-line", "Completion Rate", `${projectStats.completionRate}%`, "emerald")}
-            </section>
-
-            <section class="data-panel project-board-panel">
-                <div class="project-board-head">
-                    <div>
-                        <h3>Projects</h3>
-                        <p>Manage your active projects and keep delivery moving.</p>
+            ${renderCommonPageLayout({
+                pageClass: "admin-module-page admin-projects-page",
+                header: renderCommonPageHeader(
+                    "Projects",
+                    "Manage active workspaces, track completion, and assign project ownership consistently.",
+                    `
+                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminProjectModal()">
+                            <i class="fas fa-plus"></i>
+                            Create Project
+                        </button>
+                    `
+                ),
+                toolbar: `
+                    <div class="common-toolbar">
+                        ${renderCommonSearchBox({
+                            id: "adminProjectsPageSearch",
+                            placeholder: "Search projects, managers, or descriptions...",
+                            value: adminState.searchTerm,
+                            oninput: "handleAdminSearch(event)",
+                            ariaLabel: "Search projects"
+                        })}
                     </div>
-                    <button class="action-btn admin-add-user-btn" type="button" onclick="openAdminProjectModal()">
-                        <i class="fas fa-plus"></i>
-                        Create Project
-                    </button>
-                </div>
-                <div class="admin-project-grid">
-                    ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
-                    <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
-                        <span>+ Create Project</span>
-                    </button>
-                </div>
-            </section>
+                `,
+                content: `
+                    <section class="project-summary-grid">
+                        ${renderAdminProjectStatCard("fa-folder", "Total Projects", projectStats.totalProjects, "green")}
+                        ${renderAdminProjectStatCard("fa-list-check", "Total Tasks", projectStats.totalTasks, "mint")}
+                        ${renderAdminProjectStatCard("fa-chart-line", "Completion Rate", `${projectStats.completionRate}%`, "emerald")}
+                    </section>
+                    ${renderCommonContentCard(`
+                        <div class="project-board-head common-section-head">
+                            <div>
+                                <h3>Project Directory</h3>
+                                <p>Keep every admin workspace aligned with the same card system and action controls.</p>
+                            </div>
+                        </div>
+                        <div class="admin-project-grid">
+                            ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
+                            <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
+                                <span>+ Create Project</span>
+                            </button>
+                        </div>
+                    `, "project-board-panel")}
+                `
+            })}
             ${adminState.isProjectModalOpen ? renderAdminProjectModal() : ""}
         </div>
     `;
@@ -876,59 +957,72 @@ function renderTasksView() {
 
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view task-management-view">
-            <div class="view-header task-management-head">
-                <div>
-                    <h3>My Tasks</h3>
-                </div>
-                <div class="admin-task-actions">
-                    <button class="action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
-                        <i class="fas fa-plus"></i>
-                        Assign Task
-                    </button>
-                    <select class="admin-task-filter" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
-                        <option value="all">All Projects</option>
-                        ${projectOptions}
-                    </select>
-                    <select class="admin-task-filter" onchange="setAdminTaskStatusFilter(this.value)" aria-label="Filter tasks by status">
-                        <option value="all" ${adminTaskFilters.status === "all" ? "selected" : ""}>All Status</option>
-                        <option value="Pending" ${adminTaskFilters.status === "Pending" ? "selected" : ""}>Pending</option>
-                        <option value="In Progress" ${adminTaskFilters.status === "In Progress" ? "selected" : ""}>In Progress</option>
-                        <option value="Completed" ${adminTaskFilters.status === "Completed" ? "selected" : ""}>Completed</option>
-                    </select>
-                </div>
-            </div>
-            ${adminState.isTaskModalOpen ? renderAdminTaskModal(stats.filteredProjects) : ""}
-            <div class="data-panel task-table-panel">
-                <div class="data-table-wrap">
-                    <table class="admin-table admin-task-table">
-                        <thead>
-                            <tr>
-                                <th>Task</th>
-                                <th>Project</th>
-                                <th>Assigned Users &amp; Status</th>
-                                <th>Overall Status</th>
-                                <th>Due Date</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${pageTasks.length ? pageTasks.map((task) => renderTaskRow(task, stats.projectMap, { showAction: true })).join("") : `<tr><td colspan="6" class="empty-state">No tasks found.</td></tr>`}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="admin-task-footer">
-                    <span class="app-pagination-summary">${tasks.length ? `Showing ${startIndex + 1} to ${startIndex + pageTasks.length} of ${tasks.length} tasks` : "Showing 0 tasks"}</span>
-                    <div class="admin-task-pagination-controls app-pagination-controls">
-                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page - 1})" ${adminTaskFilters.page <= 1 ? "disabled" : ""} aria-label="Previous task page">
-                            <i class="fas fa-chevron-left"></i>
+            ${renderCommonPageLayout({
+                pageClass: "admin-module-page admin-tasks-page",
+                header: renderCommonPageHeader(
+                    "Tasks",
+                    "Assign work, monitor progress, and review delivery status across every project.",
+                    `
+                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
+                            <i class="fas fa-plus"></i>
+                            Add Task
                         </button>
-                        <span class="admin-task-page-current app-page-current">${adminTaskFilters.page}</span>
-                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page + 1})" ${adminTaskFilters.page >= totalPages ? "disabled" : ""} aria-label="Next task page">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
+                    `
+                ),
+                toolbar: `
+                    <div class="common-toolbar">
+                        ${renderCommonSearchBox({
+                            id: "adminTasksPageSearch",
+                            placeholder: "Search tasks, users, statuses, or projects...",
+                            value: adminState.searchTerm,
+                            oninput: "handleAdminSearch(event)",
+                            ariaLabel: "Search tasks"
+                        })}
+                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
+                            <option value="all">All Projects</option>
+                            ${projectOptions}
+                        </select>
+                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskStatusFilter(this.value)" aria-label="Filter tasks by status">
+                            <option value="all" ${adminTaskFilters.status === "all" ? "selected" : ""}>All Status</option>
+                            <option value="Pending" ${adminTaskFilters.status === "Pending" ? "selected" : ""}>Pending</option>
+                            <option value="In Progress" ${adminTaskFilters.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                            <option value="Completed" ${adminTaskFilters.status === "Completed" ? "selected" : ""}>Completed</option>
+                        </select>
                     </div>
-                </div>
-            </div>
+                `,
+                content: renderCommonContentCard(`
+                    <div class="data-table-wrap common-table-wrapper">
+                        <table class="admin-table admin-task-table">
+                            <thead>
+                                <tr>
+                                    <th>Task</th>
+                                    <th>Project</th>
+                                    <th>Assigned Users &amp; Status</th>
+                                    <th>Overall Status</th>
+                                    <th>Due Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${pageTasks.length ? pageTasks.map((task) => renderTaskRow(task, stats.projectMap, { showAction: true })).join("") : `<tr><td colspan="6" class="empty-state">No tasks found.</td></tr>`}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="admin-task-footer">
+                        <span class="app-pagination-summary">${tasks.length ? `Showing ${startIndex + 1} to ${startIndex + pageTasks.length} of ${tasks.length} tasks` : "Showing 0 tasks"}</span>
+                        <div class="admin-task-pagination-controls app-pagination-controls">
+                            <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page - 1})" ${adminTaskFilters.page <= 1 ? "disabled" : ""} aria-label="Previous task page">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="admin-task-page-current app-page-current">${adminTaskFilters.page}</span>
+                            <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page + 1})" ${adminTaskFilters.page >= totalPages ? "disabled" : ""} aria-label="Next task page">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                `, "task-table-panel")
+            })}
+            ${adminState.isTaskModalOpen ? renderAdminTaskModal(stats.filteredProjects) : ""}
         </div>
     `;
 }
@@ -1059,33 +1153,33 @@ function renderTeamView() {
 
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view admin-team-view">
-            <div class="view-header">
-                <div>
-                    <h3>My Team</h3>
-                    <p>Review team members grouped by project.</p>
-                </div>
-            </div>
-            <div class="data-panel">
-                <div class="admin-team-toolbar">
-                    <label class="admin-team-search" for="adminTeamSearch">
-                        <i class="fas fa-search"></i>
-                        <input
-                            id="adminTeamSearch"
-                            type="text"
-                            placeholder="Search projects or members..."
-                            value="${escapeHtml(adminTeamFilters.searchTerm)}"
-                            oninput="setAdminTeamSearch(this.value)"
-                        >
-                    </label>
-                    <select class="admin-team-filter" onchange="setAdminTeamProjectFilter(this.value)" aria-label="Filter team projects">
-                        <option value="all">All Projects</option>
-                        ${projectOptions}
-                    </select>
-                </div>
-                <div class="admin-team-project-list">
-                    ${visibleProjects.length ? visibleProjects.map((project, index) => renderAdminTeamProject(project, projectMap, userMap, index)).join("") : `<div class="empty-state">No team members found.</div>`}
-                </div>
-            </div>
+            ${renderCommonPageLayout({
+                pageClass: "admin-module-page admin-team-page",
+                header: renderCommonPageHeader(
+                    "Team",
+                    "Review team members by project with the same structured layout used across admin modules."
+                ),
+                toolbar: `
+                    <div class="common-toolbar">
+                        ${renderCommonSearchBox({
+                            id: "adminTeamSearch",
+                            placeholder: "Search projects or members...",
+                            value: adminTeamFilters.searchTerm,
+                            oninput: "setAdminTeamSearch(this.value)",
+                            ariaLabel: "Search team members"
+                        })}
+                        <select class="admin-team-filter common-filter-select" onchange="setAdminTeamProjectFilter(this.value)" aria-label="Filter team projects">
+                            <option value="all">All Projects</option>
+                            ${projectOptions}
+                        </select>
+                    </div>
+                `,
+                content: renderCommonContentCard(`
+                    <div class="admin-team-project-list">
+                        ${visibleProjects.length ? visibleProjects.map((project, index) => renderAdminTeamProject(project, projectMap, userMap, index)).join("") : `<div class="empty-state">No team members found.</div>`}
+                    </div>
+                `)
+            })}
         </div>
     `;
 }
@@ -1109,7 +1203,7 @@ function renderAdminTeamProject(project, projectMap, userMap, index) {
                     <i class="fas fa-chevron-down"></i>
                 </span>
             </button>
-            <div class="admin-team-table-wrap ${isExpanded ? "" : "hidden"}">
+            <div class="admin-team-table-wrap common-table-wrapper ${isExpanded ? "" : "hidden"}">
                 <table class="admin-table admin-team-table">
                     <thead>
                         <tr>
@@ -2481,79 +2575,81 @@ function downloadAdminBlob(content, filename, type) {
 function renderActivityLogView() {
     document.getElementById("mainContent").innerHTML = `
         <div id="activity-view" class="list-view admin-activity-log-view">
-            <div class="view-header admin-activity-log-header">
-                <div>
-                    <h3>Activity Log</h3>
-                    <p>Review workspace activity across users, projects, tasks, and files.</p>
-                </div>
-                <button class="action-btn export-btn" type="button" onclick="exportActivityLog()">
-                    <i class="fas fa-file-export"></i>
-                    Export CSV
-                </button>
-            </div>
+            ${renderCommonPageLayout({
+                pageClass: "admin-module-page admin-activity-page",
+                header: renderCommonPageHeader(
+                    "Activity Log",
+                    "Review workspace activity across users, projects, tasks, and files.",
+                    `
+                        <button class="action-btn common-action-btn export-btn" type="button" onclick="exportActivityLog()">
+                            <i class="fas fa-file-export"></i>
+                            Export
+                        </button>
+                    `
+                ),
+                toolbar: `
+                    <div class="common-toolbar admin-activity-log-toolbar">
+                        ${renderCommonSearchBox({
+                            id: "activityLogSearch",
+                            placeholder: "Search user, action, target, details...",
+                            value: "",
+                            oninput: "handleActivityLogFiltersChange()",
+                            ariaLabel: "Search activity log"
+                        })}
 
-            <section class="admin-activity-log-panel">
-                <div class="admin-activity-log-toolbar">
-                    <label class="admin-search-field admin-activity-search" for="activityLogSearch">
-                        <i class="fas fa-search"></i>
-                        <input id="activityLogSearch" type="text" placeholder="Search user, action, target, details..." oninput="handleActivityLogFiltersChange()" aria-label="Search activity log">
-                    </label>
-
-                    <select id="activityLogUserFilter" class="admin-filter-select" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by user">
+                        <select id="activityLogUserFilter" class="admin-filter-select common-filter-select" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by user">
                         <option value="all">All Users</option>
-                    </select>
+                        </select>
 
-                    <select id="activityLogActionFilter" class="admin-filter-select" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by action">
-                        <option value="all">All Actions</option>
-                    </select>
-
-                    <div class="admin-activity-date-control activity-log-date-control">
-                        <button class="action-btn secondary-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
+                        <div class="admin-activity-date-control activity-log-date-control">
+                            <button class="action-btn common-action-btn secondary-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
                             <i class="far fa-calendar"></i>
                             <span id="activity-log-date-label">All dates</span>
                             <i class="fas fa-chevron-down"></i>
-                        </button>
-                        <div class="admin-activity-date-popover hidden" id="activity-log-date-popover">
-                            <label>
-                                <span>From</span>
-                                <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
-                            </label>
-                            <label>
-                                <span>To</span>
-                                <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
-                            </label>
-                            <button class="action-btn secondary-btn" type="button" onclick="clearActivityLogDateRange()">Clear dates</button>
+                            </button>
+                            <div class="admin-activity-date-popover hidden" id="activity-log-date-popover">
+                                <label>
+                                    <span>From</span>
+                                    <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
+                                </label>
+                                <label>
+                                    <span>To</span>
+                                    <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
+                                </label>
+                                <button class="action-btn common-action-btn secondary-btn" type="button" onclick="clearActivityLogDateRange()">Clear dates</button>
+                            </div>
                         </div>
+
+                        <button class="action-btn common-action-btn secondary-btn" type="button" onclick="resetActivityLogFilters()">
+                            <i class="fas fa-rotate-left"></i>
+                            Reset
+                        </button>
+                    </div>
+                `,
+                content: renderCommonContentCard(`
+                    <div class="admin-activity-log-meta">
+                        <span id="activity-log-filter-summary">Loading activity records...</span>
                     </div>
 
-                    <button class="action-btn secondary-btn" type="button" onclick="resetActivityLogFilters()">
-                        <i class="fas fa-rotate-left"></i>
-                        Reset
-                    </button>
-                </div>
+                    <div class="table-scroll common-table-wrapper">
+                        <table class="admin-compact-table admin-activity-log-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>User</th>
+                                    <th>Action</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="activity-log-body">
+                                <tr><td colspan="4">Loading activity log...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-                <div class="admin-activity-log-meta">
-                    <span id="activity-log-filter-summary">Loading activity records...</span>
-                </div>
-
-                <div class="table-scroll">
-                    <table class="admin-compact-table admin-activity-log-table">
-                        <thead>
-                            <tr>
-                                <th>Timestamp</th>
-                                <th>User</th>
-                                <th>Action</th>
-                                <th>Details</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activity-log-body">
-                            <tr><td colspan="4">Loading activity log...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="task-pagination admin-activity-log-pagination" id="activityLogPagination"></div>
-            </section>
+                    <div class="task-pagination admin-activity-log-pagination" id="activityLogPagination"></div>
+                `, "admin-activity-log-panel")
+            })}
         </div>
     `;
 
@@ -2575,54 +2671,130 @@ async function renderFilesView() {
     });
 
     const files = await res.json();
+    const searchValue = String(adminFileFilters.searchTerm || "").trim().toLowerCase();
+    const filteredFiles = (Array.isArray(files) ? files : [])
+        .filter((file) => {
+            if (!searchValue) return true;
+            const haystack = [
+                file.name,
+                file.owner_name,
+                file.owner_email,
+                file.extension,
+                file.task_title,
+                file.source
+            ].filter(Boolean).join(" ").toLowerCase();
+            return haystack.includes(searchValue);
+        })
+        .filter((file) => adminFileFilters.category === "all" || getAdminFileCategory(file) === adminFileFilters.category)
+        .sort((a, b) => sortAdminFiles(a, b, adminFileFilters.sort));
+    const totalPages = Math.max(Math.ceil(filteredFiles.length / adminFileFilters.pageSize), 1);
+    adminFileFilters.page = Math.min(Math.max(adminFileFilters.page, 1), totalPages);
+    const startIndex = (adminFileFilters.page - 1) * adminFileFilters.pageSize;
+    const pageFiles = filteredFiles.slice(startIndex, startIndex + adminFileFilters.pageSize);
 
     document.getElementById("mainContent").innerHTML = `
-        <div class="list-view">
-            <div class="view-header">
-                <h3>All Files</h3>
-            </div>
-
-            <div class="data-panel">
-                <div class="data-table-wrap">
-                    <table class="admin-table">
+        <div class="list-view admin-files-view">
+            ${renderCommonPageLayout({
+                pageClass: "admin-module-page admin-files-page",
+                header: renderCommonPageHeader(
+                    "Files",
+                    "Upload, sort, and manage shared files with the same reusable admin layout system.",
+                    `
+                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="triggerAdminFileUpload()">
+                            <i class="fas fa-upload"></i>
+                            Upload File
+                        </button>
+                        <input id="adminFileUploadInput" type="file" multiple hidden onchange="handleAdminFileUpload(event)">
+                    `
+                ),
+                toolbar: `
+                    <div class="common-toolbar">
+                        ${renderCommonSearchBox({
+                            id: "adminFilesSearch",
+                            placeholder: "Search files, owners, categories, or task attachments...",
+                            value: adminFileFilters.searchTerm,
+                            oninput: "setAdminFileSearch(this.value)",
+                            ariaLabel: "Search files"
+                        })}
+                        <select class="common-filter-select" onchange="setAdminFileCategoryFilter(this.value)" aria-label="Filter files by category">
+                            <option value="all" ${adminFileFilters.category === "all" ? "selected" : ""}>All Categories</option>
+                            <option value="documents" ${adminFileFilters.category === "documents" ? "selected" : ""}>Documents</option>
+                            <option value="images" ${adminFileFilters.category === "images" ? "selected" : ""}>Images</option>
+                            <option value="videos" ${adminFileFilters.category === "videos" ? "selected" : ""}>Videos</option>
+                            <option value="archives" ${adminFileFilters.category === "archives" ? "selected" : ""}>Archives</option>
+                            <option value="others" ${adminFileFilters.category === "others" ? "selected" : ""}>Others</option>
+                        </select>
+                        <select class="common-filter-select" onchange="setAdminFileSort(this.value)" aria-label="Sort files">
+                            <option value="date-desc" ${adminFileFilters.sort === "date-desc" ? "selected" : ""}>Newest First</option>
+                            <option value="date-asc" ${adminFileFilters.sort === "date-asc" ? "selected" : ""}>Oldest First</option>
+                            <option value="name-asc" ${adminFileFilters.sort === "name-asc" ? "selected" : ""}>Name A-Z</option>
+                            <option value="name-desc" ${adminFileFilters.sort === "name-desc" ? "selected" : ""}>Name Z-A</option>
+                        </select>
+                        <button class="action-btn common-action-btn secondary-btn" type="button" onclick="resetAdminFileFilters()">
+                            <i class="fas fa-rotate-left"></i>
+                            Reset
+                        </button>
+                    </div>
+                `,
+                content: renderCommonContentCard(`
+                    <div class="data-table-wrap common-table-wrapper">
+                        <table class="admin-table admin-files-table">
                         <thead>
                             <tr>
                                 <th>File</th>
                                 <th>Owner</th>
+                                <th>Category</th>
                                 <th>Size</th>
+                                <th>Updated</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${files.length ? files.map(file => `
+                            ${pageFiles.length ? pageFiles.map(file => `
                                 <tr>
-                                    <td>${file.name}</td>
-                                    <td>${file.owner_email || "Unknown"}</td>
-                                    <td>${formatSize(file.size)}</td>
+                                    <td>${escapeHtml(file.name || "Untitled file")}</td>
+                                    <td>${escapeHtml(file.owner_name || file.owner_email || "Unknown")}</td>
+                                    <td>${escapeHtml(capitalize(getAdminFileCategory(file)))}</td>
+                                    <td>${escapeHtml(file.size_label || formatSize(file.size))}</td>
+                                    <td>${escapeHtml(formatDate(file.uploaded_at))}</td>
                                     <td>
-                                        <button onclick="adminDownloadFile('${file.name}')">
+                                        <button class="action-btn common-icon-btn" type="button" onclick="adminDownloadFile('${escapeHtml(encodeURIComponent(file.storage_name || file.name || ""))}')">
                                             <i class="fas fa-download"></i>
                                         </button>
-                                        <button onclick="adminDeleteFile('${file.name}')">
+                                        <button class="action-btn delete-btn common-icon-btn" type="button" onclick="adminDeleteFile('${escapeHtml(encodeURIComponent(file.storage_name || file.name || ""))}')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </td>
                                 </tr>
                             `).join("") : `
-                                <tr><td colspan="4">No files found</td></tr>
+                                <tr><td colspan="6" class="empty-state">No files found</td></tr>
                             `}
                         </tbody>
-                    </table>
-                </div>
-            </div>
+                        </table>
+                    </div>
+                    <div class="admin-task-footer">
+                        <span class="app-pagination-summary">${filteredFiles.length ? `Showing ${startIndex + 1} to ${startIndex + pageFiles.length} of ${filteredFiles.length} files` : "Showing 0 files"}</span>
+                        <div class="admin-task-pagination-controls app-pagination-controls">
+                            <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminFilePage(${adminFileFilters.page - 1})" ${adminFileFilters.page <= 1 ? "disabled" : ""} aria-label="Previous files page">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <span class="admin-task-page-current app-page-current">${adminFileFilters.page}</span>
+                            <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminFilePage(${adminFileFilters.page + 1})" ${adminFileFilters.page >= totalPages ? "disabled" : ""} aria-label="Next files page">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                `)
+            })}
         </div>
     `;
 }
 
 async function adminDownloadFile(name) {
     const token = sessionStorage.getItem("token");
+    const resolvedName = decodeURIComponent(String(name || ""));
 
-    const res = await fetch(`${BASE_URL}/files/download/${encodeURIComponent(name)}`, {
+    const res = await fetch(`${BASE_URL}/files/download/${encodeURIComponent(resolvedName)}`, {
         headers: {
             "Authorization": "Bearer " + token
         }
@@ -2633,15 +2805,16 @@ async function adminDownloadFile(name) {
 
     const a = document.createElement("a");
     a.href = url;
-    a.download = name;
+    a.download = resolvedName;
     a.click();
 }
 async function adminDeleteFile(name) {
     const token = sessionStorage.getItem("token");
+    const resolvedName = decodeURIComponent(String(name || ""));
 
-    if (!confirm(`Delete ${name}?`)) return;
+    if (!confirm(`Delete ${resolvedName}?`)) return;
 
-    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(name)}`, {
+    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(resolvedName)}`, {
         method: "DELETE",
         headers: {
             "Authorization": "Bearer " + token
@@ -2654,6 +2827,89 @@ async function adminDeleteFile(name) {
     } else {
         const data = await res.json();
         alert(data.detail || "Delete failed");
+    }
+}
+
+function getAdminFileCategory(file) {
+    const ext = String(file?.extension || "").toLowerCase();
+    if (["doc", "docx", "pdf", "txt", "rtf", "odt"].includes(ext)) return "documents";
+    if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return "images";
+    if (["mp4", "mov", "avi", "mkv", "webm"].includes(ext)) return "videos";
+    if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return "archives";
+    return "others";
+}
+
+function sortAdminFiles(a, b, sortKey) {
+    if (sortKey === "name-asc") return String(a.name || "").localeCompare(String(b.name || ""));
+    if (sortKey === "name-desc") return String(b.name || "").localeCompare(String(a.name || ""));
+    if (sortKey === "date-asc") return new Date(a.uploaded_at || 0) - new Date(b.uploaded_at || 0);
+    return new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0);
+}
+
+function setAdminFileSearch(value) {
+    adminFileFilters.searchTerm = String(value || "");
+    adminFileFilters.page = 1;
+    renderFilesView();
+}
+
+function setAdminFileCategoryFilter(value) {
+    adminFileFilters.category = value || "all";
+    adminFileFilters.page = 1;
+    renderFilesView();
+}
+
+function setAdminFileSort(value) {
+    adminFileFilters.sort = value || "date-desc";
+    adminFileFilters.page = 1;
+    renderFilesView();
+}
+
+function setAdminFilePage(page) {
+    adminFileFilters.page = page;
+    renderFilesView();
+}
+
+function resetAdminFileFilters() {
+    adminFileFilters.searchTerm = "";
+    adminFileFilters.category = "all";
+    adminFileFilters.sort = "date-desc";
+    adminFileFilters.page = 1;
+    renderFilesView();
+}
+
+function triggerAdminFileUpload() {
+    document.getElementById("adminFileUploadInput")?.click();
+}
+
+async function handleAdminFileUpload(event) {
+    const token = sessionStorage.getItem("token");
+    const files = Array.from(event?.target?.files || []);
+    if (!files.length) return;
+
+    try {
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append("file", file);
+            const response = await fetch(`${BASE_URL}/files/upload`, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const data = await response.json().catch(() => ({}));
+                throw new Error(data.detail || data.message || `Unable to upload ${file.name}.`);
+            }
+        }
+
+        event.target.value = "";
+        showNotification(files.length === 1 ? "File uploaded successfully." : `${files.length} files uploaded successfully.`);
+        renderFilesView();
+    } catch (error) {
+        console.error("Failed to upload admin files", error);
+        showNotification(error.message || "Upload failed.", "error");
     }
 }
 
@@ -3513,6 +3769,15 @@ window.setAdminTaskPage = setAdminTaskPage;
 window.toggleAdminTeamProject = toggleAdminTeamProject;
 window.setAdminTeamSearch = setAdminTeamSearch;
 window.setAdminTeamProjectFilter = setAdminTeamProjectFilter;
+window.setAdminFileSearch = setAdminFileSearch;
+window.setAdminFileCategoryFilter = setAdminFileCategoryFilter;
+window.setAdminFileSort = setAdminFileSort;
+window.setAdminFilePage = setAdminFilePage;
+window.resetAdminFileFilters = resetAdminFileFilters;
+window.triggerAdminFileUpload = triggerAdminFileUpload;
+window.handleAdminFileUpload = handleAdminFileUpload;
+window.adminDownloadFile = adminDownloadFile;
+window.adminDeleteFile = adminDeleteFile;
 window.adminDeleteTask = adminDeleteTask;
 window.openAdminTaskModal = openAdminTaskModal;
 window.closeAdminTaskModal = closeAdminTaskModal;
