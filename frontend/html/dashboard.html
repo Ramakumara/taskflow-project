@@ -275,6 +275,10 @@
                         <div>
                             <h3>My Tasks</h3>
                         </div>
+                        <button id="taskAddButton" class="task-add-btn" type="button" onclick="openDashboardTaskCreate()">
+                            <i class="fas fa-plus"></i>
+                            <span>Add Task</span>
+                        </button>
                         <div class="task-board-actions">
                             <label class="team-search" for="taskSearchInput">
                                 <i class="fas fa-search"></i>
@@ -289,10 +293,6 @@
                                 <option value="In Progress">In Progress</option>
                                 <option value="Completed">Completed</option>
                             </select>
-                            <button id="taskAddButton" class="task-add-btn" type="button" onclick="openDashboardTaskCreate()">
-                                <i class="fas fa-plus"></i>
-                                <span>Add Task</span>
-                            </button>
                         </div>
                     </div>
                     <div class="workspace-table-wrap">

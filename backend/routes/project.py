@@ -451,12 +451,19 @@ def delete_project(
         f"Project: {project.get('project_name') or project.get('name')}",
         "",
     )
+
+    serialized_project = serialize_project(project)
+
     emit_realtime_event(
         {
             "type": "project.deleted",
             "message": f"Project '{serialized_project.get('name')}' deleted.",
             "data": serialized_project,
         },
-        recipients=[current_user.get("email"), serialized_project.get("assigned_manager"), serialized_project.get("owner_email")],
+        recipients=[
+            current_user.get("email"),
+            serialized_project.get("assigned_manager"),
+            serialized_project.get("owner_email"),
+        ],
     )
     return {"message": "Project deleted"}

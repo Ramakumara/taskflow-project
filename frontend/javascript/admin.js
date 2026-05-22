@@ -450,174 +450,42 @@ function updateAdminSettingsLanguage(language) {
 }
 
 function renderDashboardView() {
-    const main = document.getElementById("mainContent");
-    const stats = computeDashboardStats();
-    const backendStats = adminState.dashboardStats || {};
-    const recentTasks = getRecentTasks(stats.filteredTasks);
-    const upcomingDeadlines = getUpcomingDeadlines(stats.filteredTasks);
-    const recentActivities = Array.isArray(backendStats.recent_activities) ? backendStats.recent_activities : [];
-    const completedTasks = backendStats.completed_tasks ?? stats.completedTasks;
-    const pendingTasks = backendStats.pending_tasks ?? stats.pendingTasks;
-    const totalTasks = backendStats.total_tasks ?? stats.filteredTasks.length;
-    const totalProjects = backendStats.total_projects ?? stats.filteredProjects.length;
-    const totalUsers = backendStats.total_users ?? stats.filteredUsers.length;
+    const filteredProjects = filterCollection(adminState.projects, (project) => [
+        project.name,
+        project.description,
+        project.owner_email
+    ]);
+    const projectStats = computeAdminProjectStats(filteredProjects);
 
-    main.innerHTML = `
-        <div class="dashboard-view">
-            <section class="stats-grid">
-                <article class="stat-card blue">
-                    <div class="stat-icon"><i class="fas fa-user"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">Total Users</span>
-                        <span class="stat-value"><strong>${totalUsers}</strong></span>
-                    </div>
-                </article>
-                <article class="stat-card green">
-                    <div class="stat-icon"><i class="fas fa-folder"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">Total Projects</span>
-                        <span class="stat-value"><strong>${totalProjects}</strong></span>
-                    </div>
-                </article>
-                <article class="stat-card orange">
-                    <div class="stat-icon"><i class="fas fa-square-check"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">Completed Tasks</span>
-                        <span class="stat-value"><strong>${completedTasks}</strong></span>
-                    </div>
-                </article>
-                <article class="stat-card red">
-                    <div class="stat-icon"><i class="fas fa-clock"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">Pending Tasks</span>
-                        <span class="stat-value"><strong>${pendingTasks}</strong></span>
-                    </div>
-                </article>
+    document.getElementById("mainContent").innerHTML = `
+        <div class="list-view project-admin-view">
+            <section class="project-summary-grid">
+                ${renderAdminProjectStatCard("fa-folder", "Total Projects", projectStats.totalProjects, "green")}
+                ${renderAdminProjectStatCard("fa-list-check", "Total Tasks", projectStats.totalTasks, "mint")}
+                ${renderAdminProjectStatCard("fa-chart-line", "Completion Rate", `${projectStats.completionRate}%`, "emerald")}
             </section>
 
-            <section class="stats-grid">
-                <article class="stat-card green">
-                    <div class="stat-icon"><i class="fas fa-list-check"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">Total Tasks</span>
-                        <span class="stat-value"><strong>${totalTasks}</strong></span>
+            <section class="data-panel project-board-panel">
+                <div class="project-board-head">
+                    <div>
+                        <h3>Projects</h3>
+                        <p>Manage your active projects and keep delivery moving.</p>
                     </div>
-                </article>
-                <article class="stat-card blue">
-                    <div class="stat-icon"><i class="fas fa-bell"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">Unread Notifications</span>
-                        <span class="stat-value"><strong>${adminState.notifications.filter((item) => !item.read).length}</strong></span>
-                    </div>
-                </article>
-                <article class="stat-card orange">
-                    <div class="stat-icon"><i class="fas fa-chart-line"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">In Progress</span>
-                        <span class="stat-value"><strong>${backendStats.in_progress_tasks ?? stats.inProgressTasks ?? 0}</strong></span>
-                    </div>
-                </article>
-                <article class="stat-card red">
-                    <div class="stat-icon"><i class="fas fa-file-lines"></i></div>
-                    <div class="stat-text">
-                        <span class="stat-label">Reports Ready</span>
-                        <span class="stat-value"><strong>${backendStats.reports_generated_at ? "Live" : "Preview"}</strong></span>
-                    </div>
-                </article>
+                    <button class="action-btn admin-add-user-btn" type="button" onclick="openAdminProjectModal()">
+                        <i class="fas fa-plus"></i>
+                        Create Project
+                    </button>
+                </div>
+                <div class="admin-project-grid">
+                    ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
+                    <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
+                        <span>+ Create Project</span>
+                    </button>
+                </div>
             </section>
-
-            <section class="dashboard-grid">
-                <article class="panel">
-                    <h3>Project Status</h3>
-                    <div class="chart-layout">
-                        <div class="chart-canvas-wrap">
-                            <canvas id="projectStatusChart"></canvas>
-                        </div>
-                        <div class="legend-list">
-                            ${renderStatusLegend(stats.statusBreakdown)}
-                        </div>
-                    </div>
-                </article>
-
-                <article class="panel">
-                    <h3>Tasks Overview</h3>
-                    <div class="overview-chart-wrap">
-                        <canvas id="tasksOverviewChart"></canvas>
-                    </div>
-                </article>
-            </section>
-
-            <section class="table-layout">
-                <article class="table-panel">
-                    <h3>Recent Tasks</h3>
-                    <div class="table-scroll">
-                        <table class="admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Task</th>
-                                    <th>Project</th>
-                                    <th>Assigned To</th>
-                                    <th>Status</th>
-                                    <th>Due Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${renderRecentTasksRows(recentTasks, stats.projectMap)}
-                            </tbody>
-                        </table>
-                    </div>
-                </article>
-
-                <aside class="deadlines-panel">
-                    <h3>Upcoming Deadlines</h3>
-                    <div class="deadlines-list">
-                        ${renderDeadlines(upcomingDeadlines, stats.projectMap)}
-                    </div>
-                </aside>
-            </section>
-
-            <section class="dashboard-grid">
-                <article class="panel">
-                    <h3>Recent Activities</h3>
-                    <div class="deadlines-list">
-                        ${recentActivities.length ? recentActivities.map((activity) => `
-                            <div class="deadline-item">
-                                <span class="deadline-icon" style="background:#e7f8ee;color:#08783f;"><i class="fas fa-bolt"></i></span>
-                                <div class="deadline-copy">
-                                    <strong>${escapeHtml(activity.action || "Activity")}</strong>
-                                    <span>${escapeHtml(activity.username || activity.user_email || "User")} · ${escapeHtml(activity.target || activity.details || "TaskFlow update")}</span>
-                                </div>
-                            </div>
-                        `).join("") : `<div class="empty-state">No recent activity yet.</div>`}
-                    </div>
-                </article>
-                <article class="panel">
-                    <h3>Admin Snapshot</h3>
-                    <div class="legend-list">
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background:#22c55e"></span>
-                            <div class="legend-copy"><span>Manager-led projects</span><strong>${adminState.projects.filter((project) => project.assigned_manager).length}</strong></div>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background:#2563eb"></span>
-                            <div class="legend-copy"><span>Projects without manager</span><strong>${adminState.projects.filter((project) => !project.assigned_manager).length}</strong></div>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background:#f97316"></span>
-                            <div class="legend-copy"><span>Tasks with multiple assignees</span><strong>${adminState.tasks.filter((task) => getTaskAssignments(task).length > 1).length}</strong></div>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-dot" style="background:#ef4444"></span>
-                            <div class="legend-copy"><span>Users in system</span><strong>${adminState.users.length}</strong></div>
-                        </div>
-                    </div>
-                </article>
-            </section>
+            ${adminState.isProjectModalOpen ? renderAdminProjectModal() : ""}
         </div>
     `;
-
-    renderProjectStatusChart(stats.statusBreakdown);
-    renderTaskOverviewChart(stats.weeklyOverview);
 }
 
 function renderProjectsView() {
