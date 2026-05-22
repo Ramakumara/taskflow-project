@@ -501,7 +501,8 @@ def delete_task(
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    _project_for_task(str(task.get("project_id")), current_user)
+    project = _project_for_task(str(task.get("project_id")), current_user)
+    serialized_task = serialize_task(task)
     attachment_docs = list(db.files.find({"task_id": str(object_id), "source": "task_attachment"}))
     for attachment_doc in attachment_docs:
         path = attachment_doc.get("path")
@@ -528,6 +529,11 @@ def delete_task(
             "message": f"Task '{serialized_task.get('title')}' deleted.",
             "data": serialized_task,
         },
-        recipients=[current_user.get("email"), *(serialized_task.get("assigned_to") or [])],
+        recipients=[
+            current_user.get("email"),
+            project.get("assigned_manager"),
+            project.get("owner_email"),
+            *(serialized_task.get("assigned_to") or []),
+        ],
     )
     return {"message": "Task deleted"}
