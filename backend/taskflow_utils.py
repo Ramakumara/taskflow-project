@@ -243,13 +243,35 @@ def add_notification(user_id: Optional[str], message: str, title: str = "TaskFlo
     if not user_id:
         return
 
-    db.notifications.insert_one({
+    now = datetime.utcnow()
+    document = {
         "user_id": user_id,
         "email": user_id,
         "title": title,
         "message": message,
         "is_read": False,
         "read": False,
-        "created_at": datetime.utcnow(),
-        "time": datetime.utcnow().isoformat(),
-    })
+        "created_at": now,
+        "time": now.isoformat(),
+    }
+    result = db.notifications.insert_one(document)
+
+    try:
+        from websocket_manager import emit_realtime_event
+
+        emit_realtime_event(
+            {
+                "type": "notification.created",
+                "message": message,
+                "data": {
+                    "id": str(result.inserted_id),
+                    "title": title,
+                    "email": user_id,
+                    "time": document["time"],
+                    "read": False,
+                },
+            },
+            recipients=[user_id],
+        )
+    except Exception:
+        pass

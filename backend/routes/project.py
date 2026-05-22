@@ -20,6 +20,7 @@ from taskflow_utils import (
     serialize_task,
     utc_now_iso,
 )
+from websocket_manager import emit_realtime_event
 
 router = APIRouter()
 
@@ -115,9 +116,18 @@ def create_project(
     )
 
     saved = db.projects.find_one({"_id": result.inserted_id})
+    serialized_project = serialize_project(saved)
+    emit_realtime_event(
+        {
+            "type": "project.created",
+            "message": f"Project '{project_name}' created.",
+            "data": serialized_project,
+        },
+        recipients=[current_user.get("email"), assigned_manager],
+    )
     return {
         "message": "Project created successfully",
-        "project": serialize_project(saved),
+        "project": serialized_project,
     }
 
 
@@ -238,9 +248,18 @@ def update_project(
         f"Project: {updated.get('project_name') or updated.get('name')}",
         ", ".join(sorted(updates.keys())),
     )
+    serialized_project = serialize_project(updated)
+    emit_realtime_event(
+        {
+            "type": "project.updated",
+            "message": f"Project '{serialized_project.get('name')}' updated.",
+            "data": serialized_project,
+        },
+        recipients=[current_user.get("email"), serialized_project.get("assigned_manager"), serialized_project.get("owner_email")],
+    )
     return {
         "message": "Project updated successfully",
-        "project": serialize_project(updated),
+        "project": serialized_project,
     }
 
 
@@ -283,7 +302,16 @@ def assign_manager(
     )
 
     updated = db.projects.find_one({"_id": object_id})
-    return {"message": "Manager assigned successfully", "project": serialize_project(updated)}
+    serialized_project = serialize_project(updated)
+    emit_realtime_event(
+        {
+            "type": "project.manager.assigned",
+            "message": f"Manager assigned to project '{serialized_project.get('name')}'.",
+            "data": serialized_project,
+        },
+        recipients=[current_user.get("email"), manager["email"]],
+    )
+    return {"message": "Manager assigned successfully", "project": serialized_project}
 
 
 @router.get("/projects/{project_id}/team")
@@ -298,6 +326,7 @@ def get_project_team(
     project = db.projects.find_one({"_id": object_id})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    serialized_project = serialize_project(project)
 
     current_email = str(current_user.get("email") or "").strip().lower()
     project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
@@ -333,7 +362,7 @@ def admin_dashboard_stats(current_user: dict = Depends(require_roles(Role.ADMIN)
         project_progress.append(
             {
                 "project_id": project["id"],
-                "project_name": project["project_name"],
+                "project_name": project.get("project_name") or project.get("name") or "Untitled Project",
                 "total_tasks": total,
                 "completed_tasks": completed,
                 "progress_percent": round((completed / total) * 100) if total else 0,
@@ -421,5 +450,13 @@ def delete_project(
         "Project deleted",
         f"Project: {project.get('project_name') or project.get('name')}",
         "",
+    )
+    emit_realtime_event(
+        {
+            "type": "project.deleted",
+            "message": f"Project '{serialized_project.get('name')}' deleted.",
+            "data": serialized_project,
+        },
+        recipients=[current_user.get("email"), serialized_project.get("assigned_manager"), serialized_project.get("owner_email")],
     )
     return {"message": "Project deleted"}

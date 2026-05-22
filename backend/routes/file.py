@@ -8,6 +8,7 @@ from datetime import datetime
 from auth_utils import get_current_user
 from database import db
 from taskflow_utils import get_visible_task_filter, normalize_assignment_emails
+from websocket_manager import emit_realtime_event
 
 router = APIRouter()
 
@@ -201,6 +202,17 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
             "shared_with": [],
         }
     )
+    emit_realtime_event(
+        {
+            "type": "file.created",
+            "message": f"File '{file.filename}' uploaded.",
+            "data": {
+                "name": file.filename,
+                "owner_email": current_user.get("email"),
+            },
+        },
+        recipients=[current_user.get("email")],
+    )
 
     return {"message": "File uploaded successfully"}
 
@@ -284,6 +296,14 @@ def delete_file(filename: str, current_user: dict = Depends(get_current_user)):
                     {"_id": task_object_id},
                     {"$pull": {"attachments": {"stored_name": file.get("stored_name") or file.get("name")}}},
                 )
+        emit_realtime_event(
+            {
+                "type": "file.deleted",
+                "message": f"File '{file.get('display_name') or file.get('name')}' deleted.",
+                "data": _serialize_file(file),
+            },
+            recipients=[current_user.get("email"), *(file.get("shared_with") or [])],
+        )
         return {"message": "Deleted"}
 
     raise HTTPException(status_code=404, detail="Not found")
@@ -317,5 +337,15 @@ def share_file(filename: str, payload: dict, current_user: dict = Depends(get_cu
     db.files.update_one(
         {"_id": file["_id"]},
         {"$set": {"shared_with": shared_with}},
+    )
+    updated_file = dict(file)
+    updated_file["shared_with"] = shared_with
+    emit_realtime_event(
+        {
+            "type": "file.shared",
+            "message": f"File '{file.get('display_name') or file.get('name')}' sharing updated.",
+            "data": _serialize_file(updated_file),
+        },
+        recipients=[current_user.get("email"), *shared_with],
     )
     return {"message": "Shared"}

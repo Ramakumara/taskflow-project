@@ -23,10 +23,35 @@
     --brand-green-dark: #0b7f43;
     --brand-green-soft: #e7f8ee;
     --brand-green-border: #bbf7d0;
+    --app-scroll-track: #eaf1f7;
+    --app-scroll-thumb: #6dd8a0;
+    --app-scroll-thumb-hover: #27c06a;
 }
 
 * {
     box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--app-scroll-thumb) var(--app-scroll-track);
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--app-scroll-track);
+    border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--app-scroll-thumb), #46c983);
+    border-radius: 999px;
+    border: 2px solid var(--app-scroll-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--app-scroll-thumb-hover), #15a34a);
 }
 
 body {
@@ -3056,6 +3081,21 @@ body {
     gap: 10px;
 }
 
+.task-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.app-pagination-summary {
+    color: #667085;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
 .admin-task-page-btn,
 .admin-task-page-current,
 .app-page-current,
@@ -3076,6 +3116,14 @@ body {
     background: #ffffff;
     color: #94a3b8;
     cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.admin-task-page-btn:hover:not(:disabled),
+.app-page-btn:hover:not(:disabled) {
+    border-color: #0f9f55;
+    color: #0f9f55;
+    background: #f0fdf4;
 }
 
 .admin-task-page-btn:disabled,
@@ -3090,6 +3138,13 @@ body {
     color: #ffffff;
     border: 1px solid #0f9f55;
     box-shadow: 0 8px 18px rgba(15, 159, 85, 0.2);
+}
+
+@media (max-width: 760px) {
+    .task-pagination {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 .admin-task-table .status-pill,
@@ -3555,5 +3610,112 @@ body {
 
     .admin-task-modal-card {
         width: min(100vw - 24px, 540px);
+    }
+}
+
+.admin-activity-log-view {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.admin-activity-log-panel {
+    background: #ffffff;
+    border: 1px solid #e6ebf3;
+    border-radius: 16px;
+    box-shadow: 0 12px 32px rgba(18, 32, 56, 0.06);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-activity-log-toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1.5fr) repeat(2, minmax(170px, 0.8fr)) auto auto;
+    gap: 12px;
+    align-items: start;
+}
+
+.admin-activity-search {
+    width: 100%;
+}
+
+.admin-filter-select {
+    min-height: 44px;
+    padding: 0 14px;
+    border: 1px solid #d7deea;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #172033;
+}
+
+.admin-activity-date-control {
+    position: relative;
+}
+
+.admin-activity-date-control .action-btn {
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.admin-activity-date-popover {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: min(320px, calc(100vw - 48px));
+    padding: 14px;
+    border: 1px solid #e5ebf3;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+    display: grid;
+    gap: 12px;
+    z-index: 20;
+}
+
+.admin-activity-date-popover.hidden {
+    display: none;
+}
+
+.admin-activity-date-popover label {
+    display: grid;
+    gap: 6px;
+    color: #475467;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.admin-activity-date-popover input {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid #d7deea;
+    border-radius: 10px;
+}
+
+.admin-activity-log-meta {
+    color: #667085;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.admin-activity-log-table td,
+.admin-activity-log-table th {
+    vertical-align: top;
+}
+
+.admin-activity-log-pagination {
+    padding-top: 6px;
+}
+
+@media (max-width: 1100px) {
+    .admin-activity-log-toolbar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .admin-activity-log-toolbar {
+        grid-template-columns: 1fr;
     }
 }

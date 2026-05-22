@@ -242,6 +242,9 @@ function renderCurrentSection() {
         case "reports":
             renderReportsView();
             break;
+        case "activity":
+            renderActivityLogView();
+            break;
         case "files":
             renderFilesView();
             break;
@@ -291,6 +294,12 @@ function goToReports() {
     closeAdminProfileMenu();
     setActiveNav("reports");
     renderReportsView();
+}
+
+function goToActivityLog() {
+    closeAdminProfileMenu();
+    setActiveNav("activity");
+    renderActivityLogView();
 }
 
 function goToFiles() {
@@ -2601,6 +2610,93 @@ function downloadAdminBlob(content, filename, type) {
     URL.revokeObjectURL(url);
 }
 
+function renderActivityLogView() {
+    document.getElementById("mainContent").innerHTML = `
+        <div id="activity-view" class="list-view admin-activity-log-view">
+            <div class="view-header admin-activity-log-header">
+                <div>
+                    <h3>Activity Log</h3>
+                    <p>Review workspace activity across users, projects, tasks, and files.</p>
+                </div>
+                <button class="action-btn export-btn" type="button" onclick="exportActivityLog()">
+                    <i class="fas fa-file-export"></i>
+                    Export CSV
+                </button>
+            </div>
+
+            <section class="admin-activity-log-panel">
+                <div class="admin-activity-log-toolbar">
+                    <label class="admin-search-field admin-activity-search" for="activityLogSearch">
+                        <i class="fas fa-search"></i>
+                        <input id="activityLogSearch" type="text" placeholder="Search user, action, target, details..." oninput="handleActivityLogFiltersChange()" aria-label="Search activity log">
+                    </label>
+
+                    <select id="activityLogUserFilter" class="admin-filter-select" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by user">
+                        <option value="all">All Users</option>
+                    </select>
+
+                    <select id="activityLogActionFilter" class="admin-filter-select" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by action">
+                        <option value="all">All Actions</option>
+                    </select>
+
+                    <div class="admin-activity-date-control activity-log-date-control">
+                        <button class="action-btn secondary-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
+                            <i class="far fa-calendar"></i>
+                            <span id="activity-log-date-label">All dates</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="admin-activity-date-popover hidden" id="activity-log-date-popover">
+                            <label>
+                                <span>From</span>
+                                <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
+                            </label>
+                            <label>
+                                <span>To</span>
+                                <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
+                            </label>
+                            <button class="action-btn secondary-btn" type="button" onclick="clearActivityLogDateRange()">Clear dates</button>
+                        </div>
+                    </div>
+
+                    <button class="action-btn secondary-btn" type="button" onclick="resetActivityLogFilters()">
+                        <i class="fas fa-rotate-left"></i>
+                        Reset
+                    </button>
+                </div>
+
+                <div class="admin-activity-log-meta">
+                    <span id="activity-log-filter-summary">Loading activity records...</span>
+                </div>
+
+                <div class="table-scroll">
+                    <table class="admin-compact-table admin-activity-log-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>User</th>
+                                <th>Action</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody id="activity-log-body">
+                            <tr><td colspan="4">Loading activity log...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="task-pagination admin-activity-log-pagination" id="activityLogPagination"></div>
+            </section>
+        </div>
+    `;
+
+    if (typeof updateActivityLogDateLabel === "function") {
+        updateActivityLogDateLabel();
+    }
+    if (typeof loadActivityLog === "function") {
+        loadActivityLog();
+    }
+}
+
 async function renderFilesView() {
     const token = sessionStorage.getItem("token");
 
@@ -3529,6 +3625,7 @@ window.goToTasks = goToTasks;
 window.goToTeam = goToTeam;
 window.goToUsers = goToUsers;
 window.goToReports = goToReports;
+window.goToActivityLog = goToActivityLog;
 window.goToFiles = goToFiles;
 window.goToProfile = goToProfile;
 window.goToSettings = goToSettings;

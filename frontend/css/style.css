@@ -4,6 +4,37 @@
     background: white;
 }
 
+:root {
+    --app-scroll-track: #eaf1f7;
+    --app-scroll-thumb: #6dd8a0;
+    --app-scroll-thumb-hover: #27c06a;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--app-scroll-thumb) var(--app-scroll-track);
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--app-scroll-track);
+    border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--app-scroll-thumb), #46c983);
+    border-radius: 999px;
+    border: 2px solid var(--app-scroll-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--app-scroll-thumb-hover), #15a34a);
+}
+
 .topbar {
     height: 60px;
     background: linear-gradient(white);
@@ -6812,10 +6843,20 @@ button {
 .dashboard .topbar-left {
     display: flex;
     align-items: center;
+    min-width: 0;
+}
+
+.dashboard .topbar-search-group {
+    width: min(720px, 100%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
 }
 
 .dashboard .search-box {
     width: min(420px, 100%);
+    flex: 1 1 420px;
     height: 44px;
     padding: 0 14px;
     display: flex;
@@ -6882,6 +6923,16 @@ button {
 @media (max-width: 640px) {
     .dashboard .topbar {
         padding: 14px 16px;
+    }
+
+    .dashboard .topbar-left,
+    .dashboard .topbar-search-group {
+        width: 100%;
+    }
+
+    .dashboard .topbar-search-group {
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .dashboard .search-box {
@@ -8133,6 +8184,13 @@ button {
     font-weight: 800;
     cursor: pointer;
     box-shadow: 0 10px 22px rgba(15, 159, 85, 0.22);
+}
+
+.topbar-task-add-btn {
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 10px;
+    white-space: nowrap;
 }
 
 .task-add-btn:hover {

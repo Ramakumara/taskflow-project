@@ -1686,7 +1686,8 @@ function applyDashboardRoleVisibility() {
     const teamMenu = document.querySelector('[data-sidebar="team"]');
     const activityExportCard = document.querySelector('[data-export-section="activity"]');
     const projectSection = document.getElementById("project-section");
-    const taskAddButton = document.getElementById("taskAddButton");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const fileInput = document.getElementById("file-input");
 
     if (activityMenu) {
         activityMenu.style.display = isUser ? "none" : "";
@@ -1708,8 +1709,16 @@ function applyDashboardRoleVisibility() {
         projectSection.style.display = isManager || isUser ? "none" : "";
     }
 
-    if (taskAddButton) {
-        taskAddButton.style.display = isUser ? "none" : "";
+    document.querySelectorAll("#taskAddButton, #dashboardHeaderTaskAddButton").forEach((button) => {
+        button.style.display = isUser ? "none" : "";
+    });
+
+    if (uploadBtn) {
+        uploadBtn.style.display = isUser ? "none" : "";
+    }
+
+    if (fileInput) {
+        fileInput.disabled = isUser;
     }
 
     if (isUser) {
@@ -2507,6 +2516,7 @@ function buildPrintableReportHtml(rows) {
 
 async function loadFiles() {
     const token = sessionStorage.getItem("token");
+    const role = sessionStorage.getItem("role");
     const tbody = document.getElementById("files-table-body");
     const footer = document.getElementById("files-footer-copy");
     const storageCopy = document.getElementById("storage-copy");
@@ -2515,7 +2525,7 @@ async function loadFiles() {
 
     const uploadBtn = document.getElementById("uploadBtn");
     if (uploadBtn) {
-        uploadBtn.style.display = "";
+        uploadBtn.style.display = role === "user" ? "none" : "";
     }
 
     if (!tbody) return;

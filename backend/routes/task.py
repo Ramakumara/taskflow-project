@@ -22,6 +22,7 @@ from taskflow_utils import (
     sync_task_status,
     utc_now_iso,
 )
+from websocket_manager import emit_realtime_event
 
 router = APIRouter()
 
@@ -142,7 +143,16 @@ async def create_task(
     )
 
     saved = db.tasks.find_one({"_id": result.inserted_id})
-    return {"message": "Task created successfully", "task": serialize_task(saved)}
+    serialized_task = serialize_task(saved)
+    emit_realtime_event(
+        {
+            "type": "task.created",
+            "message": f"Task '{title}' created.",
+            "data": serialized_task,
+        },
+        recipients=[*assignees, current_user.get("email"), project.get("assigned_manager"), project.get("owner_email")],
+    )
+    return {"message": "Task created successfully", "task": serialized_task}
 
 
 @router.get("/tasks")
@@ -191,7 +201,16 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
             f"My status: {status}; overall: {overall_status}",
         )
         saved = db.tasks.find_one({"_id": object_id})
-        return {"message": "Task updated", "task": serialize_task(saved)}
+        serialized_task = serialize_task(saved)
+        emit_realtime_event(
+            {
+                "type": "task.updated",
+                "message": f"Task '{task.get('task_title') or task.get('title')}' updated.",
+                "data": serialized_task,
+            },
+            recipients=[current_user.get("email"), project.get("assigned_manager") if project else None, *(serialized_task.get("assigned_to") or [])],
+        )
+        return {"message": "Task updated", "task": serialized_task}
 
     project = _project_for_task(str(task.get("project_id")), current_user)
     updates = {}
@@ -268,7 +287,16 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
         f"Project: {project.get('project_name') or project.get('name')}",
     )
     saved = db.tasks.find_one({"_id": object_id})
-    return {"message": "Task updated successfully", "task": serialize_task(saved)}
+    serialized_task = serialize_task(saved)
+    emit_realtime_event(
+        {
+            "type": "task.updated",
+            "message": f"Task '{serialized_task.get('title')}' updated.",
+            "data": serialized_task,
+        },
+        recipients=[current_user.get("email"), project.get("assigned_manager"), project.get("owner_email"), *(serialized_task.get("assigned_to") or [])],
+    )
+    return {"message": "Task updated successfully", "task": serialized_task}
 
 
 @router.put("/tasks/{task_id}/assignments/me")
@@ -334,7 +362,16 @@ def add_task_comment(
         comment["content"],
     )
     saved = db.tasks.find_one({"_id": object_id})
-    return {"message": "Comment added", "task": serialize_task(saved)}
+    serialized_task = serialize_task(saved)
+    emit_realtime_event(
+        {
+            "type": "task.comment.created",
+            "message": f"New comment added to '{serialized_task.get('title')}'.",
+            "data": serialized_task,
+        },
+        recipients=[current_user.get("email"), *(serialized_task.get("assigned_to") or [])],
+    )
+    return {"message": "Comment added", "task": serialized_task}
 
 
 @router.post("/tasks/{task_id}/attachments")
@@ -396,7 +433,19 @@ async def upload_task_attachment(
         file.filename,
     )
     saved = db.tasks.find_one({"_id": object_id})
-    return {"message": "Attachment uploaded", "task": serialize_task(saved), "attachment": attachment}
+    serialized_task = serialize_task(saved)
+    emit_realtime_event(
+        {
+            "type": "task.attachment.created",
+            "message": f"Attachment added to '{serialized_task.get('title')}'.",
+            "data": {
+                "task": serialized_task,
+                "attachment": attachment,
+            },
+        },
+        recipients=[current_user.get("email"), *(serialized_task.get("assigned_to") or [])],
+    )
+    return {"message": "Attachment uploaded", "task": serialized_task, "attachment": attachment}
 
 
 @router.get("/tasks/{task_id}/attachments/{stored_name}")
@@ -414,6 +463,7 @@ def download_task_attachment(
     task = db.tasks.find_one({"_id": object_id})
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    serialized_task = serialize_task(task)
 
     visible = list(db.tasks.find({"_id": object_id, **get_visible_task_filter(current_user)}))
     if not visible:
@@ -471,5 +521,13 @@ def delete_task(
         "Task deleted",
         f"Task: {task.get('task_title') or task.get('title')}",
         "",
+    )
+    emit_realtime_event(
+        {
+            "type": "task.deleted",
+            "message": f"Task '{serialized_task.get('title')}' deleted.",
+            "data": serialized_task,
+        },
+        recipients=[current_user.get("email"), *(serialized_task.get("assigned_to") or [])],
     )
     return {"message": "Task deleted"}

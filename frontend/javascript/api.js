@@ -1,16 +1,144 @@
 const BASE_URL = window.location.origin;
-const socket = new WebSocket("ws://127.0.0.1:8000/ws");
-
-socket.onopen = function () {
-    console.log("WebSocket Connected");
+let socket = null;
+let socketReconnectTimer = null;
+const realtimeState = {
+    connected: false,
 };
 
-socket.onmessage = function (event) {
+function getWebSocketUrl() {
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const token = sessionStorage.getItem("token") || "";
+    return `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
+}
 
-    console.log("New Notification:", event.data);
+function connectRealtimeSocket() {
+    const token = sessionStorage.getItem("token");
+    if (!token) return null;
 
-    showNotification(event.data);
-};
+    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+        return socket;
+    }
+
+    socket = new WebSocket(getWebSocketUrl());
+
+    socket.onopen = function () {
+        realtimeState.connected = true;
+        console.log("WebSocket connected");
+    };
+
+    socket.onclose = function () {
+        realtimeState.connected = false;
+        if (socketReconnectTimer) clearTimeout(socketReconnectTimer);
+        socketReconnectTimer = setTimeout(connectRealtimeSocket, 3000);
+    };
+
+    socket.onerror = function () {
+        realtimeState.connected = false;
+    };
+
+    socket.onmessage = function (event) {
+        handleRealtimeMessage(event.data);
+    };
+
+    return socket;
+}
+
+function handleRealtimeMessage(raw) {
+    let payload = null;
+
+    try {
+        payload = JSON.parse(raw);
+    } catch {
+        if (raw) showNotification(raw);
+        return;
+    }
+
+    if (!payload || !payload.type) return;
+
+    document.dispatchEvent(new CustomEvent("taskflow:realtime", { detail: payload }));
+
+    if (payload.type === "notification.created" && payload.message) {
+        showNotification(payload.message, "success");
+    }
+
+    if (payload.type === "system.connected") {
+        return;
+    }
+
+    refreshRealtimeViews(payload);
+}
+
+function refreshRealtimeViews(payload) {
+    const type = String(payload.type || "");
+    const currentRole = sessionStorage.getItem("role");
+
+    if (type.startsWith("notification.") && typeof loadNotifications === "function") {
+        loadNotifications();
+    }
+
+    if (type.startsWith("activity.") && typeof loadActivityLog === "function") {
+        const activityView = document.getElementById("activity-view");
+        if (activityView && !activityView.classList.contains("hidden")) {
+            loadActivityLog();
+        }
+    }
+
+    if ((type.startsWith("task.") || type.startsWith("project.")) && typeof loadProjects === "function") {
+        const dashboardView = document.getElementById("dashboard-view");
+        if (dashboardView && !dashboardView.classList.contains("hidden")) {
+            loadProjects();
+        }
+    }
+
+    if (type.startsWith("task.") && typeof loadAllTasks === "function") {
+        const tasksView = document.getElementById("tasks-view");
+        if (tasksView && !tasksView.classList.contains("hidden")) {
+            loadAllTasks();
+        }
+    }
+
+    if ((type.startsWith("task.") || type.startsWith("project.")) && typeof loadProjectWorkspace === "function") {
+        const workspaceView = document.getElementById("project-workspace-view");
+        if (workspaceView && !workspaceView.classList.contains("hidden")) {
+            loadProjectWorkspace();
+        }
+    }
+
+    if ((type.startsWith("file.") || type === "task.attachment.created") && typeof loadFiles === "function") {
+        const filesView = document.getElementById("files-view");
+        if (filesView && !filesView.classList.contains("hidden")) {
+            loadFiles();
+        }
+    }
+
+    if (currentRole === "admin" && (type.startsWith("user.") || type.startsWith("task.") || type.startsWith("project.") || type.startsWith("file.") || type.startsWith("activity.") || type.startsWith("notification."))) {
+        if (typeof refreshAdminData === "function") {
+            Promise.resolve(refreshAdminData()).then(() => {
+                if (typeof renderCurrentSection === "function") {
+                    renderCurrentSection();
+                }
+            }).catch(() => {});
+        }
+        if (typeof loadAdminNotifications === "function") {
+            loadAdminNotifications();
+        }
+    }
+}
+
+function sendRealtimeMessage(payload) {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+        return false;
+    }
+
+    try {
+        socket.send(JSON.stringify(payload));
+        return true;
+    } catch {
+        return false;
+    }
+}
+
+window.addEventListener("load", connectRealtimeSocket);
 
 function showNotification(message, type = "success") {
 
@@ -444,7 +572,7 @@ async function createTask() {
             });
         }
     }
-    socket.send(`New Task Added: ${title}`);
+    sendRealtimeMessage({ type: "client.task.created", data: { title } });
     document.getElementById("task-title").value = "";
     document.getElementById("task-description").value = "";
     document.querySelectorAll("#assigned-to-list input:checked").forEach(input => {
@@ -490,7 +618,7 @@ async function updateStatus(id, status) {
 
         if (res.ok) {
             alert("Your status was updated to: " + status);
-            socket.send(`Task Status Updated: ${status}`);
+            sendRealtimeMessage({ type: "client.task.status", data: { task_id: id, status } });
         } else {
             alert(data.message || data.detail || "Failed to update status");
         }
@@ -526,7 +654,7 @@ async function deleteProject(id) {
     const data = await res.json().catch(() => ({}));
     alert(data.message || data.detail || (res.ok ? "Project deleted" : "Unable to delete project"));
     if (!res.ok) return;
-    socket.send("Project Deleted");
+    sendRealtimeMessage({ type: "client.project.deleted", data: { project_id: id } });
 
     loadProjects();
 }
@@ -552,7 +680,7 @@ async function deleteTask(id) {
     const data = await res.json().catch(() => ({}));
     alert(data.message || data.detail || (res.ok ? "Task deleted" : "Unable to delete task"));
     if (!res.ok) return;
-    socket.send("Task Deleted");
+    sendRealtimeMessage({ type: "client.task.deleted", data: { task_id: id } });
 
     if (typeof loadAllTasks === "function") loadAllTasks();
     if (typeof loadProjectWorkspace === "function") loadProjectWorkspace();
@@ -655,6 +783,17 @@ function getActivityLogFilteredEntries() {
     });
 }
 
+function formatActivityLogDetails(log) {
+    const target = String(log?.target || "").trim();
+    const details = String(log?.details || "").trim();
+
+    if (target && details) {
+        return `${target} | ${details}`;
+    }
+
+    return target || details || "-";
+}
+
 function renderActivityLogRows(logs) {
     const { body, summary, pagination } = getActivityLogFilterElements();
     if (!body) return;
@@ -677,7 +816,7 @@ function renderActivityLogRows(logs) {
         if (pagination) pagination.innerHTML = "";
     } else {
         body.innerHTML = pageLogs.map(log => {
-            const details = [log?.target, log?.details].filter(Boolean).join(" - ") || "-";
+            const details = formatActivityLogDetails(log);
 
             return `
                 <tr>

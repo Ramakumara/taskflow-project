@@ -63,16 +63,16 @@
     <main class="dashboard-main">
         <header class="topbar">
             <div class="topbar-left">
-                <label class="search-box" for="projectSearch">
-                    <i class="fas fa-search"></i>
-                    <input id="projectSearch" type="text" placeholder="Search..." oninput="handleProjectSearch(event)">
-                </label>
-            </div>
-            <div>
-                <button id="taskAddButton" class="task-add-btn" type="button" onclick="openDashboardTaskCreate()">
-                    <i class="fas fa-plus"></i>
-                    <span>Add Task</span>
-                </button>
+                <div class="topbar-search-group">
+                    <label class="search-box" for="projectSearch">
+                        <i class="fas fa-search"></i>
+                        <input id="projectSearch" type="text" placeholder="Search..." oninput="handleProjectSearch(event)">
+                    </label>
+                    <button id="dashboardHeaderTaskAddButton" class="task-add-btn topbar-task-add-btn" type="button" onclick="openDashboardTaskCreate()">
+                        <i class="fas fa-plus"></i>
+                        <span>Add Task</span>
+                    </button>
+                </div>
             </div>
 
             <div class="topbar-right">
