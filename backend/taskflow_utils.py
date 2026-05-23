@@ -124,6 +124,9 @@ def ensure_task_assignments(task: dict) -> List[dict]:
 def sync_task_status(task_id: ObjectId) -> str:
     assignments = list(db.task_assignments.find({"task_id": task_id}))
     overall_status = calculate_overall_status(assignments)
+
+    task = db.tasks.find_one({"_id": task_id})
+
     db.tasks.update_one(
         {"_id": task_id},
         {
@@ -134,6 +137,10 @@ def sync_task_status(task_id: ObjectId) -> str:
             }
         },
     )
+
+    if task and task.get("project_id"):
+        sync_project_status(task["project_id"])
+
     return overall_status
 
 
@@ -155,7 +162,11 @@ def serialize_project(project: dict) -> dict:
     payload["project_name"] = payload["name"]
     payload["owner_email"] = str(payload.get("assigned_manager") or payload.get("owner_email") or "").strip().lower() or None
     payload["assigned_manager"] = str(payload.get("assigned_manager") or payload.get("owner_email") or "").strip().lower() or None
-    payload["status"] = normalize_project_status(payload.get("status"))
+    sync_project_status(project["_id"])
+    updated_project = db.projects.find_one({"_id": project["_id"]})
+    payload["status"] = normalize_project_status(
+        updated_project.get("status")
+    )
     payload["created_by"] = payload.get("created_by") or payload.get("owner_email")
     payload["team_size"] = db.task_assignments.count_documents({"task_id": {"$in": db.tasks.distinct("_id", {"project_id": project["_id"]})}})
     return payload
@@ -275,3 +286,38 @@ def add_notification(user_id: Optional[str], message: str, title: str = "TaskFlo
         )
     except Exception:
         pass
+
+
+def sync_project_status(project_id: ObjectId) -> str:
+    tasks = list(db.tasks.find({"project_id": project_id}))
+
+    if not tasks:
+        status = "Planning"
+    else:
+        task_statuses = [
+            normalize_task_status(
+                task.get("overall_status") or task.get("status")
+            )
+            for task in tasks
+        ]
+
+        if all(s == "Completed" for s in task_statuses):
+            status = "Completed"
+        elif any(s == "In Progress" for s in task_statuses):
+            status = "Active"
+        elif any(s == "Completed" for s in task_statuses):
+            status = "Active"
+        else:
+            status = "Planning"
+
+    db.projects.update_one(
+        {"_id": project_id},
+        {
+            "$set": {
+                "status": status,
+                "updated_at": utc_now_iso(),
+            }
+        },
+    )
+
+    return status
