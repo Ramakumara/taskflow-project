@@ -69,8 +69,23 @@
                         <span class="notification-badge" id="notificationCount">0</span>
                         <div class="notification-dropdown hidden" id="adminNotificationDropdown">
                             <div class="notification-dropdown-head">
-                                <h3>Notifications</h3>
-                                <button type="button" onclick="markAllAdminNotificationsRead(event)">Mark all read</button>
+                                <div>
+                                    <h3>Admin Notifications</h3>
+                                    <p id="adminNotificationSummary">Monitoring projects, tasks, users, files, and system activity.</p>
+                                </div>
+                                <div class="notification-dropdown-actions">
+                                    <button type="button" onclick="markAllAdminNotificationsRead(event)">Mark all read</button>
+                                    <button type="button" onclick="clearOldAdminNotifications(event)">Clear old</button>
+                                </div>
+                            </div>
+                            <div class="notification-filter-row" id="adminNotificationFilters" role="tablist" aria-label="Filter notifications">
+                                <button class="notification-filter-chip active" type="button" data-filter="all" onclick="setAdminNotificationFilter('all')">All</button>
+                                <button class="notification-filter-chip" type="button" data-filter="unread" onclick="setAdminNotificationFilter('unread')">Unread</button>
+                                <button class="notification-filter-chip" type="button" data-filter="projects" onclick="setAdminNotificationFilter('projects')">Projects</button>
+                                <button class="notification-filter-chip" type="button" data-filter="tasks" onclick="setAdminNotificationFilter('tasks')">Tasks</button>
+                                <button class="notification-filter-chip" type="button" data-filter="users" onclick="setAdminNotificationFilter('users')">Users</button>
+                                <button class="notification-filter-chip" type="button" data-filter="files" onclick="setAdminNotificationFilter('files')">Files</button>
+                                <button class="notification-filter-chip" type="button" data-filter="system" onclick="setAdminNotificationFilter('system')">System</button>
                             </div>
                             <div class="notification-list" id="adminNotificationList">
                                 <div class="notification-empty">Loading notifications...</div>

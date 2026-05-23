@@ -2,7 +2,9 @@ const adminState = {
     users: [],
     projects: [],
     tasks: [],
+    rawNotifications: [],
     notifications: [],
+    notificationFilter: "all",
     dashboardStats: null,
     searchTerm: "",
     currentSection: "dashboard",
@@ -72,6 +74,7 @@ const adminFileFilters = {
     page: 1,
     pageSize: 6
 };
+const ADMIN_NOTIFICATION_FILTERS = ["all", "unread", "projects", "tasks", "users", "files", "system"];
 let expandedAdminTaskAssigneeCards = {};
 let expandedAdminTeamProjects = {};
 
@@ -201,6 +204,10 @@ async function refreshAdminData() {
         adminState.projects = await projectsRes.json();
         adminState.tasks = await tasksRes.json();
         adminState.dashboardStats = statsRes.ok ? await statsRes.json().catch(() => null) : null;
+        if (adminState.rawNotifications.length) {
+            adminState.notifications = buildAdminNotificationFeed(adminState.rawNotifications);
+            renderAdminNotifications();
+        }
         updateNotificationCount();
     } catch (error) {
         console.error("Failed to load admin data", error);
@@ -997,6 +1004,7 @@ function renderTasksView() {
                                 <tr>
                                     <th>Task</th>
                                     <th>Project</th>
+                                    <th>Priority</th>
                                     <th>Assigned Users &amp; Status</th>
                                     <th>Overall Status</th>
                                     <th>Due Date</th>
@@ -1004,7 +1012,7 @@ function renderTasksView() {
                                 </tr>
                             </thead>
                             <tbody>
-                                ${pageTasks.length ? pageTasks.map((task) => renderTaskRow(task, stats.projectMap, { showAction: true })).join("") : `<tr><td colspan="6" class="empty-state">No tasks found.</td></tr>`}
+                                ${pageTasks.length ? pageTasks.map((task) => renderTaskRow(task, stats.projectMap, { showAction: true })).join("") : `<tr><td colspan="7" class="empty-state">No tasks found.</td></tr>`}
                             </tbody>
                         </table>
                     </div>
@@ -3228,11 +3236,14 @@ function renderTaskRow(task, projectMap, options = {}) {
     const project = projectMap.get(String(task.project_id));
     const label = normalizeStatusLabel(task.status);
     const className = statusClassName(task.status);
+    const priority = normalizeTaskPriority(task.priority);
+    const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
 
     return `
         <tr>
             <td>${escapeHtml(task.title || "Untitled Task")}</td>
             <td>${escapeHtml(project?.name || "Unknown Project")}</td>
+            <td><span class="task-priority-pill ${priorityClass}">${escapeHtml(priority)}</span></td>
             <td>${renderAdminMemberStatuses(task)}</td>
             <td><span class="status-pill ${className}">${escapeHtml(label)}</span></td>
             <td>${escapeHtml(formatDate(task.deadline))}</td>
@@ -3499,7 +3510,8 @@ async function loadAdminNotifications() {
         }
 
         const notifications = await res.json();
-        adminState.notifications = Array.isArray(notifications) ? notifications : [];
+        adminState.rawNotifications = Array.isArray(notifications) ? notifications : [];
+        adminState.notifications = buildAdminNotificationFeed(adminState.rawNotifications);
         updateNotificationCount();
         renderAdminNotifications();
     } catch (error) {
@@ -3512,9 +3524,18 @@ function updateNotificationCount() {
     const badge = document.getElementById("notificationCount");
     if (!badge) return;
 
-    const count = adminState.notifications.filter((notification) => !notification.read).length;
-    badge.innerText = count;
+    const count = adminState.notifications.filter((notification) => !notification.read && notification.category !== "system").length
+        || adminState.notifications.filter((notification) => !notification.read).length;
+    badge.innerText = count > 99 ? "99+" : count;
     badge.classList.toggle("hidden", count === 0);
+}
+
+function normalizeTaskPriority(priority) {
+    const normalized = String(priority || "Medium").trim().toLowerCase();
+    if (normalized === "urgent") return "Urgent";
+    if (normalized === "high") return "High";
+    if (normalized === "low") return "Low";
+    return "Medium";
 }
 
 function toggleAdminNotifications(event) {
@@ -3543,24 +3564,595 @@ function closeAdminNotifications() {
     button.setAttribute("aria-expanded", "false");
 }
 
+function getAdminNotificationStorageKey(suffix) {
+    const email = String(sessionStorage.getItem("email") || "admin").trim().toLowerCase() || "admin";
+    return `admin.notifications.${email}.${suffix}`;
+}
+
+function readAdminNotificationState(suffix) {
+    try {
+        const raw = sessionStorage.getItem(getAdminNotificationStorageKey(suffix));
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+        console.warn("Unable to read notification state", error);
+        return [];
+    }
+}
+
+function writeAdminNotificationState(suffix, values) {
+    try {
+        sessionStorage.setItem(getAdminNotificationStorageKey(suffix), JSON.stringify(Array.from(new Set(values.map(String)))));
+    } catch (error) {
+        console.warn("Unable to store notification state", error);
+    }
+}
+
+function getAdminNotificationDismissedIds() {
+    return new Set(readAdminNotificationState("dismissed"));
+}
+
+function getAdminNotificationReadOverrides() {
+    return new Set(readAdminNotificationState("read"));
+}
+
+function rememberAdminNotificationRead(id) {
+    if (!id) return;
+    const current = readAdminNotificationState("read");
+    current.push(String(id));
+    writeAdminNotificationState("read", current);
+}
+
+function rememberAdminNotificationDismissed(ids) {
+    const current = readAdminNotificationState("dismissed");
+    ids.filter(Boolean).forEach((id) => current.push(String(id)));
+    writeAdminNotificationState("dismissed", current);
+}
+
+function buildAdminNotificationFeed(rawNotifications) {
+    const now = Date.now();
+    const dismissedIds = getAdminNotificationDismissedIds();
+    const readOverrides = getAdminNotificationReadOverrides();
+    const normalized = (Array.isArray(rawNotifications) ? rawNotifications : [])
+        .map((notification, index) => normalizeAdminNotification(notification, index, readOverrides))
+        .filter(Boolean)
+        .filter((notification) => !dismissedIds.has(String(notification.id)));
+
+    const synthetic = [
+        ...buildAdminDeadlineNotifications(now, readOverrides),
+        ...buildAdminProjectHealthNotifications(now, readOverrides)
+    ].filter((notification) => !dismissedIds.has(String(notification.id)));
+
+    const merged = [...normalized, ...synthetic]
+        .sort((first, second) => {
+            const priorityDelta = notificationPriorityWeight(second.priority) - notificationPriorityWeight(first.priority);
+            if (priorityDelta !== 0) return priorityDelta;
+            return safeTime(second.createdAt) - safeTime(first.createdAt);
+        })
+        .slice(0, 40);
+
+    return dedupeAdminNotifications(merged);
+}
+
+function dedupeAdminNotifications(items) {
+    const seen = new Set();
+    return items.filter((item) => {
+        const dedupeKey = item.dedupeKey || `${item.category}|${item.title}|${item.relatedName}|${item.priority}`;
+        if (seen.has(dedupeKey)) return false;
+        seen.add(dedupeKey);
+        return true;
+    });
+}
+
+function buildAdminDeadlineNotifications(now, readOverrides = new Set()) {
+    const notifications = [];
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    adminState.tasks.forEach((task) => {
+        const due = new Date(task.deadline || task.due_date || "");
+        if (Number.isNaN(due.getTime())) return;
+
+        const taskName = task.title || "Task";
+        const project = adminState.projects.find((item) => String(item.id) === String(task.project_id));
+        const projectName = project?.name || "Unknown project";
+        const delta = due.getTime() - now;
+        const overdue = delta < 0 && !isCompletedStatus(task.status);
+        const dueSoon = delta >= 0 && delta <= 2 * oneDay && !isCompletedStatus(task.status);
+
+        if (!overdue && !dueSoon) return;
+
+        const id = `task-deadline-${task.id}-${due.toISOString().slice(0, 10)}`;
+        notifications.push({
+            id,
+            sourceId: task.id,
+            category: "tasks",
+            level: overdue ? "error" : "warning",
+            priority: overdue ? "high" : "medium",
+            icon: overdue ? "fa-triangle-exclamation" : "fa-hourglass-half",
+            title: overdue ? "Task overdue" : "Task deadline approaching",
+            message: overdue
+                ? `${taskName} is overdue and needs follow-up from the assigned team.`
+                : `${taskName} is due soon and should be monitored before it slips.`,
+            relatedName: `${taskName} - ${projectName}`,
+            read: readOverrides.has(id),
+            createdAt: task.updated_at || task.created_at || task.deadline,
+            target: {
+                module: "tasks",
+                taskId: task.id,
+                projectId: task.project_id
+            },
+            dedupeKey: `task-deadline-${task.id}-${overdue ? "overdue" : "soon"}`
+        });
+    });
+
+    return notifications;
+}
+
+function buildAdminProjectHealthNotifications(now, readOverrides = new Set()) {
+    const notifications = [];
+    const oneDay = 24 * 60 * 60 * 1000;
+
+    adminState.projects.forEach((project) => {
+        const endDate = new Date(project.end_date || project.deadline || "");
+        if (Number.isNaN(endDate.getTime())) return;
+
+        const delta = endDate.getTime() - now;
+        const overdue = delta < 0 && !isCompletedStatus(project.status);
+        const dueSoon = delta >= 0 && delta <= 2 * oneDay && !isCompletedStatus(project.status);
+        if (!overdue && !dueSoon) return;
+
+        const id = `project-health-${project.id}-${endDate.toISOString().slice(0, 10)}`;
+        notifications.push({
+            id,
+            sourceId: project.id,
+            category: "projects",
+            level: overdue ? "error" : "warning",
+            priority: overdue ? "high" : "medium",
+            icon: overdue ? "fa-triangle-exclamation" : "fa-calendar-day",
+            title: overdue ? "Project overdue" : "Project deadline approaching",
+            message: overdue
+                ? `${project.name || "Project"} is past its deadline and needs admin intervention.`
+                : `${project.name || "Project"} is nearing its deadline and should be reviewed.`,
+            relatedName: project.name || "Project",
+            read: readOverrides.has(id),
+            createdAt: project.updated_at || project.created_at || project.end_date,
+            target: {
+                module: "projects",
+                projectId: project.id
+            },
+            dedupeKey: `project-health-${project.id}-${overdue ? "overdue" : "soon"}`
+        });
+    });
+
+    return notifications;
+}
+
+function normalizeAdminNotification(notification, index, readOverrides = new Set()) {
+    const text = getAdminNotificationText(notification).toLowerCase();
+    if (!isAdminRelevantNotification(notification, text)) {
+        return null;
+    }
+
+    const category = inferAdminNotificationCategory(notification, text);
+    const level = inferAdminNotificationLevel(notification, text);
+    const priority = inferAdminNotificationPriority(notification, text, level);
+    const createdAt = notification.time || notification.created_at || notification.updated_at || new Date().toISOString();
+    const relatedName = getAdminNotificationRelatedName(notification, category);
+    const id = String(notification.id || `server-${category}-${index}-${safeSlug(notification.title || notification.message || "event")}`);
+    const title = buildAdminNotificationTitle(notification, category, text);
+    const message = buildAdminNotificationMessage(notification, category, text);
+    const isRead = Boolean(notification.read) || readOverrides.has(id);
+
+    return {
+        id,
+        sourceId: notification.id,
+        category,
+        level,
+        priority,
+        icon: getAdminNotificationIcon(level, category),
+        title,
+        message,
+        relatedName,
+        read: isRead,
+        createdAt,
+        target: buildAdminNotificationTarget(notification, category),
+        dedupeKey: `${category}|${title}|${relatedName}|${formatDate(createdAt)}`
+    };
+}
+
+function getAdminNotificationText(notification) {
+    return [
+        notification?.title,
+        notification?.message,
+        notification?.description,
+        notification?.type,
+        notification?.category,
+        notification?.project_name,
+        notification?.task_name,
+        notification?.username,
+        notification?.email,
+        notification?.file_name
+    ].filter(Boolean).join(" ");
+}
+
+function isAdminRelevantNotification(notification, normalizedText) {
+    if (!normalizedText) return false;
+
+    const recipientRole = String(notification?.role || notification?.recipient_role || notification?.user_role || "").toLowerCase();
+    if (recipientRole && recipientRole !== "admin") return false;
+
+    if (isPersonalAssignmentNotification(notification, normalizedText)) {
+        return false;
+    }
+
+    if (!isAdminMonitoringNotification(notification, normalizedText)) {
+        return false;
+    }
+
+    const excludedPhrases = [
+        "password reset",
+        "otp",
+        "welcome back",
+        "login successful",
+        "signed in",
+        "profile updated",
+        "message received",
+        "chat message",
+        "commented on your task",
+        "mentioned you",
+        "personal reminder"
+    ];
+
+    if (excludedPhrases.some((phrase) => normalizedText.includes(phrase))) {
+        return false;
+    }
+
+    return true;
+}
+
+function isPersonalAssignmentNotification(notification, normalizedText) {
+    const title = String(notification?.title || "").toLowerCase();
+    const personalPhrases = [
+        "you were assigned task",
+        "you were added to task",
+        "you were assigned to project",
+        "you were assigned to manage project"
+    ];
+
+    if (personalPhrases.some((phrase) => normalizedText.includes(phrase))) {
+        return true;
+    }
+
+    if ((title === "new task assigned" || title === "task assignment updated" || title === "project assignment")
+        && normalizedText.includes("you were")) {
+        return true;
+    }
+
+    return false;
+}
+
+function isAdminMonitoringNotification(notification, normalizedText) {
+    const task = findTaskForNotification(notification);
+    const project = findProjectForNotification(notification, task);
+
+    if (normalizedText.includes("project created")
+        || normalizedText.includes("manager assignment")
+        || normalizedText.includes("role updated")
+        || normalizedText.includes("user registered")
+        || normalizedText.includes("user created")
+        || normalizedText.includes("file uploaded")
+        || normalizedText.includes("project deleted")
+        || normalizedText.includes("archived")
+        || normalizedText.includes("activity log")
+        || normalizedText.includes("system")
+        || normalizedText.includes("deadline")
+        || normalizedText.includes("overdue")
+        || normalizedText.includes("failed")) {
+        return true;
+    }
+
+    if (normalizedText.includes("task updated")) {
+        return true;
+    }
+
+    if (normalizedText.includes("updated") && normalizedText.includes("completed")) {
+        return true;
+    }
+
+    if (normalizedText.includes("project assigned")) {
+        return true;
+    }
+
+    if (normalizedText.includes("task assigned")) {
+        return isAdminOwnedTask(task) || isAdminOwnedProject(project);
+    }
+
+    if (normalizedText.includes("new task assigned") || normalizedText.includes("task assignment updated")) {
+        return isAdminOwnedTask(task) || isAdminOwnedProject(project);
+    }
+
+    if (normalizedText.includes("project") || normalizedText.includes("task") || normalizedText.includes("user") || normalizedText.includes("file")) {
+        return Boolean(task || project || notification?.user_id || notification?.email || notification?.file_id || notification?.file_name);
+    }
+
+    return false;
+}
+
+function findTaskForNotification(notification) {
+    const taskId = notification?.task_id || notification?.sourceId || notification?.id;
+    if (taskId) {
+        const directTask = adminState.tasks.find((item) => String(item.id) === String(taskId));
+        if (directTask) return directTask;
+    }
+
+    const taskName = String(notification?.task_name || notification?.title || "").trim().toLowerCase();
+    const message = String(notification?.message || "").trim().toLowerCase();
+
+    return adminState.tasks.find((item) => {
+        const title = String(item.task_title || item.title || "").trim().toLowerCase();
+        return title && (title === taskName || message.includes(`'${title}'`) || message.includes(`"${title}"`));
+    }) || null;
+}
+
+function findProjectForNotification(notification, task = null) {
+    const projectId = notification?.project_id || task?.project_id;
+    if (projectId) {
+        const directProject = adminState.projects.find((item) => String(item.id) === String(projectId));
+        if (directProject) return directProject;
+    }
+
+    const projectName = String(notification?.project_name || "").trim().toLowerCase();
+    if (projectName) {
+        return adminState.projects.find((item) => String(item.name || item.project_name || "").trim().toLowerCase() === projectName) || null;
+    }
+
+    return null;
+}
+
+function isAdminOwnedTask(task) {
+    const currentAdminEmail = String(sessionStorage.getItem("email") || "").trim().toLowerCase();
+    if (!task || !currentAdminEmail) return false;
+
+    return String(task.created_by || "").trim().toLowerCase() === currentAdminEmail
+        || String(task.assigned_by || "").trim().toLowerCase() === currentAdminEmail;
+}
+
+function isAdminOwnedProject(project) {
+    const currentAdminEmail = String(sessionStorage.getItem("email") || "").trim().toLowerCase();
+    if (!project || !currentAdminEmail) return false;
+
+    return String(project.created_by || "").trim().toLowerCase() === currentAdminEmail
+        || String(project.owner_email || "").trim().toLowerCase() === currentAdminEmail;
+}
+
+function inferAdminNotificationCategory(notification, normalizedText) {
+    const category = String(notification?.category || notification?.module || "").toLowerCase();
+    if (["projects", "tasks", "users", "files", "system"].includes(category)) {
+        return category;
+    }
+
+    if (normalizedText.includes("project") || notification?.project_id || notification?.project_name) return "projects";
+    if (normalizedText.includes("task") || notification?.task_id || notification?.task_name) return "tasks";
+    if (normalizedText.includes("user") || normalizedText.includes("manager") || normalizedText.includes("role") || notification?.user_id || notification?.username || notification?.email) return "users";
+    if (normalizedText.includes("file") || normalizedText.includes("upload") || notification?.file_id || notification?.file_name) return "files";
+    return "system";
+}
+
+function inferAdminNotificationLevel(notification, normalizedText) {
+    const rawType = String(notification?.type || notification?.level || notification?.severity || "").toLowerCase();
+    if (["success", "warning", "error", "info"].includes(rawType)) return rawType;
+
+    if (normalizedText.includes("deleted") || normalizedText.includes("failed") || normalizedText.includes("overdue")) return "error";
+    if (normalizedText.includes("deadline") || normalizedText.includes("archived") || normalizedText.includes("updated")) return "warning";
+    if (normalizedText.includes("completed") || normalizedText.includes("created") || normalizedText.includes("uploaded")) return "success";
+    return "info";
+}
+
+function inferAdminNotificationPriority(notification, normalizedText, level) {
+    const rawPriority = String(notification?.priority || "").toLowerCase();
+    if (["high", "medium", "low"].includes(rawPriority)) return rawPriority;
+
+    if (level === "error" || normalizedText.includes("overdue") || normalizedText.includes("deleted") || normalizedText.includes("failed")) return "high";
+    if (normalizedText.includes("assigned") || normalizedText.includes("updated") || normalizedText.includes("deadline")) return "medium";
+    return "low";
+}
+
+function getAdminNotificationIcon(level, category) {
+    if (level === "success") return "fa-circle-check";
+    if (level === "warning") return "fa-triangle-exclamation";
+    if (level === "error") return "fa-circle-exclamation";
+    if (category === "system") return "fa-bell";
+    if (category === "files") return "fa-file-arrow-up";
+    if (category === "users") return "fa-user-shield";
+    if (category === "tasks") return "fa-list-check";
+    return "fa-circle-info";
+}
+
+function getAdminNotificationRelatedName(notification, category) {
+    const direct = notification?.related_name
+        || notification?.project_name
+        || notification?.task_name
+        || notification?.file_name
+        || notification?.username
+        || notification?.name;
+
+    if (direct) return String(direct);
+
+    if (category === "projects" && notification?.project_id) {
+        const project = adminState.projects.find((item) => String(item.id) === String(notification.project_id));
+        if (project?.name) return project.name;
+    }
+
+    if (category === "tasks" && notification?.task_id) {
+        const task = adminState.tasks.find((item) => String(item.id) === String(notification.task_id));
+        if (task?.title) return task.title;
+    }
+
+    if (category === "users" && notification?.email) {
+        return notification.email;
+    }
+
+    return "";
+}
+
+function buildAdminNotificationTitle(notification, category, normalizedText) {
+    if (notification?.title) return String(notification.title);
+
+    if (category === "projects") {
+        if (normalizedText.includes("deleted")) return "Project deleted";
+        if (normalizedText.includes("archived")) return "Project archived";
+        if (normalizedText.includes("assigned")) return "Project assigned to manager";
+        if (normalizedText.includes("created")) return "Project created";
+        if (normalizedText.includes("deadline")) return "Project deadline alert";
+        return "Project update";
+    }
+
+    if (category === "tasks") {
+        if (normalizedText.includes("completed")) return "Task completion update";
+        if (normalizedText.includes("assigned")) return "Task assigned";
+        if (normalizedText.includes("deadline") || normalizedText.includes("overdue")) return "Task deadline alert";
+        return "Task update";
+    }
+
+    if (category === "users") {
+        if (normalizedText.includes("role")) return "User role updated";
+        if (normalizedText.includes("registered")) return "New user registration";
+        if (normalizedText.includes("created")) return "User created";
+        if (normalizedText.includes("manager")) return "Manager assignment updated";
+        return "User update";
+    }
+
+    if (category === "files") {
+        return normalizedText.includes("uploaded") ? "File uploaded" : "File activity";
+    }
+
+    return normalizedText.includes("activity") ? "Activity log update" : "System alert";
+}
+
+function buildAdminNotificationMessage(notification, category, normalizedText) {
+    if (notification?.message) return String(notification.message);
+
+    const related = getAdminNotificationRelatedName(notification, category);
+    if (category === "projects") return related ? `${related} requires admin attention.` : "A project activity requires review.";
+    if (category === "tasks") return related ? `${related} has a task-related update for admin review.` : "A task update requires review.";
+    if (category === "users") return related ? `${related} has a user or role update.` : "A user activity requires review.";
+    if (category === "files") return related ? `${related} was uploaded or updated.` : "A file activity requires review.";
+    if (normalizedText.includes("failed")) return "A system action failed and should be reviewed.";
+    return "An administrative activity was recorded.";
+}
+
+function buildAdminNotificationTarget(notification, category) {
+    if (category === "projects") {
+        return {
+            module: "projects",
+            projectId: notification?.project_id || notification?.id
+        };
+    }
+
+    if (category === "tasks") {
+        return {
+            module: "tasks",
+            taskId: notification?.task_id || notification?.id,
+            projectId: notification?.project_id
+        };
+    }
+
+    if (category === "users") {
+        return {
+            module: "users",
+            userId: notification?.user_id || notification?.email || notification?.id
+        };
+    }
+
+    if (category === "files") {
+        return {
+            module: "files",
+            fileId: notification?.file_id || notification?.id
+        };
+    }
+
+    return {
+        module: "system"
+    };
+}
+
+function notificationPriorityWeight(priority) {
+    if (priority === "high") return 3;
+    if (priority === "medium") return 2;
+    return 1;
+}
+
+function safeSlug(value) {
+    return String(value || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 40) || "item";
+}
+
+function getFilteredAdminNotifications() {
+    const activeFilter = ADMIN_NOTIFICATION_FILTERS.includes(adminState.notificationFilter)
+        ? adminState.notificationFilter
+        : "all";
+
+    return adminState.notifications.filter((notification) => {
+        if (activeFilter === "all") return true;
+        if (activeFilter === "unread") return !notification.read;
+        return notification.category === activeFilter;
+    });
+}
+
 function renderAdminNotifications() {
     const list = document.getElementById("adminNotificationList");
+    const summary = document.getElementById("adminNotificationSummary");
     if (!list) return;
 
+    document.querySelectorAll(".notification-filter-chip").forEach((chip) => {
+        chip.classList.toggle("active", chip.dataset.filter === adminState.notificationFilter);
+    });
+
+    const filteredNotifications = getFilteredAdminNotifications();
+    const unreadCount = adminState.notifications.filter((notification) => !notification.read).length;
+
+    if (summary) {
+        summary.textContent = unreadCount
+            ? `${unreadCount} unread admin alert${unreadCount === 1 ? "" : "s"}`
+            : "All admin alerts are caught up.";
+    }
+
     if (!adminState.notifications.length) {
-        list.innerHTML = `<div class="notification-empty">No notifications yet.</div>`;
+        list.innerHTML = `<div class="notification-empty">No admin notifications to show right now.</div>`;
         return;
     }
 
-    list.innerHTML = adminState.notifications.slice(0, 20).map((notification) => `
-        <button class="notification-item ${notification.read ? "" : "unread"}" type="button" onclick="markAdminNotificationRead('${escapeHtml(notification.id)}')">
-            <span class="notification-item-icon"><i class="fas fa-bell"></i></span>
-            <span>
-                <h4>${escapeHtml(notification.title || "Notification")}</h4>
-                <p>${escapeHtml(notification.message || "")}</p>
-                <small>${escapeHtml(formatAdminNotificationTime(notification.time || notification.created_at))}${notification.email ? ` - ${escapeHtml(notification.email)}` : ""}</small>
-            </span>
-        </button>
+    if (!filteredNotifications.length) {
+        list.innerHTML = `<div class="notification-empty">No notifications match the current filter.</div>`;
+        return;
+    }
+
+    list.innerHTML = filteredNotifications.slice(0, 20).map((notification) => `
+        <article class="notification-item ${notification.read ? "" : "unread"}" role="listitem">
+            <span class="notification-item-icon ${escapeHtml(notification.level)}"><i class="fas ${escapeHtml(notification.icon)}"></i></span>
+            <div class="notification-item-body">
+                <div class="notification-item-copy">
+                    <h4>${escapeHtml(notification.title || "Notification")}</h4>
+                    <p>${escapeHtml(notification.message || "")}</p>
+                </div>
+                ${notification.relatedName ? `<div class="notification-item-target">${escapeHtml(notification.relatedName)}</div>` : ""}
+                <span class="notification-item-time">${escapeHtml(formatAdminNotificationTime(notification.createdAt))}</span>
+                <div class="notification-item-meta">
+                    <span class="notification-state-pill ${notification.read ? "" : "unread"}">${notification.read ? "Read" : "Unread"}</span>
+                    <span class="notification-category-pill">${escapeHtml(capitalize(notification.category))}</span>
+                    <span class="notification-priority-pill ${escapeHtml(notification.priority)}">${escapeHtml(notification.priority)} priority</span>
+                </div>
+                <div class="notification-item-actions">
+                    ${notification.read ? "" : `<button type="button" onclick="markAdminNotificationRead('${escapeHtml(notification.id)}', event)">Mark as read</button>`}
+                    <button class="primary" type="button" onclick="openAdminNotificationTarget('${escapeHtml(notification.id)}', event)">Open ${escapeHtml(getAdminNotificationModuleLabel(notification.category))}</button>
+                    <button class="danger" type="button" onclick="clearAdminNotification('${escapeHtml(notification.id)}', event)">Clear</button>
+                </div>
+            </div>
+        </article>
     `).join("");
 }
 
@@ -3570,23 +4162,34 @@ function renderAdminNotificationsError() {
     list.innerHTML = `<div class="notification-empty">Unable to load notifications.</div>`;
 }
 
-async function markAdminNotificationRead(id) {
+function setAdminNotificationFilter(filter) {
+    if (!ADMIN_NOTIFICATION_FILTERS.includes(filter)) return;
+    adminState.notificationFilter = filter;
+    renderAdminNotifications();
+}
+
+async function markAdminNotificationRead(id, event) {
+    if (event) event.stopPropagation();
     const token = sessionStorage.getItem("token");
-    if (!token || !id) return;
+    if (!id) return;
 
     try {
-        await fetch(`${BASE_URL}/notifications/${encodeURIComponent(id)}/read`, {
-            method: "PUT",
-            headers: {
-                "Authorization": "Bearer " + token
-            }
-        });
+        const notification = adminState.notifications.find((item) => String(item.id) === String(id));
+        if (notification?.sourceId && token) {
+            await fetch(`${BASE_URL}/notifications/${encodeURIComponent(notification.sourceId)}/read`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+        }
 
         adminState.notifications = adminState.notifications.map((notification) => (
             String(notification.id) === String(id)
                 ? { ...notification, read: true }
                 : notification
         ));
+        rememberAdminNotificationRead(id);
         updateNotificationCount();
         renderAdminNotifications();
     } catch (error) {
@@ -3597,19 +4200,102 @@ async function markAdminNotificationRead(id) {
 async function markAllAdminNotificationsRead(event) {
     event.stopPropagation();
     const token = sessionStorage.getItem("token");
-    if (!token) return;
 
     try {
-        await fetch(`${BASE_URL}/notifications/read-all`, {
-            method: "PUT",
-            headers: {
-                "Authorization": "Bearer " + token
-            }
-        });
+        if (token) {
+            await fetch(`${BASE_URL}/notifications/read-all`, {
+                method: "PUT",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+        }
+        adminState.notifications = adminState.notifications.map((notification) => ({ ...notification, read: true }));
+        adminState.notifications.forEach((notification) => rememberAdminNotificationRead(notification.id));
         await loadAdminNotifications();
     } catch (error) {
         console.error("Failed to mark notifications read", error);
     }
+}
+
+function clearAdminNotification(id, event) {
+    if (event) event.stopPropagation();
+    if (!id) return;
+
+    adminState.notifications = adminState.notifications.filter((notification) => String(notification.id) !== String(id));
+    rememberAdminNotificationDismissed([id]);
+    updateNotificationCount();
+    renderAdminNotifications();
+}
+
+function clearOldAdminNotifications(event) {
+    if (event) event.stopPropagation();
+    const threshold = Date.now() - (3 * 24 * 60 * 60 * 1000);
+    const removable = adminState.notifications
+        .filter((notification) => notification.read || safeTime(notification.createdAt) < threshold)
+        .map((notification) => notification.id);
+
+    if (!removable.length) {
+        showNotification("No old notifications to clear.", "info");
+        return;
+    }
+
+    adminState.notifications = adminState.notifications.filter((notification) => !removable.includes(notification.id));
+    rememberAdminNotificationDismissed(removable);
+    updateNotificationCount();
+    renderAdminNotifications();
+    showNotification("Old notifications cleared.", "success");
+}
+
+function openAdminNotificationTarget(id, event) {
+    if (event) event.stopPropagation();
+    const notification = adminState.notifications.find((item) => String(item.id) === String(id));
+    if (!notification) return;
+
+    if (!notification.read) {
+        markAdminNotificationRead(id);
+    }
+
+    const target = notification.target || {};
+    closeAdminNotifications();
+
+    if (target.module === "projects") {
+        setActiveNav("projects");
+        renderProjectsView();
+        return;
+    }
+
+    if (target.module === "tasks") {
+        if (target.projectId) {
+            openAdminProjectWorkspace(target.projectId);
+            return;
+        }
+        setActiveNav("tasks");
+        renderTasksView();
+        return;
+    }
+
+    if (target.module === "users") {
+        setActiveNav("users");
+        renderUsersView();
+        return;
+    }
+
+    if (target.module === "files") {
+        setActiveNav("files");
+        renderFilesView();
+        return;
+    }
+
+    goToActivityLog();
+}
+
+function getAdminNotificationModuleLabel(category) {
+    if (category === "projects") return "project";
+    if (category === "tasks") return "task";
+    if (category === "users") return "user";
+    if (category === "files") return "file";
+    return "activity";
 }
 
 function formatAdminNotificationTime(value) {
@@ -3626,6 +4312,26 @@ function formatAdminNotificationTime(value) {
         minute: "2-digit",
         hour12: true
     });
+}
+
+function formatAdminNotificationTimeAgo(value) {
+    if (!value) return "Just now";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "Just now";
+
+    const seconds = Math.max(Math.floor((Date.now() - date.getTime()) / 1000), 0);
+    if (seconds < 60) return "Just now";
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+
+    return formatAdminNotificationTime(value);
 }
 
 function isCompletedStatus(status) {
@@ -3757,8 +4463,12 @@ window.saveAdminSettingsPreference = saveAdminSettingsPreference;
 window.toggleAdminQuietNotifications = toggleAdminQuietNotifications;
 window.applyAdminSettingsPreferences = applyAdminSettingsPreferences;
 window.toggleAdminNotifications = toggleAdminNotifications;
+window.setAdminNotificationFilter = setAdminNotificationFilter;
 window.markAdminNotificationRead = markAdminNotificationRead;
 window.markAllAdminNotificationsRead = markAllAdminNotificationsRead;
+window.clearOldAdminNotifications = clearOldAdminNotifications;
+window.clearAdminNotification = clearAdminNotification;
+window.openAdminNotificationTarget = openAdminNotificationTarget;
 window.setAdminReportDateRange = setAdminReportDateRange;
 window.clearAdminReportDateRange = clearAdminReportDateRange;
 window.exportAdminReport = exportAdminReport;

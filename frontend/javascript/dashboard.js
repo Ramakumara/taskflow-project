@@ -596,7 +596,7 @@ function renderDashboardTaskBoard() {
     if (table) table.classList.toggle("task-board-table-user", role === "user");
 
     if (!tasks.length) {
-        list.innerHTML = `<tr><td colspan="${role === "manager" || role === "admin" ? 6 : 5}" class="empty-state">No tasks found.</td></tr>`;
+        list.innerHTML = `<tr><td colspan="${role === "manager" || role === "admin" ? 7 : 6}" class="empty-state">No tasks found.</td></tr>`;
         renderDashboardTaskPagination(0, 0, 0, 1, 1);
         return;
     }
@@ -607,6 +607,8 @@ function renderDashboardTaskBoard() {
         const row = document.createElement("tr");
         const status = normalizeMemberStatus(task.status);
         const statusClass = memberStatusClass(status);
+        const priority = normalizeDashboardTaskPriority(task.priority);
+        const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
         const assignedDisplay = role === "user"
             ? getTaskAssignedBy(task, project)
             : renderTaskAssigneeStatusList(task, users);
@@ -619,6 +621,7 @@ function renderDashboardTaskBoard() {
                 </div>
             </td>
             <td>${escapeTeamHtml(project?.name || "Unknown")}</td>
+            <td><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></td>
             <td>${assignedDisplay || "Unknown"}</td>
             <td>
                 ${role === "user"
@@ -636,6 +639,14 @@ function renderDashboardTaskBoard() {
         list.appendChild(row);
     });
     renderDashboardTaskPagination(startIndex + 1, startIndex + pageTasks.length, tasks.length, dashboardTaskPage, totalPages);
+}
+
+function normalizeDashboardTaskPriority(priority) {
+    const normalized = String(priority || "Medium").trim().toLowerCase();
+    if (normalized === "urgent") return "Urgent";
+    if (normalized === "high") return "High";
+    if (normalized === "low") return "Low";
+    return "Medium";
 }
 
 function openDashboardTaskCreate() {
