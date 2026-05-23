@@ -1,393 +1,486 @@
-/* Forgot Password Page Styles */
-
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: white;
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Inter,sans-serif;
 }
 
-.forgot-background {
-    margin: 0;
-    height: 100vh;
-    position: relative;
-    display: flex;
-    overflow: hidden;
+body{
+    min-height:100vh;
 
-    background-image: none;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    background:
+        radial-gradient(circle at top left,#edf8f1 0%,transparent 30%),
+        radial-gradient(circle at bottom right,#eefaf3 0%,transparent 30%),
+        #f7faf8;
+
+    display:flex;
+    justify-content:center;
+    align-items:flex-start;
+
+    padding:10px;
 }
 
-/* FORGOT CONTAINER */
-.forgot-container {
-    width: 50%;
-    margin-left: 50%;
+/* WRAPPER */
 
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    background: transparent;
+.forgot-wrapper{
+    width:100%;
+    max-width:430px;
+    text-align:center;
 }
 
-/* FORGOT CARD */
-.forgot-card {
-    width: 360px;
-    padding: 40px;
+/* LOGO */
 
-    border-radius: 18px;
-    background: rgba(255,255,255,0.92);
-    backdrop-filter: blur(8px);
+.logo{
+    display:flex;
+    justify-content:center;
+    align-items:center;
 
-    box-shadow: 0 20px 50px rgba(0,0,0,0.2);
-    text-align: left;
+    gap:6px;
+
+    margin-bottom:8px;
+}
+
+.logo i{
+    font-size:24px;
+    color:#16a34a;
+}
+
+.logo h1{
+    font-size:26px;
+    font-weight:800;
+    color:#0f172a;
+}
+
+.logo span{
+    color:#16a34a;
 }
 
 /* TITLE */
-.forgot-card h2 {
-    font-size: 26px;
-    margin-bottom: 5px;
-    margin-top: 10px;
-    text-align: center;
+
+.main-title{
+    font-size:20px;
+    font-weight:800;
+    color:#0f172a;
+
+    margin-bottom:6px;
+}
+
+.main-subtitle{
+    font-size:11px;
+    color:#475569;
+
+    line-height:1.5;
+
+    margin-bottom:20px;
+}
+
+.email-highlight{
+    color:#16a34a;
+    font-weight:700;
+}
+
+/* STEPS */
+
+.steps{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    margin-bottom:20px;
+}
+
+.step{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+    min-width:72px;
+}
+
+.step-circle{
+    width:30px;
+    height:30px;
+
+    border-radius:50%;
+    border:1.5px solid #d1d5db;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    background:white;
+
+    font-size:10px;
+    font-weight:700;
+    color:#64748b;
+
+    transition:0.3s;
+}
+
+.step.active .step-circle{
+    border-color:#16a34a;
+    color:#16a34a;
+}
+
+.step.completed .step-circle{
+    background:#16a34a;
+    border:none;
+    color:white;
+}
+
+.step-label{
+    margin-top:6px;
+
+    font-size:9px;
+    color:#64748b;
+
+    font-weight:500;
+}
+
+.step.active .step-label,
+.step.completed .step-label{
+    color:#16a34a;
+    font-weight:700;
+}
+
+.step-line{
+    width:40px;
+    height:2px;
+
+    background:#dbe2ea;
+
+    margin-bottom:18px;
+}
+
+.step-line.active{
+    background:#16a34a;
+}
+
+/* CARD */
+
+.forgot-card{
+    background:white;
+
+    border-radius:16px;
+
+    padding:18px;
+
+    box-shadow:
+        0 6px 20px rgba(0,0,0,0.05);
+}
+
+/* ICON */
+
+.card-icon{
+    width:52px;
+    height:52px;
+
+    margin:auto;
+    margin-bottom:14px;
+
+    border-radius:14px;
+
+    background:#ecfdf3;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    position:relative;
+}
+
+.card-icon i{
+    font-size:20px;
+    color:#16a34a;
+}
+
+.mini-badge{
+    position:absolute;
+
+    bottom:2px;
+    right:2px;
+
+    width:18px;
+    height:18px;
+
+    border-radius:50%;
+
+    background:#16a34a;
+    color:white;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:8px;
+}
+
+/* CARD TEXT */
+
+.card-title{
+    font-size:18px;
+    font-weight:800;
+    color:#0f172a;
+
+    margin-bottom:6px;
+}
+
+.card-subtitle{
+    font-size:11px;
+    color:#475569;
+
+    line-height:1.5;
+
+    margin-bottom:18px;
 }
 
 /* LABEL */
-.forgot-card label {
-    display: block;
-    margin-top: 15px;
-    font-size: 14px;
-    color: #333;
+
+.input-label{
+    display:block;
+
+    text-align:left;
+
+    font-size:11px;
+    font-weight:700;
+
+    color:#0f172a;
+
+    margin-bottom:6px;
 }
 
 /* INPUT */
-.forgot-card input {
-    width: 90%;
-    padding: 10px 10px;
-    margin-top: 6px;
 
-    border-radius: 12px;
-    border: 1px solid #ddd;
-    background: #f9f9f9;
+.input-group{
+    width:100%;
+    height:38px;
 
-    outline: none;
-    transition: all 0.3s ease;
+    border:1.5px solid #dbe2ea;
+    border-radius:10px;
+
+    display:flex;
+    align-items:center;
+
+    padding:0 10px;
+
+    background:white;
+
+    margin-bottom:12px;
+
+    transition:0.3s;
 }
 
-/* INPUT FOCUS */
-.forgot-card input:focus {
-    border-color: #2d6cdf;
-    background: #fff;
-    box-shadow: 0 0 0 2px rgba(45,108,223,0.15);
+.input-group:focus-within{
+    border-color:#16a34a;
+    box-shadow:0 0 0 2px rgba(22,163,74,0.08);
+}
+
+.input-group i{
+    font-size:12px;
+    color:#64748b;
+
+    margin-right:8px;
+}
+
+.input-group input{
+    width:100%;
+
+    border:none;
+    outline:none;
+
+    background:none;
+
+    font-size:11px;
+    color:#0f172a;
+}
+
+.input-group input::placeholder{
+    color:#94a3b8;
+}
+
+/* OTP */
+
+.otp-container{
+    display:flex;
+    justify-content:center;
+
+    gap:6px;
+
+    margin-bottom:14px;
+}
+
+.otp-box{
+    width:34px;
+    height:38px;
+
+    border-radius:8px;
+    border:1.5px solid #dbe2ea;
+
+    text-align:center;
+
+    font-size:16px;
+    font-weight:700;
+
+    outline:none;
+
+    transition:0.3s;
+}
+
+.otp-box:focus{
+    border-color:#16a34a;
+    box-shadow:0 0 0 2px rgba(22,163,74,0.08);
+}
+
+/* OTP TEXT */
+
+.otp-resend-text{
+    margin-bottom:12px;
+
+    color:#475569;
+
+    font-size:11px;
+}
+
+.resend-link{
+    color:#16a34a;
+    font-weight:700;
+    cursor:pointer;
+}
+
+.resend-link:hover{
+    text-decoration:underline;
+}
+
+.otp-timer{
+    margin-bottom:16px;
+
+    color:#64748b;
+
+    font-size:11px;
+}
+
+.timer-highlight{
+    color:#16a34a;
+    font-weight:700;
+}
+
+/* RULES */
+
+.rules-box{
+    background:#effaf3;
+
+    border-radius:10px;
+
+    padding:10px;
+
+    margin-bottom:16px;
+}
+
+.rules-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+
+    gap:8px;
+}
+
+.rule-item{
+    display:flex;
+    align-items:center;
+
+    gap:6px;
+
+    font-size:10px;
+    color:#0f172a;
+}
+
+.rule-item i{
+    color:#16a34a;
 }
 
 /* BUTTON */
-.forgot-card button {
-    width:30%;
-    margin-top: 20px;
-    padding: 5px;
 
-    color: rgb(42, 5, 253);
+.submit-btn{
+    width:100%;
+    height:38px;
 
-    border: none;
-    border-radius: 12px;
-    font-weight: bold;
-    font-size: 11px;
+    border:none;
+    border-radius:10px;
 
-    cursor: pointer;
-    transition: 0.3s;
+    background:#16a34a;
+    color:white;
+
+    font-size:11px;
+    font-weight:700;
+
+    cursor:pointer;
+
+    transition:0.3s;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    gap:6px;
 }
 
-/* BUTTON HOVER */
-.forgot-card button:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+.submit-btn:hover{
+    background:#15803d;
 }
 
-/* Professional UI refresh */
-:root {
-    --tf-bg: #f5f7fb;
-    --tf-surface: #ffffff;
-    --tf-border: #dfe6f1;
-    --tf-text: #172033;
-    --tf-muted: #667085;
-    --tf-primary: #2563eb;
-    --tf-primary-dark: #1d4ed8;
-    --tf-radius: 8px;
-    --tf-shadow-lg: 0 18px 48px rgba(16, 24, 40, 0.14);
-    --tf-font: "Segoe UI", Inter, Arial, sans-serif;
+.submit-btn i{
+    font-size:10px;
 }
 
-body {
-    font-family: var(--tf-font);
-    background: var(--tf-bg);
-    color: var(--tf-text);
+/* BACK */
+
+.back-login{
+    margin-top:16px;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    gap:6px;
+
+    color:#16a34a;
+
+    text-decoration:none;
+
+    font-size:11px;
+    font-weight:600;
 }
 
-.forgot-background {
-    min-height: 100vh;
-    height: auto;
-    display: grid;
-    grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1fr);
-    background: var(--tf-bg) !important;
-    overflow: auto;
+.back-login:hover{
+    text-decoration:underline;
 }
 
-.forgot-background::before {
-    content: "TaskFlow";
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 48px;
-    background: linear-gradient(180deg, #111827 0%, #1f2a44 100%);
-    color: #ffffff;
-    font-size: clamp(36px, 6vw, 68px);
-    font-weight: 800;
-    letter-spacing: -0.04em;
+/* HIDE */
+
+#otpSection,
+#passwordSection{
+    display:none;
 }
 
-.forgot-container {
-    width: 100%;
-    min-height: 100vh;
-    margin-left: 0;
-    padding: 32px;
-    background: var(--tf-bg);
-}
+/* MOBILE */
 
-.forgot-card {
-    width: min(400px, 100%);
-    padding: 34px;
-    border: 1px solid var(--tf-border);
-    border-radius: var(--tf-radius);
-    background: var(--tf-surface);
-    box-shadow: var(--tf-shadow-lg);
-    backdrop-filter: none;
-}
+@media(max-width:768px){
 
-.forgot-card h2 {
-    margin: 0 0 20px;
-    color: var(--tf-text);
-    font-size: 28px;
-    line-height: 1.15;
-    text-align: left;
-}
-
-.forgot-card label {
-    color: #344054;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.forgot-card input {
-    width: 100%;
-    min-height: 44px;
-    padding: 0 12px;
-    border: 1px solid var(--tf-border);
-    border-radius: var(--tf-radius);
-    background: #ffffff;
-    color: var(--tf-text);
-}
-
-.forgot-card input:focus {
-    border-color: #9db7ff;
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-}
-
-.forgot-card button {
-    width: 100%;
-    min-height: 44px;
-    margin-top: 18px;
-    padding: 0 16px;
-    border: 1px solid var(--tf-primary);
-    border-radius: var(--tf-radius);
-    background: var(--tf-primary);
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
-}
-
-.forgot-card button:hover {
-    transform: none;
-    background: var(--tf-primary-dark);
-    border-color: var(--tf-primary-dark);
-    box-shadow: none;
-}
-
-@media (max-width: 900px) {
-    .forgot-background {
-        grid-template-columns: 1fr;
+    body{
+        padding:12px;
     }
 
-    .forgot-background::before {
-        min-height: 180px;
-        padding: 32px;
-        font-size: 42px;
+    .forgot-wrapper{
+        max-width:100%;
     }
 
-    .forgot-container {
-        min-height: auto;
-        padding: 24px;
-    }
-}
-
-/* Final alignment with the current TaskFlow auth UI */
-:root {
-    --tf-bg: #f5f7fb;
-    --tf-surface: #ffffff;
-    --tf-border: #e3e9f2;
-    --tf-text: #172033;
-    --tf-muted: #667085;
-    --tf-primary: #20b864;
-    --tf-primary-dark: #159653;
-    --tf-radius: 8px;
-    --tf-shadow-lg: 0 18px 48px rgba(16, 24, 40, 0.14);
-    --tf-font: "Segoe UI", Inter, Arial, sans-serif;
-    --tf-sidebar-bg: #08271e;
-    --tf-sidebar-bg-deep: #041812;
-    --tf-sidebar-bg-mid: #0a3326;
-}
-
-* {
-    box-sizing: border-box;
-}
-
-body {
-    font-family: var(--tf-font);
-    background: var(--tf-bg);
-    color: var(--tf-text);
-    letter-spacing: 0;
-}
-
-button,
-input {
-    font-family: inherit;
-    letter-spacing: 0;
-}
-
-.forgot-background {
-    min-height: 100vh;
-    height: auto;
-    display: grid;
-    grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1fr);
-    align-items: stretch;
-    overflow: auto;
-    background: var(--tf-bg) !important;
-}
-
-.forgot-background::before {
-    content: "TaskFlow";
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 48px;
-    background:
-        radial-gradient(circle at 18% 0%, rgba(34, 197, 94, 0.24), transparent 34%),
-        linear-gradient(180deg, var(--tf-sidebar-bg-mid) 0%, var(--tf-sidebar-bg) 48%, var(--tf-sidebar-bg-deep) 100%);
-    color: #ffffff;
-    font-size: clamp(36px, 6vw, 68px);
-    font-weight: 800;
-    letter-spacing: 0;
-}
-
-.forgot-container {
-    width: 100%;
-    min-height: 100vh;
-    margin-left: 0;
-    padding: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--tf-bg);
-}
-
-.forgot-card {
-    width: min(420px, 100%);
-    padding: 34px;
-    border: 1px solid var(--tf-border);
-    border-radius: var(--tf-radius);
-    background: var(--tf-surface);
-    box-shadow: var(--tf-shadow-lg);
-    text-align: left;
-    backdrop-filter: none;
-}
-
-.forgot-card h2 {
-    margin: 0 0 20px;
-    color: var(--tf-text);
-    font-size: 28px;
-    line-height: 1.15;
-    text-align: left;
-}
-
-.forgot-card label {
-    display: block;
-    margin-top: 16px;
-    color: #344054;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-.forgot-card input {
-    width: 100%;
-    min-height: 44px;
-    margin-top: 7px;
-    padding: 0 12px;
-    border: 1px solid var(--tf-border);
-    border-radius: var(--tf-radius);
-    background: #ffffff;
-    color: var(--tf-text);
-    outline: none;
-}
-
-.forgot-card input:focus {
-    border-color: rgba(32, 184, 100, 0.55);
-    box-shadow: 0 0 0 4px rgba(32, 184, 100, 0.1);
-}
-
-.forgot-card button {
-    width: 100%;
-    min-height: 44px;
-    margin-top: 18px;
-    padding: 0 16px;
-    border: 1px solid var(--tf-primary);
-    border-radius: var(--tf-radius);
-    background: var(--tf-primary);
-    color: #ffffff;
-    font-size: 14px;
-    font-weight: 700;
-    box-shadow: none;
-}
-
-.forgot-card button:hover {
-    background: var(--tf-primary-dark);
-    border-color: var(--tf-primary-dark);
-    transform: none;
-    box-shadow: none;
-}
-
-@media (max-width: 900px) {
-    .forgot-background {
-        grid-template-columns: 1fr;
+    .rules-grid{
+        grid-template-columns:1fr;
     }
 
-    .forgot-background::before {
-        min-height: 180px;
-        padding: 32px;
-        font-size: 42px;
-    }
+    .otp-box{
+        width:30px;
+        height:36px;
 
-    .forgot-container {
-        min-height: auto;
-        padding: 24px;
-    }
-}
-
-@media (max-width: 640px) {
-    .forgot-container {
-        padding: 18px;
-    }
-
-    .forgot-card {
-        padding: 24px;
+        font-size:14px;
     }
 }

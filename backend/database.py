@@ -27,6 +27,10 @@ try:
     db.tasks.create_index("assigned_users")
     db.notifications.create_index("user_id")
     db.notifications.create_index("created_at")
+    db.password_otps.create_index(
+        "expires_at",
+        expireAfterSeconds=0
+    )
     db.task_assignments.create_index(
         [("task_id", 1), ("user_id", 1)],
         name="task_id_1_user_id_1",

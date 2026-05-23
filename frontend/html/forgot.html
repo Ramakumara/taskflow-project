@@ -1,81 +1,489 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Forgot Password | TaskFlow</title>
-    <meta name="description" content="Reset your TaskFlow password and regain secure access to your workspace.">
-    <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="/static/css/public.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-</head>
-<body class="login-background login-page auth-page">
-<div class="public-decor"></div>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-<header class="auth-navbar">
-    <a class="auth-logo" href="/">
-        <span class="auth-logo-mark">T</span>
-        <span>TaskFlow</span>
+    <title>Forgot Password | TaskFlow</title>
+
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+
+    <link rel="stylesheet" href="/static/css/forgot.css" />
+</head>
+
+<body>
+
+<div class="forgot-wrapper">
+
+    <!-- LOGO -->
+
+    <div class="logo">
+        <i class="fa-regular fa-square-check"></i>
+        <h1>Task<span>Flow</span></h1>
+    </div>
+
+    <!-- TITLE -->
+
+    <h2 class="main-title">
+        Forgot Password
+    </h2>
+
+    <p class="main-subtitle" id="topSubtitle">
+        Enter your email address and we’ll send you a 6-digit OTP
+        to reset your password.
+    </p>
+
+    <!-- STEPS -->
+
+    <div class="steps">
+
+        <div class="step active" id="step1">
+            <div class="step-circle">1</div>
+            <div class="step-label">Verify Email</div>
+        </div>
+
+        <div class="step-line" id="line1"></div>
+
+        <div class="step" id="step2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Verify OTP</div>
+        </div>
+
+        <div class="step-line" id="line2"></div>
+
+        <div class="step" id="step3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Reset Password</div>
+        </div>
+
+    </div>
+
+    <!-- CARD -->
+
+    <div class="forgot-card">
+
+        <!-- EMAIL SECTION -->
+
+        <div id="emailSection">
+
+            <div class="card-icon">
+                <i class="fa-regular fa-envelope"></i>
+
+                <div class="mini-badge">
+                    <i class="fa-solid fa-lock"></i>
+                </div>
+            </div>
+
+            <h3 class="card-title">
+                Verify Your Email
+            </h3>
+
+            <p class="card-subtitle">
+                Enter your registered email address.<br>
+                We will send you a 6-digit OTP.
+            </p>
+
+            <label class="input-label">
+                Email Address
+            </label>
+
+            <div class="input-group">
+
+                <i class="fa-regular fa-envelope"></i>
+
+                <input
+                    type="email"
+                    id="email"
+                    placeholder="Enter your email"
+                >
+
+            </div>
+
+            <button
+                class="submit-btn"
+                onclick="sendOTP()"
+            >
+                <span>Send OTP</span>
+
+                <i class="fa-solid fa-arrow-right"></i>
+            </button>
+
+        </div>
+
+        <!-- OTP SECTION -->
+
+        <div id="otpSection">
+
+            <div class="card-icon">
+
+                <i class="fa-regular fa-envelope-open"></i>
+
+                <div class="mini-badge">
+                    <i class="fa-solid fa-check"></i>
+                </div>
+
+            </div>
+
+            <h3 class="card-title">
+                Verify OTP
+            </h3>
+
+            <p class="card-subtitle">
+                Enter the 6-digit OTP sent to your email address.
+            </p>
+
+            <!-- OTP BOXES -->
+
+            <div class="otp-container">
+
+                <input class="otp-box" maxlength="1" oninput="moveNext(this,0)">
+                <input class="otp-box" maxlength="1" oninput="moveNext(this,1)">
+                <input class="otp-box" maxlength="1" oninput="moveNext(this,2)">
+                <input class="otp-box" maxlength="1" oninput="moveNext(this,3)">
+                <input class="otp-box" maxlength="1" oninput="moveNext(this,4)">
+                <input class="otp-box" maxlength="1" oninput="moveNext(this,5)">
+
+            </div>
+
+            <!-- RESEND -->
+
+            <p class="otp-resend-text">
+
+                Didn’t receive the code?
+
+                <span
+                    class="resend-link"
+                    onclick="resendOTP()"
+                >
+                    Resend OTP
+                </span>
+
+            </p>
+
+            <!-- TIMER -->
+
+            <p class="otp-timer">
+
+                <i class="fa-regular fa-clock"></i>
+
+                OTP will expire in
+
+                <span class="timer-highlight">
+                    02:45
+                </span>
+
+            </p>
+
+            <!-- VERIFY BUTTON -->
+
+            <button
+                class="submit-btn"
+                onclick="verifyOTP()"
+            >
+                <span>Verify OTP</span>
+
+                <i class="fa-solid fa-check"></i>
+            </button>
+
+        </div>
+
+        <!-- PASSWORD SECTION -->
+
+        <div id="passwordSection">
+
+            <div class="card-icon">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+
+            <h3 class="card-title">
+                Create New Password
+            </h3>
+
+            <p class="card-subtitle">
+                Enter your new password below.
+            </p>
+
+            <!-- NEW PASSWORD -->
+
+            <label class="input-label">
+                New Password
+            </label>
+
+            <div class="input-group">
+
+                <i class="fa-solid fa-lock"></i>
+
+                <input
+                    type="password"
+                    id="newPassword"
+                    placeholder="Enter new password"
+                >
+
+                <i class="fa-regular fa-eye"></i>
+
+            </div>
+
+            <!-- CONFIRM PASSWORD -->
+
+            <label class="input-label">
+                Confirm New Password
+            </label>
+
+            <div class="input-group">
+
+                <i class="fa-solid fa-lock"></i>
+
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    placeholder="Confirm new password"
+                >
+
+                <i class="fa-regular fa-eye"></i>
+
+            </div>
+
+
+            <!-- RESET BUTTON -->
+
+            <button
+                class="submit-btn"
+                onclick="resetPassword()"
+            >
+                <span>Reset Password</span>
+
+                <i class="fa-solid fa-lock"></i>
+            </button>
+
+        </div>
+
+    </div>
+
+    <!-- BACK -->
+
+    <a href="/" class="back-login">
+
+        <i class="fa-solid fa-arrow-left"></i>
+
+        Back to Login
+
     </a>
 
-    <nav class="auth-nav-links" aria-label="Primary navigation">
-        <a href="/about-us">About Us</a>
-        <a href="/features">Features</a>
-        <a href="/pricing">Pricing</a>
-        <a href="/contact">Contact</a>
-        <button class="get-started-btn">
-            <a href="/register-page" style="color:white; text-decoration:none;">
-                Get Started
-            </a>
-        </button>
-    </nav>
+</div>
 
- 
-</header>
-
-<main class="login-container">
-    <section class="login-card" aria-label="Forgot password form">
-        <div class="login-card-head">
-            <span class="login-eyebrow"><i class="fa-solid fa-key"></i> Password help</span>
-        </div>
-
-        <label for="email">Email</label>
-        <div class="input-group">
-            <i class="input-leading-icon fa-regular fa-envelope"></i>
-            <input id="email" type="email" placeholder="name@company.com" autocomplete="email">
-        </div>
-
-        <button class="login-submit-btn" onclick="sendReset()">
-            <span>Send Reset Link</span>
-            <i class="fa-solid fa-arrow-right"></i>
-        </button>
-
-        <p class="register-copy">Remembered your password? <a href="/">Back to login</a></p>
-    </section>
-</main>
-
-<footer class="auth-footer">
-    <span>&copy; 2025 TaskFlow. All rights reserved.</span>
-    <a href="/privacy-policy">Privacy Policy</a>
-    <a href="/terms-of-service">Terms of Service</a>
-    <a href="/help-center">Help Center</a>
-</footer>
-
-<script src="/static/javascript/public.js"></script>
 <script>
-function sendReset() {
-    const email = document.getElementById("email").value;
 
-    fetch("/forgot-password", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ email })
-    })
-    .then(res => res.json())
-    .then(data => {
-        alert(data.reset_link ? `${data.message}\nReset link: ${data.reset_link}` : data.message);
+async function sendOTP(){
+
+    const email =
+        document.getElementById("email").value;
+
+    const response = await fetch("/forgot-password",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({email})
     });
+
+    const data = await response.json();
+
+    alert(data.detail || data.message);
+
+    if(response.ok){
+
+        // UPDATE TEXT
+
+        document.getElementById("topSubtitle")
+            .innerHTML = `
+                We have sent a 6-digit OTP to your email<br>
+                <span class="email-highlight">${email}</span>
+            `;
+
+        // SHOW OTP SECTION
+
+        document.getElementById("emailSection")
+            .style.display = "none";
+
+        document.getElementById("otpSection")
+            .style.display = "block";
+
+        // STEP UPDATE
+
+        document.getElementById("step1")
+            .classList.remove("active");
+
+        document.getElementById("step1")
+            .classList.add("completed");
+
+        document.getElementById("step1")
+            .querySelector(".step-circle")
+            .innerHTML = `<i class="fa-solid fa-check"></i>`;
+
+        document.getElementById("line1")
+            .classList.add("active");
+
+        document.getElementById("step2")
+            .classList.add("active");
+    }
 }
+
+async function resendOTP(){
+
+    const email =
+        document.getElementById("email").value;
+
+    const response = await fetch("/forgot-password",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({email})
+    });
+
+    const data = await response.json();
+
+    alert(data.detail || data.message);
+}
+
+async function verifyOTP(){
+
+    const email =
+        document.getElementById("email").value;
+
+    const otpInputs =
+        document.querySelectorAll(".otp-box");
+
+    let otp = "";
+
+    otpInputs.forEach(input=>{
+        otp += input.value;
+    });
+
+    const response = await fetch("/verify-otp",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            email,
+            otp
+        })
+    });
+
+    const data = await response.json();
+
+    alert(data.detail || data.message);
+
+    if(response.ok){
+
+        // UPDATE TEXT
+
+        document.getElementById("topSubtitle")
+            .innerHTML = `
+                Almost there! Create a new strong password for your account.
+            `;
+
+        // SHOW PASSWORD SECTION
+
+        document.getElementById("otpSection")
+            .style.display = "none";
+
+        document.getElementById("passwordSection")
+            .style.display = "block";
+
+        // STEP UPDATE
+
+        document.getElementById("step2")
+            .classList.remove("active");
+
+        document.getElementById("step2")
+            .classList.add("completed");
+
+        document.getElementById("step2")
+            .querySelector(".step-circle")
+            .innerHTML = `<i class="fa-solid fa-check"></i>`;
+
+        document.getElementById("line2")
+            .classList.add("active");
+
+        document.getElementById("step3")
+            .classList.add("active");
+    }
+}
+
+async function resetPassword(){
+
+    const email =
+        document.getElementById("email").value;
+
+    const new_password =
+        document.getElementById("newPassword").value;
+
+    const confirm_password =
+        document.getElementById("confirmPassword").value;
+
+    if(new_password !== confirm_password){
+
+        alert("Passwords do not match");
+
+        return;
+    }
+
+    const response = await fetch("/reset-password",{
+        method:"POST",
+        headers:{
+            "Content-Type":"application/json"
+        },
+        body:JSON.stringify({
+            email,
+            new_password
+        })
+    });
+
+    const data = await response.json();
+
+    alert(data.detail || data.message);
+
+    if(response.ok){
+
+        window.location.href = "/";
+    }
+}
+
+const otpBoxes =
+    document.querySelectorAll(".otp-box");
+
+function moveNext(current,index){
+
+    current.value =
+        current.value.replace(/[^0-9]/g,'');
+
+    if(current.value.length === 1 &&
+       index < otpBoxes.length - 1){
+
+        otpBoxes[index + 1].focus();
+    }
+}
+
+otpBoxes.forEach((box,index)=>{
+
+    box.addEventListener("keydown",(e)=>{
+
+        if(e.key === "Backspace" &&
+           box.value === "" &&
+           index > 0){
+
+            otpBoxes[index - 1].focus();
+        }
+    });
+
+});
+
 </script>
+
 </body>
 </html>

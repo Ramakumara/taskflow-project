@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 from database import db
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import re
+import random
 
 router = APIRouter()
 
@@ -32,6 +33,9 @@ def validate_password(password:str):
             status_code=400,
             detail="Password must be at least 8 character,\ninclude at least 1 number,\ninclude at least1 letter, \ninclude at least 1 symbol"
         )
+
+def generate_otp():
+    return str(random.randint(100000, 999999))
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -100,41 +104,63 @@ async def forgot_password(data: dict):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    token = create_reset_token(email)
+    otp = generate_otp()
 
-    reset_link = f"http://localhost:8000/reset-password-page/{token}"
+    expires_at = datetime.utcnow() + timedelta(minutes=5)
 
-    await send_reset_email(email, reset_link)
-    
-    return {
-        "message": "Reset link sent to your email"
-    }
-
-@router.post("/reset-password/{token}")
-def reset_password(token: str, data: dict):
-    new_password = data.get("new_password")
-
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email = payload.get("sub")
-
-    except JWTError:
-        raise HTTPException(status_code=400, detail="Invalid or expired token")
-
-    user = db.users.find_one({"email": email})
-
-    if pwd_context.verify(new_password, user["password"]):
-        return {"message": "New password cannot be same as old password"}
-
-    validate_password(new_password)
-    hashed_password = pwd_context.hash(new_password)
-
-    db.users.update_one(
+    db.password_otps.update_one(
         {"email": email},
-        {"$set": {"password": hashed_password}}
+        {
+            "$set": {
+                "otp": otp,
+                "expires_at": expires_at
+            }
+        },
+        upsert=True
     )
 
-    return {"message": "Password updated successfully"}
+    message = MessageSchema(
+        subject="TaskFlow Password Reset OTP",
+        recipients=[email],
+        body=f"""
+    Your OTP is:
+
+    {otp}
+
+    This OTP expires in 5 minutes.
+        """,
+        subtype="plain"
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
+
+    return {
+        "message": "OTP sent successfully"
+    }
+
+@router.post("/verify-otp")
+def verify_otp(data: dict):
+
+    email = data.get("email")
+    otp = data.get("otp")
+
+    otp_record = db.password_otps.find_one({"email": email})
+
+    if not otp_record:
+        raise HTTPException(status_code=404, detail="OTP not found")
+
+    if otp_record["otp"] != otp:
+        raise HTTPException(status_code=400, detail="Invalid OTP")
+
+    if datetime.utcnow() > otp_record["expires_at"]:
+        raise HTTPException(status_code=400, detail="OTP expired")
+
+    return {
+        "message": "OTP verified"
+    }   
+
+
 
 async def send_task_email(email: str, task_title: str, assigned_by: str):
     message = MessageSchema(
@@ -241,3 +267,36 @@ async def send_reminder_email(email: str, task_title: str, deadline: str):
     fm = FastMail(conf)
 
     await fm.send_message(message)
+
+@router.post("/reset-password")
+def reset_password(data: dict):
+
+    email = data.get("email")
+    new_password = data.get("new_password")
+
+    validate_password(new_password)
+
+    user = db.users.find_one({"email": email})
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    hashed_password = pwd_context.hash(new_password)
+
+    db.users.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "password": hashed_password
+            }
+        }
+    )
+
+    db.password_otps.delete_one({"email": email})
+
+    return {
+        "message": "Password reset successful"
+    }
