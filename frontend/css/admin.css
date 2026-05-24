@@ -274,7 +274,7 @@ select {
 .topbar-actions {
     display: flex;
     align-items: center;
-    gap: 28px;
+    gap: 16px;
 }
 
 .profile-menu {
@@ -652,29 +652,41 @@ select {
 }
 
 .profile-wrap {
+    min-height: 44px;
     display: flex;
     align-items: center;
-    gap: 14px;
-    color: #2e3950;
-    font-size: 15px;
-    font-weight: 600;
-    border: 0;
-    background: transparent;
+    gap: 8px;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1.5px solid #8edbb0;
+    border-radius: 10px;
+    background: #ffffff;
     cursor: pointer;
-    padding: 0;
+    padding: 0 12px 0 8px;
+    box-shadow: none;
+    transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.profile-wrap:hover,
+.profile-wrap[aria-expanded="true"] {
+    border-color: #22c55e;
+    background: #ffffff;
+    box-shadow: none;
 }
 
 .profile-wrap img {
-    width: 42px;
-    height: 42px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid rgba(63, 126, 200, 0.18);
+    border: 0;
+    flex: 0 0 auto;
 }
 
 .profile-wrap .fa-chevron-down {
-    font-size: 14px;
-    color: #53607b;
+    font-size: 13px;
+    color: #475467;
 }
 
 .profile-dropdown {
@@ -682,14 +694,14 @@ select {
     top: calc(100% + 14px);
     right: 0;
     min-width: 210px;
-    padding: 10px;
+    padding: 12px;
     background: #ffffff;
-    border: 1px solid #dfe5ef;
-    border-radius: 14px;
-    box-shadow: 0 18px 40px rgba(16, 27, 49, 0.14);
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 4px;
     z-index: 20;
 }
 
@@ -701,39 +713,41 @@ select {
     width: 100%;
     border: 0;
     background: transparent;
-    color: #30405c;
+    color: #111827;
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 11px 12px;
-    border-radius: 10px;
+    border-radius: 8px;
     cursor: pointer;
     text-align: left;
     transition: background-color 0.2s ease, color 0.2s ease;
+    font-size: 13px;
+    font-weight: 700;
 }
 
 .profile-option i {
     width: 16px;
     text-align: center;
-    color: #597298;
+    color: #16a34a;
 }
 
 .profile-option:hover {
-    background: #f3f7fd;
-    color: #234a7f;
+    background: #f8fafc;
+    color: #1f2937;
 }
 
 .logout-option {
-    color: #c93d39;
+    color: #ea4335;
 }
 
 .logout-option i {
-    color: #c93d39;
+    color: #ea4335;
 }
 
 .logout-option:hover {
     background: #fff1f0;
-    color: #a82d29;
+    color: #d92d20;
 }
 
 .content-area {
@@ -3263,8 +3277,8 @@ body {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #dbeafe, #93c5fd);
-    color: #1d4ed8;
+    background: linear-gradient(135deg, #34d399, var(--brand-green));
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3590,8 +3604,10 @@ body {
 .admin-project-card-actions {
     display: flex;
     align-items: center;
+    justify-content: flex-end;
     gap: 10px;
     flex-wrap: wrap;
+    padding: 0 20px 16px;
 }
 
 .admin-project-manager-pill {
@@ -4157,6 +4173,17 @@ body {
     min-width: 100%;
 }
 
+#welcome-user {
+    color: #172033;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.admin-module-page .admin-task-table {
+    min-width: 1120px;
+}
+
 .admin-module-page .admin-table thead th,
 .admin-module-page .admin-compact-table thead th,
 .admin-module-page .admin-compact-table th {
@@ -4239,6 +4266,7 @@ body {
     border-color: #e3ebf5;
     box-shadow: var(--admin-shadow-soft);
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    overflow: hidden;
 }
 
 .admin-project-card:hover {
@@ -4247,22 +4275,140 @@ body {
     box-shadow: var(--admin-shadow-hover);
 }
 
-.manager-project-card-header {
-    height: 54px;
-}
-
 .manager-project-card-body {
-    padding: 26px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
 }
 
+.project-card-main {
+    padding: 20px;
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.project-card-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f4fff7, #e9fbef);
+    color: #16a34a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.project-card-copy {
+    min-width: 0;
+    display: grid;
+    gap: 12px;
+}
+
+.project-card-title,
 .admin-project-card-copy h4 {
+    margin: 0;
+    color: #172033;
     font-size: 19px;
     font-weight: 800;
+    line-height: 1.35;
 }
 
-.admin-project-card-copy p,
-.admin-project-card-copy span {
-    line-height: 1.55;
+.project-card-badges {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.project-card-chip {
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.project-card-chip.subtle {
+    background: #f7f9fc;
+    color: #667085;
+}
+
+.project-card-chip.status {
+    background: #ecfdf3;
+    color: #16a34a;
+}
+
+.project-card-chip.status.completed {
+    background: #eef2ff;
+    color: #4338ca;
+}
+
+.project-card-chip.status.on-hold,
+.project-card-chip.status.planning {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.project-card-meta {
+    display: grid;
+    gap: 10px;
+}
+
+.project-card-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #667085;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.project-card-meta-row i {
+    width: 14px;
+    color: #98a2b3;
+    text-align: center;
+    flex: 0 0 auto;
+}
+
+.project-card-meta-row span {
+    min-width: 0;
+    word-break: break-word;
+}
+
+.project-card-meta-row.status-row {
+    color: #475467;
+}
+
+.project-card-meta-row.status-row i {
+    width: auto;
+    font-size: 7px;
+    color: #22c55e;
+}
+
+.project-card-meta-row.status-row.completed i {
+    color: #6366f1;
+}
+
+.project-card-meta-row.status-row.on-hold i,
+.project-card-meta-row.status-row.planning i {
+    color: #f59e0b;
+}
+
+.project-card-footer {
+    border-top: 1px solid #eef2f6;
+    padding: 14px 20px 16px;
+    color: #98a2b3;
+    font-size: 13px;
+    font-weight: 600;
 }
 
 .admin-project-manager-pill,

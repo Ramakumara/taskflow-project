@@ -538,16 +538,44 @@ async function loadProjects() {
         const card = document.createElement("div");
         card.className = "project-card-ui";
 
-        card.innerHTML = `
-            <div class="card-header"></div>
-            <div class="card-body">
-                <h4>${p.name}</h4>
-                <p>${projectTasks.length} Tasks</p>
-                <p>${p.assigned_manager || p.owner_email || "Unassigned manager"}</p>
-                <p>Status: ${p.status || "Planning"}</p>
-                <p>${formatProjectDateRange(p)}</p>
+        const managerLabel = getProjectManagerLabel(p);
+        const statusLabel = getProjectStatusLabel(p.status);
+        const statusClass = getProjectStatusClass(p.status);
 
-                
+        card.innerHTML = `
+            <div class="card-body project-card-shell">
+                <div class="project-card-main">
+                    <div class="project-card-icon" aria-hidden="true">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                    <div class="project-card-copy">
+                        <h4 class="project-card-title">${escapeHtml(p.name || "Untitled Project")}</h4>
+                        <div class="project-card-badges">
+                            <span class="project-card-chip subtle">
+                                <i class="fas fa-user-tie"></i>
+                                ${projectTasks.length} ${projectTasks.length === 1 ? "Task" : "Tasks"}
+                            </span>
+                            <span class="project-card-chip status ${statusClass}">${escapeHtml(statusLabel)}</span>
+                        </div>
+                        <div class="project-card-meta">
+                            <div class="project-card-meta-row">
+                                <i class="far fa-envelope"></i>
+                                <span>${escapeHtml(managerLabel)}</span>
+                            </div>
+                            <div class="project-card-meta-row">
+                                <i class="far fa-calendar"></i>
+                                <span>${escapeHtml(formatProjectDateRange(p))}</span>
+                            </div>
+                            <div class="project-card-meta-row status-row ${statusClass}">
+                                <i class="fas fa-circle"></i>
+                                <span>Status: ${escapeHtml(statusLabel)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="project-card-footer">
+                    <span>Created: ${escapeHtml(formatProjectCardCreatedDate(p))}</span>
+                </div>
             </div>
         `;
 
@@ -567,14 +595,47 @@ async function loadProjects() {
     }
 }
 
+function getProjectManagerLabel(project) {
+    return String(project?.assigned_manager || project?.owner_email || "Unassigned manager").trim();
+}
+
+function getProjectStatusLabel(status) {
+    const normalized = String(status || "Planning").trim().toLowerCase();
+    if (normalized === "active") return "Active";
+    if (normalized === "completed") return "Completed";
+    if (normalized === "on hold") return "On Hold";
+    return "Planning";
+}
+
+function getProjectStatusClass(status) {
+    return getProjectStatusLabel(status).toLowerCase().replace(/\s+/g, "-");
+}
+
 function formatProjectDateRange(project) {
     const start = String(project?.start_date || "").trim();
     const end = String(project?.end_date || "").trim();
 
-    if (start && end) return `${start} to ${end}`;
-    if (start) return `Starts ${start}`;
-    if (end) return `Ends ${end}`;
+    if (start && end) return `${formatProjectCardDate(start)} to ${formatProjectCardDate(end)}`;
+    if (start) return `Starts ${formatProjectCardDate(start)}`;
+    if (end) return `Ends ${formatProjectCardDate(end)}`;
     return "No dates set";
+}
+
+function formatProjectCardCreatedDate(project) {
+    return formatProjectCardDate(project?.created_at || project?.start_date || project?.end_date) || "Not available";
+}
+
+function formatProjectCardDate(value) {
+    if (!value) return "";
+    const raw = String(value).trim();
+    const date = raw.length === 10 ? new Date(`${raw}T00:00:00`) : new Date(raw);
+    if (Number.isNaN(date.getTime())) return raw;
+
+    return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    });
 }
 
 function openCreate(mode = "project") {

@@ -228,7 +228,7 @@ function setProfileAvatar() {
     const username = sessionStorage.getItem("username") || "Admin";
     const avatar = document.getElementById("profileAvatar");
     const encoded = encodeURIComponent(username);
-    avatar.src = `https://ui-avatars.com/api/?name=${encoded}&background=3f7ec8&color=fff&bold=true`;
+    avatar.src = `https://ui-avatars.com/api/?name=${encoded}&background=16a34a&color=fff&bold=true`;
 }
 
 function handleAdminSearch(event) {
@@ -1501,95 +1501,322 @@ function openAdminProjectWorkspace(projectId) {
 }
 
 function renderUsersView() {
-    const users = filterCollection(adminState.users, (user) => [user.username, user.email, user.role])
-        .filter((user) => {
-            const localSearch = String(adminUserFilters.searchTerm || "").trim().toLowerCase();
-            const roleFilter = String(adminUserFilters.role || "all").trim().toLowerCase();
-            const haystack = [user.username, user.email, user.role].filter(Boolean).join(" ").toLowerCase();
 
-            if (localSearch && !haystack.includes(localSearch)) return false;
-            if (roleFilter !== "all" && String(user.role || "").trim().toLowerCase() !== roleFilter) return false;
-            return true;
-        });
-    const currentEmail = String(sessionStorage.getItem("email") || "").trim().toLowerCase();
-    const totalPages = Math.max(Math.ceil(users.length / adminUserFilters.pageSize), 1);
-    adminUserFilters.page = Math.min(Math.max(adminUserFilters.page, 1), totalPages);
-    const startIndex = (adminUserFilters.page - 1) * adminUserFilters.pageSize;
-    const pageUsers = users.slice(startIndex, startIndex + adminUserFilters.pageSize);
+    const users = filterCollection(
+        adminState.users,
+        (user) => [user.username, user.email, user.role]
+    ).filter((user) => {
+
+        const localSearch =
+            String(adminUserFilters.searchTerm || "")
+                .trim()
+                .toLowerCase();
+
+        const roleFilter =
+            String(adminUserFilters.role || "all")
+                .trim()
+                .toLowerCase();
+
+        const haystack =
+            [user.username, user.email, user.role]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
+
+        if (localSearch && !haystack.includes(localSearch)) {
+            return false;
+        }
+
+        if (
+            roleFilter !== "all" &&
+            String(user.role || "")
+                .trim()
+                .toLowerCase() !== roleFilter
+        ) {
+            return false;
+        }
+
+        return true;
+    });
+
+    const currentEmail =
+        String(sessionStorage.getItem("email") || "")
+            .trim()
+            .toLowerCase();
+
+    const totalPages =
+        Math.max(
+            Math.ceil(users.length / adminUserFilters.pageSize),
+            1
+        );
+
+    adminUserFilters.page =
+        Math.min(
+            Math.max(adminUserFilters.page, 1),
+            totalPages
+        );
+
+    const startIndex =
+        (adminUserFilters.page - 1) *
+        adminUserFilters.pageSize;
+
+    const pageUsers =
+        users.slice(
+            startIndex,
+            startIndex + adminUserFilters.pageSize
+        );
 
     document.getElementById("mainContent").innerHTML = `
-        <div class="list-view">
-            <div class="view-header">
-                <div>
-                    <h3>Users</h3>
-                </div>
-                <button class="action-btn admin-add-user-btn" type="button" onclick="openAddUserModal()">
-                    <i class="fas fa-plus"></i>
-                    Add User
-                </button>
-            </div>
-            <div class="data-panel">
-                <div class="admin-user-toolbar">
-                    <label class="admin-search-field" for="adminUserSearch">
-                        <i class="fas fa-search"></i>
-                        <input id="adminUserSearch" type="text" placeholder="Search name, email, role..." value="${escapeHtml(adminUserFilters.searchTerm)}" oninput="setAdminUserSearch(this)" aria-label="Search users">
-                    </label>
-                    <select class="admin-task-filter admin-user-filter" onchange="setAdminUserRoleFilter(this.value)" aria-label="Filter users by role">
-                        <option value="all" ${adminUserFilters.role === "all" ? "selected" : ""}>All Roles</option>
-                        <option value="user" ${adminUserFilters.role === "user" ? "selected" : ""}>User</option>
-                        <option value="manager" ${adminUserFilters.role === "manager" ? "selected" : ""}>Manager</option>
-                        <option value="admin" ${adminUserFilters.role === "admin" ? "selected" : ""}>Admin</option>
-                    </select>
-                    <button class="action-btn secondary-btn admin-user-reset-btn" type="button" onclick="resetAdminUserFilters()">
-                        <i class="fas fa-rotate-left"></i>
-                        Reset
-                    </button>
-                </div>
-                <div class="data-table-wrap">
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Role</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${pageUsers.length ? pageUsers.map((user) => `
-                                <tr>
-                                    <td>${escapeHtml(user.username || "Unknown User")}</td>
-                                    <td>${escapeHtml(user.email || "-")}</td>
-                                    <td>${escapeHtml(capitalize(user.role || "user"))}</td>
-                                    <td>
-                                        ${String(user.email || "").trim().toLowerCase() === currentEmail ? "<span class='disabled-action'>Current user</span>" : `
-                                            <select class="admin-task-filter" aria-label="Change role for ${escapeHtml(user.email)}" onchange="changeUserRole('${escapeHtml(user.email)}', this.value)">
-                                                <option value="user" ${String(user.role || "user").toLowerCase() === "user" ? "selected" : ""}>User</option>
-                                                <option value="manager" ${String(user.role || "").toLowerCase() === "manager" ? "selected" : ""}>Manager</option>
-                                                <option value="admin" ${String(user.role || "").toLowerCase() === "admin" ? "selected" : ""}>Admin</option>
-                                            </select>
-                                            <button class="action-btn delete-btn" type="button" onclick="deleteUser('${escapeHtml(user.email)}')">Delete</button>
-                                        `}
-                                    </td>
-                                </tr>
-                            `).join("") : `<tr><td colspan="4" class="empty-state">No users found.</td></tr>`}
-                        </tbody>
-                    </table>
-                </div>
-                <div class="admin-task-footer">
-                    <span class="app-pagination-summary">${users.length ? `Showing ${startIndex + 1} to ${startIndex + pageUsers.length} of ${users.length} users` : "Showing 0 users"}</span>
-                    <div class="admin-task-pagination-controls app-pagination-controls">
-                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminUserPage(${adminUserFilters.page - 1})" ${adminUserFilters.page <= 1 ? "disabled" : ""} aria-label="Previous users page">
-                            <i class="fas fa-chevron-left"></i>
+        <div class="list-view admin-users-view">
+
+            ${renderCommonPageLayout({
+
+                pageClass: "admin-module-page admin-users-page",
+
+                header: renderCommonPageHeader(
+                    "Users",
+                    "Manage users, roles, and access permissions from one consistent workspace.",
+                    `
+                        <button
+                            class="action-btn common-action-btn admin-add-user-btn"
+                            type="button"
+                            onclick="openAddUserModal()">
+
+                            <i class="fas fa-plus"></i>
+                            Add User
                         </button>
-                        <span class="admin-task-page-current app-page-current">${adminUserFilters.page}</span>
-                        <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminUserPage(${adminUserFilters.page + 1})" ${adminUserFilters.page >= totalPages ? "disabled" : ""} aria-label="Next users page">
-                            <i class="fas fa-chevron-right"></i>
+                    `
+                ),
+
+                toolbar: `
+                    <div class="common-toolbar">
+
+                        ${renderCommonSearchBox({
+                            id: "adminUserSearch",
+                            placeholder: "Search name, email, role...",
+                            value: adminUserFilters.searchTerm,
+                            oninput: "setAdminUserSearch(this)",
+                            ariaLabel: "Search users"
+                        })}
+
+                        <select
+                            class="common-filter-select"
+                            onchange="setAdminUserRoleFilter(this.value)">
+
+                            <option value="all"
+                                ${adminUserFilters.role === "all" ? "selected" : ""}>
+                                All Roles
+                            </option>
+
+                            <option value="user"
+                                ${adminUserFilters.role === "user" ? "selected" : ""}>
+                                User
+                            </option>
+
+                            <option value="manager"
+                                ${adminUserFilters.role === "manager" ? "selected" : ""}>
+                                Manager
+                            </option>
+
+                            <option value="admin"
+                                ${adminUserFilters.role === "admin" ? "selected" : ""}>
+                                Admin
+                            </option>
+                        </select>
+
+                        <button
+                            class="action-btn secondary-btn"
+                            type="button"
+                            onclick="resetAdminUserFilters()">
+
+                            <i class="fas fa-rotate-left"></i>
+                            Reset
                         </button>
+
                     </div>
-                </div>
-            </div>
-            ${adminState.isUserModalOpen ? renderAddUserModal() : ""}
+                `,
+
+                content: renderCommonContentCard(`
+
+                    <div class="data-table-wrap common-table-wrapper">
+
+                        <table class="admin-table admin-users-table">
+
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+
+                                ${pageUsers.length
+                                    ? pageUsers.map((user) => `
+
+                                        <tr>
+
+                                            <td>
+                                                <div class="admin-user-cell">
+
+                                                    <span class="admin-team-avatar">
+                                                        ${escapeHtml(
+                                                            getInitial(
+                                                                user.username
+                                                            )
+                                                        )}
+                                                    </span>
+
+                                                    <span>
+                                                        ${escapeHtml(
+                                                            user.username ||
+                                                            "Unknown User"
+                                                        )}
+                                                    </span>
+
+                                                </div>
+                                            </td>
+
+                                            <td>
+                                                ${escapeHtml(
+                                                    user.email || "-"
+                                                )}
+                                            </td>
+
+                                            <td>
+                                                <span class="status-chip">
+                                                    ${escapeHtml(
+                                                        capitalize(
+                                                            user.role || "user"
+                                                        )
+                                                    )}
+                                                </span>
+                                            </td>
+
+                                            <td>
+
+                                                ${String(user.email || "")
+                                                    .trim()
+                                                    .toLowerCase()
+                                                    === currentEmail
+
+                                                    ? `
+                                                        <span class="disabled-action">
+                                                            Current User
+                                                        </span>
+                                                    `
+
+                                                    : `
+                                                        <div class="admin-user-actions">
+
+                                                            <select
+                                                                class="common-filter-select"
+                                                                onchange="changeUserRole('${escapeHtml(user.email)}', this.value)">
+
+                                                                <option value="user"
+                                                                    ${String(user.role || "")
+                                                                        .toLowerCase() === "user"
+                                                                        ? "selected" : ""}>
+                                                                    User
+                                                                </option>
+
+                                                                <option value="manager"
+                                                                    ${String(user.role || "")
+                                                                        .toLowerCase() === "manager"
+                                                                        ? "selected" : ""}>
+                                                                    Manager
+                                                                </option>
+
+                                                                <option value="admin"
+                                                                    ${String(user.role || "")
+                                                                        .toLowerCase() === "admin"
+                                                                        ? "selected" : ""}>
+                                                                    Admin
+                                                                </option>
+
+                                                            </select>
+
+                                                            <button
+                                                                class="action-btn delete-btn"
+                                                                type="button"
+                                                                onclick="deleteUser('${escapeHtml(user.email)}')">
+
+                                                                Delete
+                                                            </button>
+
+                                                        </div>
+                                                    `
+                                                }
+
+                                            </td>
+
+                                        </tr>
+
+                                    `).join("")
+
+                                    : `
+                                        <tr>
+                                            <td colspan="4" class="empty-state">
+                                                No users found.
+                                            </td>
+                                        </tr>
+                                    `
+                                }
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    <div class="admin-task-footer">
+
+                        <span class="app-pagination-summary">
+
+                            ${users.length
+                                ? `Showing ${startIndex + 1}
+                                   to ${startIndex + pageUsers.length}
+                                   of ${users.length} users`
+                                : "Showing 0 users"}
+
+                        </span>
+
+                        <div class="app-pagination-controls">
+
+                            <button
+                                class="app-page-btn"
+                                onclick="setAdminUserPage(${adminUserFilters.page - 1})"
+                                ${adminUserFilters.page <= 1 ? "disabled" : ""}>
+
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+
+                            <span class="app-page-current">
+                                ${adminUserFilters.page}
+                            </span>
+
+                            <button
+                                class="app-page-btn"
+                                onclick="setAdminUserPage(${adminUserFilters.page + 1})"
+                                ${adminUserFilters.page >= totalPages ? "disabled" : ""}>
+
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                `, "common-table-card")
+
+            })}
+
+            ${adminState.isUserModalOpen
+                ? renderAddUserModal()
+                : ""}
+
         </div>
     `;
 }
@@ -2584,6 +2811,165 @@ function downloadAdminBlob(content, filename, type) {
     URL.revokeObjectURL(url);
 }
 
+function getAdminActivityLogExportRangeLabel() {
+    const startDate = document.getElementById("activityLogStartDate")?.value || "";
+    const endDate = document.getElementById("activityLogEndDate")?.value || "";
+
+    if (!startDate && !endDate) return "";
+    return `-${startDate || "start"}-to-${endDate || "end"}`;
+}
+
+function buildAdminActivityExportRows(logs) {
+    return [
+        ["TaskFlow Activity Log"],
+        ["Exported At", formatDateTime(new Date().toISOString())],
+        [],
+        ["Timestamp", "User", "Action", "Details"],
+        ...logs.map((log) => [
+            formatDateTime(log?.timestamp),
+            log?.user_email || log?.username || "-",
+            log?.action || "-",
+            typeof formatActivityLogDetails === "function"
+                ? formatActivityLogDetails(log)
+                : [log?.target, log?.details].filter(Boolean).join(" | ") || "-"
+        ])
+    ];
+}
+
+function exportAdminActivityLogPdf(rows, filename) {
+    if (!window.jspdf?.jsPDF || typeof window.jspdf.jsPDF !== "function") {
+        alert("PDF export is not available right now. Please refresh and try again.");
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("p", "mm", "a4");
+    let currentY = 18;
+    let headers = [];
+    let body = [];
+
+    doc.setFontSize(18);
+    doc.text("TaskFlow Activity Log", 14, currentY);
+    currentY += 8;
+
+    const flushTable = () => {
+        if (!headers.length) return;
+
+        doc.autoTable({
+            startY: currentY,
+            head: [headers],
+            body,
+            theme: "grid",
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: "linebreak"
+            },
+            headStyles: {
+                fillColor: [22, 163, 74]
+            },
+            margin: { left: 10, right: 10 }
+        });
+
+        currentY = doc.lastAutoTable.finalY + 8;
+        headers = [];
+        body = [];
+    };
+
+    rows.forEach((row) => {
+        if (!row.length) return;
+
+        if (row.length === 1) {
+            flushTable();
+            doc.setFontSize(13);
+            doc.text(String(row[0]), 14, currentY);
+            currentY += 7;
+            return;
+        }
+
+        if (row.length === 2 && row[0] === "Exported At") {
+            doc.setFontSize(10);
+            doc.text(`Exported At: ${row[1]}`, 14, currentY);
+            currentY += 8;
+            return;
+        }
+
+        if (!headers.length) {
+            headers = row;
+            return;
+        }
+
+        body.push(row);
+    });
+
+    flushTable();
+    doc.save(`${filename}.pdf`);
+}
+
+function exportAdminActivityLogExcel(rows, filename) {
+    if (!window.XLSX) {
+        alert("Excel export is not available right now. Please refresh and try again.");
+        return;
+    }
+
+    const worksheet = XLSX.utils.aoa_to_sheet(rows);
+    worksheet["!cols"] = [
+        { wch: 26 },
+        { wch: 34 },
+        { wch: 22 },
+        { wch: 70 }
+    ];
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Activity Log");
+    XLSX.writeFile(workbook, `${filename}.xlsx`);
+}
+
+async function exportActivityLog(format = "pdf") {
+    let logs = [];
+
+    if (typeof getActivityLogFilteredEntries === "function") {
+        logs = getActivityLogFilteredEntries();
+    }
+
+    if (!Array.isArray(logs) || !logs.length) {
+        if (typeof loadActivityLog === "function") {
+            await loadActivityLog();
+        }
+
+        if (typeof getActivityLogFilteredEntries === "function") {
+            logs = getActivityLogFilteredEntries();
+        }
+    }
+
+    if (!Array.isArray(logs) || !logs.length) {
+        alert("No activity records found for the current filters.");
+        return;
+    }
+
+    const rows = buildAdminActivityExportRows(logs);
+    const filename = `taskflow-activity-log${getAdminActivityLogExportRangeLabel()}`;
+
+    if (format === "excel") {
+        exportAdminActivityLogExcel(rows, filename);
+        return;
+    }
+
+    if (format === "csv") {
+        const csv = rows.map((row) =>
+            row.map((value) => {
+                const text = String(value ?? "");
+                return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+            }).join(",")
+        ).join("\n");
+
+        downloadAdminBlob(csv, `${filename}.csv`, "text/csv;charset=utf-8;");
+        return;
+    }
+
+    exportAdminActivityLogPdf(rows, filename);
+}
+
 function renderActivityLogView() {
     document.getElementById("mainContent").innerHTML = `
         <div id="activity-view" class="list-view admin-activity-log-view">
@@ -3283,22 +3669,9 @@ function renderDeadlines(tasks, projectMap) {
 
 function renderProjectCard(project) {
     const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
-    const completedCount = projectTasks.filter((task) => isCompletedStatus(task.status)).length;
-    const completionRate = projectTasks.length ? Math.round((completedCount / projectTasks.length) * 100) : 0;
     const managerName = project.assigned_manager ? getAdminUserDisplayName(project.assigned_manager) : "Unassigned";
-    const managers = getManagerUsers();
-    const managerControl = project.assigned_manager
-        ? `<span class="admin-project-manager-pill">${escapeHtml(managerName)}</span>`
-        : `
-            <select class="admin-project-manager-select" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()" onchange="assignAdminProjectManager(event, '${escapeHtml(project.id)}', this.value)">
-                <option value="" selected disabled>Assign manager</option>
-                ${managers.map((manager) => `
-                    <option value="${escapeHtml(manager.email)}">
-                        ${escapeHtml(manager.username || manager.email)}
-                    </option>
-                `).join("")}
-            </select>
-        `;
+    const statusLabel = capitalize(String(project.status || "Planning").trim().toLowerCase()).replace("On hold", "On Hold");
+    const statusClass = String(project.status || "Planning").trim().toLowerCase().replace(/\s+/g, "-");
 
     return `
         <article class="admin-project-card manager-project-card" onclick="openAdminProjectWorkspace('${escapeHtml(project.id)}')">
@@ -4369,6 +4742,69 @@ function formatAdminNotificationTimeAgo(value) {
     return formatAdminNotificationTime(value);
 }
 
+function getAdminProjectDateRange(project) {
+    const start = String(project?.start_date || "").trim();
+    const end = String(project?.end_date || "").trim();
+
+    if (start && end) return `${formatDate(start)} to ${formatDate(end)}`;
+    if (start) return `Starts ${formatDate(start)}`;
+    if (end) return `Ends ${formatDate(end)}`;
+    return "No dates set";
+}
+
+function getAdminProjectCreatedDate(project) {
+    return formatDate(project?.created_at || project?.start_date || project?.end_date) || "Not available";
+}
+
+function renderProjectCard(project) {
+    const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
+    const managerName = project.assigned_manager ? getAdminUserDisplayName(project.assigned_manager) : "Unassigned";
+    const statusLabel = capitalize(String(project.status || "Planning").trim().toLowerCase()).replace("On hold", "On Hold");
+    const statusClass = String(project.status || "Planning").trim().toLowerCase().replace(/\s+/g, "-");
+
+    return `
+        <article class="admin-project-card manager-project-card" onclick="openAdminProjectWorkspace('${escapeHtml(project.id)}')">
+            <div class="manager-project-card-body">
+                <div class="project-card-main">
+                    <div class="project-card-icon" aria-hidden="true">
+                        <i class="fas fa-folder"></i>
+                    </div>
+                    <div class="project-card-copy admin-project-card-copy">
+                        <h4 class="project-card-title">${escapeHtml(project.name || "Untitled Project")}</h4>
+                        <div class="project-card-badges">
+                            <span class="project-card-chip subtle">
+                                <i class="fas fa-user-tie"></i>
+                                ${projectTasks.length} ${projectTasks.length === 1 ? "Task" : "Tasks"}
+                            </span>
+                            <span class="project-card-chip status ${escapeHtml(statusClass)}">${escapeHtml(statusLabel)}</span>
+                        </div>
+                        <div class="project-card-meta">
+                            <div class="project-card-meta-row">
+                                <i class="far fa-envelope"></i>
+                                <span>${escapeHtml(project.assigned_manager || project.owner_email || managerName)}</span>
+                            </div>
+                            <div class="project-card-meta-row">
+                                <i class="far fa-calendar"></i>
+                                <span>${escapeHtml(getAdminProjectDateRange(project))}</span>
+                            </div>
+                            <div class="project-card-meta-row status-row ${escapeHtml(statusClass)}">
+                                <i class="fas fa-circle"></i>
+                                <span>Status: ${escapeHtml(statusLabel)}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+                    <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">Delete</button>
+                </div>
+                <div class="project-card-footer">
+                    <span>Created: ${escapeHtml(getAdminProjectCreatedDate(project))}</span>
+                </div>
+            </div>
+        </article>
+    `;
+}
+
 function isCompletedStatus(status) {
     return String(status || "").toLowerCase() === "done" || String(status || "").toLowerCase() === "completed";
 }
@@ -4517,6 +4953,7 @@ window.markAllAdminNotificationsRead = markAllAdminNotificationsRead;
 window.clearOldAdminNotifications = clearOldAdminNotifications;
 window.clearAdminNotification = clearAdminNotification;
 window.openAdminNotificationTarget = openAdminNotificationTarget;
+window.exportActivityLog = exportActivityLog;
 window.setAdminReportDateRange = setAdminReportDateRange;
 window.clearAdminReportDateRange = clearAdminReportDateRange;
 window.exportAdminReport = exportAdminReport;

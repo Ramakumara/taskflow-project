@@ -1268,7 +1268,7 @@ async function loadProjectWorkspace() {
         if (projectTasks.length === 0) {
             list.innerHTML = `
                 <tr>
-                    <td colspan="5">No tasks available</td>
+                    <td colspan="6">No tasks available</td>
                 </tr>
             `;
             renderProjectWorkspacePagination(0, 0, 0, 1, 1);
@@ -1284,6 +1284,8 @@ async function loadProjectWorkspace() {
             const row = document.createElement("tr");
             const assignedDisplay = role === "user" ? getTaskAssignedBy(t, project) : renderTaskAssigneeStatusList(t, Array.isArray(users) ? users : []);
             const statusClass = memberStatusClass(t.status);
+            const priority = normalizeDashboardTaskPriority(t.priority);
+            const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
 
             row.innerHTML = `
                 <td class="task-title-cell">
@@ -1292,6 +1294,7 @@ async function loadProjectWorkspace() {
                         ${renderTaskAttachments(t)}
                     </div>
                 </td>
+                <td><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></td>
                 <td>${assignedDisplay || "Unknown"}</td>
                 <td>${formatDeadlineDate(t.deadline)}</td>
 
