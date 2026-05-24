@@ -708,24 +708,38 @@ function renderAdminProjectModal() {
 
                             <!-- Manager -->
                             <label class="admin-form-field">
-                                <span>Assign manager</span>
+                                <span>Assign manager <strong>*</strong></span>
 
-                                <select
-                                    id="admin-project-manager"
-                                    oninput="updateAdminProjectField('assigned_manager', this.value)"
-                                    onchange="updateAdminProjectField('assigned_manager', this.value)">
+                                <label class="admin-task-search-field admin-project-manager-search" for="adminProjectManagerSearch">
+                                    <i class="fas fa-search"></i>
+                                    <input
+                                        id="adminProjectManagerSearch"
+                                        type="text"
+                                        placeholder="Search users by name or email..."
+                                        oninput="filterAdminProjectManagers(this.value)">
+                                </label>
 
-                                    <option value="">Select manager</option>
+                                <div class="admin-task-user-list admin-project-manager-list" id="adminProjectManagerList">
+                                    ${managers.length ? managers.map((manager) => {
+                                        const managerEmail = String(manager.email || "").trim();
+                                        const managerName = String(manager.username || manager.email || "Manager").trim();
+                                        const searchValue = `${managerName.toLowerCase()} ${managerEmail.toLowerCase()}`;
+                                        const checked = adminState.newProjectForm.assigned_manager === managerEmail ? "checked" : "";
 
-                                    ${managers.map((manager) => `
-                                        <option
-                                            value="${escapeHtml(manager.email)}"
-                                            ${adminState.newProjectForm.assigned_manager === manager.email ? "selected" : ""}>
-
-                                            ${escapeHtml(manager.username || manager.email)}
-                                        </option>
-                                    `).join("")}
-                                </select>
+                                        return `
+                                            <label class="admin-task-user-option admin-project-manager-option" data-manager-search="${escapeHtml(searchValue)}">
+                                                <input
+                                                    type="radio"
+                                                    name="admin-project-manager-choice"
+                                                    value="${escapeHtml(managerEmail)}"
+                                                    ${checked}
+                                                    onchange="selectAdminProjectManager('${escapeHtml(managerEmail)}')">
+                                                <span>${escapeHtml(managerName)}</span>
+                                                <small>${escapeHtml(managerEmail)}</small>
+                                            </label>
+                                        `;
+                                    }).join("") : `<div class="admin-task-user-empty admin-project-manager-empty">No managers available</div>`}
+                                </div>
                             </label>
 
                             <!-- Status -->
@@ -845,6 +859,18 @@ function updateAdminProjectField(field, value) {
     adminState.newProjectForm[field] = value;
 }
 
+function selectAdminProjectManager(email) {
+    updateAdminProjectField("assigned_manager", String(email || "").trim());
+}
+
+function filterAdminProjectManagers(value) {
+    const query = String(value || "").trim().toLowerCase();
+    document.querySelectorAll(".admin-project-manager-option").forEach((option) => {
+        const haystack = String(option.dataset.managerSearch || "").toLowerCase();
+        option.style.display = !query || haystack.includes(query) ? "" : "none";
+    });
+}
+
 async function submitAdminProject(event) {
     if (event) event.preventDefault();
     if (adminState.isCreatingProject) return;
@@ -852,7 +878,8 @@ async function submitAdminProject(event) {
     const token = sessionStorage.getItem("token");
     const rawName = String(document.getElementById("admin-project-name")?.value || adminState.newProjectForm.name || "").trim();
     const description = String(document.getElementById("admin-project-description")?.value || adminState.newProjectForm.description || "").trim();
-    const assignedManager = String(document.getElementById("admin-project-manager")?.value || adminState.newProjectForm.assigned_manager || "").trim();
+    const selectedManagerInput = document.querySelector('input[name="admin-project-manager-choice"]:checked');
+    const assignedManager = String(selectedManagerInput?.value || adminState.newProjectForm.assigned_manager || "").trim();
     const startDate = String(document.getElementById("admin-project-start-date")?.value || adminState.newProjectForm.start_date || "").trim();
     const endDate = String(document.getElementById("admin-project-end-date")?.value || adminState.newProjectForm.end_date || "").trim();
     const status = String(document.getElementById("admin-project-status")?.value || adminState.newProjectForm.status || "Planning").trim();
@@ -4799,6 +4826,10 @@ function renderProjectCard(project) {
                 </div>
                 <div class="project-card-footer">
                     <span>Created: ${escapeHtml(getAdminProjectCreatedDate(project))}</span>
+                    <button class="project-card-cta" type="button" onclick="event.stopPropagation(); openAdminProjectWorkspace('${escapeHtml(project.id)}')">
+                        <span>View Details</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
             </div>
         </article>
@@ -4986,6 +5017,8 @@ window.openAdminProjectModal = openAdminProjectModal;
 window.closeAdminProjectModal = closeAdminProjectModal;
 window.handleAdminProjectBackdrop = handleAdminProjectBackdrop;
 window.updateAdminProjectField = updateAdminProjectField;
+window.selectAdminProjectManager = selectAdminProjectManager;
+window.filterAdminProjectManagers = filterAdminProjectManagers;
 window.submitAdminProject = submitAdminProject;
 window.assignAdminProjectManager = assignAdminProjectManager;
 window.adminDeleteProject = adminDeleteProject;

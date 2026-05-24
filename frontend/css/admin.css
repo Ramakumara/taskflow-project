@@ -3538,7 +3538,7 @@ body {
 .admin-project-card,
 .admin-project-create-card,
 .project-empty-state {
-    min-height: 170px;
+    min-height: 0;
     border-radius: 12px;
 }
 
@@ -3632,15 +3632,17 @@ body {
 
 .admin-project-create-card {
     width: 100%;
+    min-height: 220px;
     border: 1.5px dashed #9bbcff;
     background: #f8fbff;
     color: #17b45a;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
     font-weight: 800;
     cursor: pointer;
+    align-self: stretch;
 }
 
 .admin-project-create-card:hover {
@@ -3784,6 +3786,47 @@ body {
     background: transparent;
     color: #172033;
     box-shadow: none;
+}
+
+.admin-project-manager-search {
+    margin-top: 2px;
+}
+
+.admin-project-manager-list {
+    max-height: 132px;
+    margin-top: 6px;
+}
+
+.admin-project-manager-option {
+    grid-template-columns: 16px minmax(0, 1fr);
+    column-gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.admin-project-manager-option input[type="radio"] {
+    width: 13px;
+    height: 13px;
+    min-height: 13px;
+    margin: 0;
+    padding: 0;
+    grid-row: span 2;
+    align-self: center;
+}
+
+.admin-project-manager-option span {
+    font-size: 14px;
+    line-height: 1.25;
+}
+
+.admin-project-manager-option small {
+    font-size: 11px;
+    line-height: 1.3;
+}
+
+.admin-project-manager-empty {
+    min-height: 88px;
 }
 
 .admin-task-modal-card .action-btn {
@@ -4283,56 +4326,56 @@ body {
 }
 
 .project-card-main {
-    padding: 20px;
+    padding: 18px;
     display: grid;
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: 18px;
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: 14px;
     align-items: start;
 }
 
 .project-card-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 14px;
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
     background: linear-gradient(180deg, #f4fff7, #e9fbef);
     color: #16a34a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 24px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .project-card-copy {
     min-width: 0;
     display: grid;
-    gap: 12px;
+    gap: 10px;
 }
 
 .project-card-title,
 .admin-project-card-copy h4 {
     margin: 0;
     color: #172033;
-    font-size: 19px;
+    font-size: 16px;
     font-weight: 800;
-    line-height: 1.35;
+    line-height: 1.3;
 }
 
 .project-card-badges {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
 .project-card-chip {
-    min-height: 28px;
-    padding: 0 12px;
+    min-height: 26px;
+    padding: 0 10px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    font-size: 12px;
+    gap: 6px;
+    font-size: 11px;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -4360,16 +4403,16 @@ body {
 
 .project-card-meta {
     display: grid;
-    gap: 10px;
+    gap: 8px;
 }
 
 .project-card-meta-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     color: #667085;
-    font-size: 13px;
-    line-height: 1.45;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .project-card-meta-row i {
@@ -4405,10 +4448,42 @@ body {
 
 .project-card-footer {
     border-top: 1px solid #eef2f6;
-    padding: 14px 20px 16px;
+    padding: 12px 18px 14px;
     color: #98a2b3;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.project-card-cta {
+    min-height: 34px;
+    padding: 0 12px;
+    border: 1px solid #dbe4ef;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #475467;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.project-card-cta:hover {
+    border-color: #c9d7e6;
+    background: #f8fafc;
+    color: #111827;
+    transform: translateY(-1px);
+}
+
+.project-card-cta i {
+    font-size: 12px;
 }
 
 .admin-project-manager-pill,

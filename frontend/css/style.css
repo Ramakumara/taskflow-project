@@ -6409,6 +6409,38 @@ button {
     color: #98a2b3;
     font-size: 13px;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.project-card-cta {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid #dbe4ef;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #475467;
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.project-card-cta:hover {
+    border-color: #c9d7e6;
+    background: #f8fafc;
+    color: #111827;
+    transform: translateY(-1px);
+}
+
+.project-card-cta i {
+    font-size: 12px;
 }
 
 .add-card {

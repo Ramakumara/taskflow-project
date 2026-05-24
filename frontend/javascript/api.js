@@ -575,16 +575,16 @@ async function loadProjects() {
                 </div>
                 <div class="project-card-footer">
                     <span>Created: ${escapeHtml(formatProjectCardCreatedDate(p))}</span>
+                    <button class="project-card-cta" type="button" onclick="event.stopPropagation(); openProjectDetails('${escapeHtml(p.id)}')">
+                        <span>View Details</span>
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
             </div>
         `;
 
         card.onclick = () => {
-            sessionStorage.setItem("selectedProjectId", p.id);
-            showProjectWorkspace();
-            if (typeof loadProjectWorkspace === "function") {
-                loadProjectWorkspace();
-            }
+            openProjectDetails(p.id);
         };
 
         list.appendChild(card);
@@ -636,6 +636,14 @@ function formatProjectCardDate(value) {
         day: "numeric",
         year: "numeric"
     });
+}
+
+function openProjectDetails(projectId) {
+    sessionStorage.setItem("selectedProjectId", projectId);
+    showProjectWorkspace();
+    if (typeof loadProjectWorkspace === "function") {
+        loadProjectWorkspace();
+    }
 }
 
 function openCreate(mode = "project") {
