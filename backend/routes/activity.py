@@ -7,7 +7,7 @@ from io import StringIO
 import csv
 from zoneinfo import ZoneInfo
 from websocket_manager import emit_realtime_event
-from taskflow_utils import get_visible_project_filter, get_visible_task_filter
+from taskflow_utils import emit_admin_dashboard_update, get_visible_project_filter, get_visible_task_filter
 
 router = APIRouter()
 
@@ -128,15 +128,21 @@ def record_activity(user: dict, action: str, target: str = "", details: str = ""
         "timestamp": datetime.now(ZoneInfo("Asia/Kolkata"))
     }
 
-    db.activity_log.insert_one(activity)
+    result = db.activity_log.insert_one(activity)
+    activity["_id"] = result.inserted_id
 
     emit_realtime_event(
         {
             "type": "activity.created",
-            "message": f"{user.get('username')} performed {action}",
-            "data": format_activity(activity),
+            "message": f"{user.get('username') or user.get('email')} performed {action}",
+            "data": {
+                "id": str(result.inserted_id),
+                "action": action,
+                "user_email": user.get("email"),
+            },
         }
     )
+    emit_admin_dashboard_update("Admin dashboard updated after activity.")
 
     return activity
 

@@ -7,7 +7,8 @@ from datetime import datetime
 
 from auth_utils import get_current_user
 from database import db
-from taskflow_utils import get_visible_task_filter, normalize_assignment_emails
+from routes.activity import record_activity
+from taskflow_utils import get_visible_task_filter, normalize_assignment_emails, add_notification
 from websocket_manager import emit_realtime_event
 
 router = APIRouter()
@@ -202,18 +203,25 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
             "shared_with": [],
         }
     )
+    record_activity(
+        current_user,
+        "File uploaded",
+        f"File: {file.filename}",
+        "",
+    )
+    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+        add_notification(admin_email, f"File '{file.filename}' was uploaded.", "File Uploaded")
     emit_realtime_event(
         {
-            "type": "file.created",
+            "type": "file.uploaded",
             "message": f"File '{file.filename}' uploaded.",
             "data": {
                 "name": file.filename,
                 "owner_email": current_user.get("email"),
             },
         },
-        recipients=[current_user.get("email")],
+        recipients=[current_user.get("email"), *(db.users.distinct("email", {"role": "admin"}) or [])],
     )
-
     return {"message": "File uploaded successfully"}
 
 
@@ -296,6 +304,12 @@ def delete_file(filename: str, current_user: dict = Depends(get_current_user)):
                     {"_id": task_object_id},
                     {"$pull": {"attachments": {"stored_name": file.get("stored_name") or file.get("name")}}},
                 )
+        record_activity(
+            current_user,
+            "File deleted",
+            f"File: {file.get('display_name') or file.get('name')}",
+            "",
+        )
         emit_realtime_event(
             {
                 "type": "file.deleted",
@@ -340,6 +354,18 @@ def share_file(filename: str, payload: dict, current_user: dict = Depends(get_cu
     )
     updated_file = dict(file)
     updated_file["shared_with"] = shared_with
+    record_activity(
+        current_user,
+        "File shared",
+        f"File: {file.get('display_name') or file.get('name')}",
+        ", ".join(shared_with),
+    )
+    for recipient in shared_with:
+        add_notification(
+            recipient,
+            f"File '{file.get('display_name') or file.get('name')}' was shared with you.",
+            "File Shared",
+        )
     emit_realtime_event(
         {
             "type": "file.shared",

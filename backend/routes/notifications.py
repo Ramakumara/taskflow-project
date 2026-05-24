@@ -4,6 +4,8 @@ from auth_utils import get_current_user
 from rbac import Role, require_roles
 from datetime import datetime, timedelta
 from bson import ObjectId
+from websocket_manager import emit_realtime_event
+from taskflow_utils import emit_admin_dashboard_update, serialize_notification
 
 
 router = APIRouter()
@@ -56,6 +58,16 @@ async def mark_notification_read(
             }
         }
     )
+    updated = db.notifications.find_one({"_id": ObjectId(notification_id)})
+    emit_realtime_event(
+        {
+            "type": "notification.read",
+            "message": "Notification marked as read.",
+            "data": serialize_notification(updated or notification),
+        },
+        recipients=[owner],
+    )
+    emit_admin_dashboard_update("Admin dashboard updated after notification read state changed.")
 
     return {
         "success": True,
@@ -82,6 +94,18 @@ async def mark_all_notifications_read(
             }
         }
     )
+    emit_realtime_event(
+        {
+            "type": "notification.read_all",
+            "message": "Notifications marked as read.",
+            "data": {
+                "email": current_user.get("email"),
+                "modified": result.modified_count,
+            },
+        },
+        recipients=[current_user.get("email")],
+    )
+    emit_admin_dashboard_update("Admin dashboard updated after notifications were marked read.")
 
     return {
         "success": True,

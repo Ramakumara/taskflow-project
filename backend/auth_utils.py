@@ -300,3 +300,64 @@ def reset_password(data: dict):
     return {
         "message": "Password reset successful"
     }
+
+async def send_project_assignment_email(
+    email: str,
+    project_name: str,
+    assigned_by: str
+):
+    message = MessageSchema(
+        subject="📁 New Project Assigned",
+        recipients=[email],
+        body=f"""
+        <div style="font-family:Arial;padding:20px;">
+            <h2 style="color:#2c3e50;">
+                New Project Assignment
+            </h2>
+
+            <p>Hello Manager,</p>
+
+            <p>You have been assigned a new project.</p>
+
+            <div style="
+                background:#f4f6f7;
+                padding:15px;
+                border-left:5px solid #3498db;
+                margin:10px 0;
+            ">
+                <b>Project:</b> {project_name}
+            </div>
+
+            <p>
+                <b>Assigned By:</b>
+                {assigned_by}
+            </p>
+
+            <p>
+                Please login to TaskFlow dashboard
+                and manage this project.
+            </p>
+
+            <a href="http://127.0.0.1:8000/"
+               style="
+                   background:#3498db;
+                   color:white;
+                   padding:10px 15px;
+                   text-decoration:none;
+                   border-radius:5px;
+               ">
+               Open TaskFlow
+            </a>
+
+            <br><br>
+
+            <p style="font-size:12px;color:gray;">
+                TaskFlow Project Management System
+            </p>
+        </div>
+        """,
+        subtype="html"
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)

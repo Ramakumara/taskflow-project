@@ -1,8 +1,12 @@
 const BASE_URL = window.location.origin;
 let socket = null;
 let socketReconnectTimer = null;
+let socketHeartbeatTimer = null;
 const realtimeState = {
     connected: false,
+    reconnectAttempts: 0,
+    intentionallyClosed: false,
+    connectionStatus: "disconnected",
 };
 
 function getWebSocketUrl() {
@@ -11,29 +15,83 @@ function getWebSocketUrl() {
     return `${protocol}//${window.location.host}/ws?token=${encodeURIComponent(token)}`;
 }
 
+function updateRealtimeConnectionStatus(status) {
+    realtimeState.connectionStatus = status;
+    realtimeState.connected = status === "connected";
+    document.documentElement.dataset.realtimeStatus = status;
+    document.dispatchEvent(new CustomEvent("taskflow:realtime-status", { detail: { status } }));
+}
+
+function clearRealtimeTimers() {
+    if (socketReconnectTimer) {
+        clearTimeout(socketReconnectTimer);
+        socketReconnectTimer = null;
+    }
+    if (socketHeartbeatTimer) {
+        clearInterval(socketHeartbeatTimer);
+        socketHeartbeatTimer = null;
+    }
+}
+
+function scheduleRealtimeReconnect() {
+    if (realtimeState.intentionallyClosed || !sessionStorage.getItem("token")) {
+        return;
+    }
+    clearTimeout(socketReconnectTimer);
+    const attempt = Math.min(realtimeState.reconnectAttempts + 1, 6);
+    realtimeState.reconnectAttempts = attempt;
+    const delay = Math.min(1000 * (2 ** (attempt - 1)), 15000);
+    socketReconnectTimer = setTimeout(() => {
+        connectRealtimeSocket();
+    }, delay);
+}
+
+function startRealtimeHeartbeat() {
+    if (socketHeartbeatTimer) {
+        clearInterval(socketHeartbeatTimer);
+    }
+    socketHeartbeatTimer = setInterval(() => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            return;
+        }
+        sendRealtimeMessage({
+            type: "system.ping",
+            data: {
+                ts: Date.now()
+            }
+        });
+    }, 25000);
+}
+
 function connectRealtimeSocket() {
     const token = sessionStorage.getItem("token");
     if (!token) return null;
+
+    realtimeState.intentionallyClosed = false;
 
     if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
         return socket;
     }
 
+    updateRealtimeConnectionStatus("connecting");
     socket = new WebSocket(getWebSocketUrl());
 
     socket.onopen = function () {
-        realtimeState.connected = true;
+        realtimeState.reconnectAttempts = 0;
+        updateRealtimeConnectionStatus("connected");
+        startRealtimeHeartbeat();
         console.log("WebSocket connected");
     };
 
     socket.onclose = function () {
-        realtimeState.connected = false;
-        if (socketReconnectTimer) clearTimeout(socketReconnectTimer);
-        socketReconnectTimer = setTimeout(connectRealtimeSocket, 3000);
+        clearRealtimeTimers();
+        updateRealtimeConnectionStatus("disconnected");
+        socket = null;
+        scheduleRealtimeReconnect();
     };
 
     socket.onerror = function () {
-        realtimeState.connected = false;
+        updateRealtimeConnectionStatus("error");
     };
 
     socket.onmessage = function (event) {
@@ -41,6 +99,25 @@ function connectRealtimeSocket() {
     };
 
     return socket;
+}
+
+function disconnectRealtimeSocket(options = {}) {
+    realtimeState.intentionallyClosed = Boolean(options.intentional ?? true);
+    clearRealtimeTimers();
+
+    if (socket) {
+        const activeSocket = socket;
+        socket = null;
+        if (activeSocket.readyState === WebSocket.OPEN || activeSocket.readyState === WebSocket.CONNECTING) {
+            try {
+                activeSocket.close(1000, "client disconnect");
+            } catch {
+                // no-op
+            }
+        }
+    }
+
+    updateRealtimeConnectionStatus("disconnected");
 }
 
 function handleRealtimeMessage(raw) {
@@ -57,70 +134,180 @@ function handleRealtimeMessage(raw) {
 
     document.dispatchEvent(new CustomEvent("taskflow:realtime", { detail: payload }));
 
-    if (payload.type === "notification.created" && payload.message) {
-        showNotification(payload.message, "success");
+    if (payload.type === "system.connected" || payload.type === "system.pong") {
+        updateRealtimeConnectionStatus("connected");
+        return;
     }
 
-    if (payload.type === "system.connected") {
-        return;
+    if (payload.type === "notification.created" && payload.message) {
+        showNotification(payload.message, "success");
     }
 
     refreshRealtimeViews(payload);
 }
 
 function refreshRealtimeViews(payload) {
+
     const type = String(payload.type || "");
     const currentRole = sessionStorage.getItem("role");
 
-    if (type.startsWith("notification.") && typeof loadNotifications === "function") {
+    // Dashboard notifications
+    if (
+        type.startsWith("notification.") &&
+        typeof loadNotifications === "function"
+    ) {
         loadNotifications();
     }
 
-    if (type.startsWith("activity.") && typeof loadActivityLog === "function") {
-        const activityView = document.getElementById("activity-view");
-        if (activityView && !activityView.classList.contains("hidden")) {
+    // Activity log
+    if (
+        type.startsWith("activity.") &&
+        typeof loadActivityLog === "function"
+    ) {
+        const activityView =
+            document.getElementById("activity-view");
+
+        if (
+            activityView &&
+            !activityView.classList.contains("hidden")
+        ) {
             loadActivityLog();
         }
     }
 
-    if ((type.startsWith("task.") || type.startsWith("project.")) && typeof loadProjects === "function") {
-        const dashboardView = document.getElementById("dashboard-view");
-        if (dashboardView && !dashboardView.classList.contains("hidden")) {
+    // Dashboard project cards
+    if (
+        (
+            type.startsWith("task.") ||
+            type.startsWith("project.")
+        ) &&
+        typeof loadProjects === "function"
+    ) {
+
+        const dashboardView =
+            document.getElementById("dashboard-view");
+
+        if (
+            dashboardView &&
+            !dashboardView.classList.contains("hidden")
+        ) {
             loadProjects();
         }
     }
 
-    if (type.startsWith("task.") && typeof loadAllTasks === "function") {
-        const tasksView = document.getElementById("tasks-view");
-        if (tasksView && !tasksView.classList.contains("hidden")) {
+    // Tasks page
+    if (
+        type.startsWith("task.") &&
+        typeof loadAllTasks === "function"
+    ) {
+
+        const tasksView =
+            document.getElementById("tasks-view");
+
+        if (
+            tasksView &&
+            !tasksView.classList.contains("hidden")
+        ) {
             loadAllTasks();
         }
     }
 
-    if ((type.startsWith("task.") || type.startsWith("project.")) && typeof loadProjectWorkspace === "function") {
-        const workspaceView = document.getElementById("project-workspace-view");
-        if (workspaceView && !workspaceView.classList.contains("hidden")) {
+    // Workspace
+    if (
+        (
+            type.startsWith("task.") ||
+            type.startsWith("project.")
+        ) &&
+        typeof loadProjectWorkspace === "function"
+    ) {
+
+        const workspaceView =
+            document.getElementById("project-workspace-view");
+
+        if (
+            workspaceView &&
+            !workspaceView.classList.contains("hidden")
+        ) {
             loadProjectWorkspace();
         }
     }
 
-    if ((type.startsWith("file.") || type === "task.attachment.created") && typeof loadFiles === "function") {
-        const filesView = document.getElementById("files-view");
-        if (filesView && !filesView.classList.contains("hidden")) {
+    // Project page
+    if (
+        (
+            type.startsWith("task.") ||
+            type.startsWith("project.") ||
+            type.startsWith("file.")
+        ) &&
+        typeof loadProjectPage === "function"
+    ) {
+
+        if (
+            window.location.pathname.includes("project-page")
+        ) {
+            loadProjectPage();
+        }
+    }
+
+    // Files page
+    if (
+        type.startsWith("file.") &&
+        typeof loadFiles === "function"
+    ) {
+
+        const filesView =
+            document.getElementById("files-view");
+
+        if (
+            filesView &&
+            !filesView.classList.contains("hidden")
+        ) {
             loadFiles();
         }
     }
 
-    if (currentRole === "admin" && (type.startsWith("user.") || type.startsWith("task.") || type.startsWith("project.") || type.startsWith("file.") || type.startsWith("activity.") || type.startsWith("notification."))) {
+    // ADMIN REALTIME REFRESH
+    if (
+        currentRole === "admin" &&
+        (
+            type === "admin.dashboard.updated" ||
+            type.startsWith("user.") ||
+            type.startsWith("task.") ||
+            type.startsWith("project.") ||
+            type.startsWith("file.") ||
+            type.startsWith("activity.") ||
+            type.startsWith("notification.")
+        )
+    ) {
+
         if (typeof refreshAdminData === "function") {
-            Promise.resolve(refreshAdminData()).then(() => {
-                if (typeof renderCurrentSection === "function") {
-                    renderCurrentSection();
-                }
-            }).catch(() => {});
-        }
-        if (typeof loadAdminNotifications === "function") {
-            loadAdminNotifications();
+
+            Promise.resolve(refreshAdminData())
+                .then(() => {
+
+                    if (
+                        typeof renderCurrentSection ===
+                        "function"
+                    ) {
+                        renderCurrentSection();
+                    }
+
+                    if (
+                        typeof loadAdminNotifications ===
+                        "function"
+                    ) {
+                        loadAdminNotifications();
+                    }
+
+                    if (
+                        typeof updateNotificationCount ===
+                        "function"
+                    ) {
+                        updateNotificationCount();
+                    }
+
+                })
+                .catch(console.error);
         }
     }
 }
@@ -139,6 +326,13 @@ function sendRealtimeMessage(payload) {
 }
 
 window.addEventListener("load", connectRealtimeSocket);
+window.addEventListener("online", connectRealtimeSocket);
+window.addEventListener("beforeunload", () => disconnectRealtimeSocket({ intentional: true }));
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && sessionStorage.getItem("token")) {
+        connectRealtimeSocket();
+    }
+});
 
 function showNotification(message, type = "success") {
 
@@ -232,6 +426,7 @@ async function handleLogin() {
             sessionStorage.setItem("username", data.username || "");
             sessionStorage.setItem("email", data.email || email);
             sessionStorage.setItem("role", data.role || "user");
+            connectRealtimeSocket();
 
             if (data.role === "admin") {
                 window.location.href = "/admin-page";
@@ -291,8 +486,18 @@ async function handleRegister() {
 
 
 function logout() {
-    sessionStorage.clear();
-    window.location.href = "/";
+    const token = sessionStorage.getItem("token");
+
+    Promise.resolve(token ? fetch(`${BASE_URL}/logout`, {
+        method: "POST",
+        headers: {
+            "Authorization": "Bearer " + token
+        }
+    }) : null).catch(() => null).finally(() => {
+        disconnectRealtimeSocket({ intentional: true });
+        sessionStorage.clear();
+        window.location.href = "/";
+    });
 }
 
 async function createProject() {

@@ -3,6 +3,7 @@ from datetime import datetime
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
 import re
+from auth_utils import send_project_assignment_email
 
 from auth_utils import get_current_user
 from database import db
@@ -11,8 +12,11 @@ from rbac import Permission, Role, normalize_role, require_permission, require_r
 from routes.activity import record_activity
 from taskflow_utils import (
     add_notification,
+    build_admin_dashboard_stats,
+    collect_project_recipients,
     get_visible_project_filter,
     get_visible_task_filter,
+    emit_admin_dashboard_update,
     normalize_assignment_emails,
     normalize_project_status,
     safe_object_id,
@@ -63,21 +67,32 @@ def _validate_manager(email: str | None) -> dict | None:
 
 
 @router.post("/projects")
-def create_project(
+async def create_project(
     project: ProjectCreate,
     current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS)),
 ):
     current_role = normalize_role(current_user.get("role"))
     project_name = _resolve_project_name(project)
+
     if not project_name:
-        raise HTTPException(status_code=400, detail="Project name is required")
+        raise HTTPException(
+            status_code=400,
+            detail="Project name is required"
+        )
 
     requested_manager = _requested_manager_email(project)
 
-    if current_role == Role.ADMIN.value and not requested_manager:
-        raise HTTPException(status_code=400, detail="Assigned manager is required for admin-created projects")
+    if (
+        current_role == Role.ADMIN.value
+        and not requested_manager
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Assigned manager is required for admin-created projects"
+        )
 
     manager = _validate_manager(requested_manager)
+
     assigned_manager = (
         str(manager.get("email")).strip().lower()
         if manager
@@ -100,14 +115,44 @@ def create_project(
         "updated_at": utc_now_iso(),
     }
 
+    # Save project
     result = db.projects.insert_one(document)
+
+    # Notifications + Email
     if assigned_manager:
+
+        # Manager bell notification
         add_notification(
             assigned_manager,
             f"You were assigned to project '{project_name}'.",
             "Project Assignment",
         )
 
+        # EMAIL TO MANAGER
+        await send_project_assignment_email(
+            assigned_manager,
+            project_name,
+            current_user.get("email"),
+        )
+
+        # Admin notifications
+        admin_emails = {
+            *(db.users.distinct("email", {"role": "admin"}) or []),
+            str(current_user.get("email") or "").strip().lower(),
+        }
+
+        for admin_email in admin_emails:
+            if (
+                admin_email
+                and admin_email != assigned_manager
+            ):
+                add_notification(
+                    admin_email,
+                    f"Project '{project_name}' was assigned to {assigned_manager}.",
+                    "Project Assigned",
+                )
+
+    # Activity log
     record_activity(
         current_user,
         "Project created",
@@ -115,16 +160,29 @@ def create_project(
         f"Manager: {assigned_manager or 'Unassigned'}",
     )
 
-    saved = db.projects.find_one({"_id": result.inserted_id})
+    # Fetch saved project
+    saved = db.projects.find_one(
+        {"_id": result.inserted_id}
+    )
+
     serialized_project = serialize_project(saved)
+
+    # WebSocket realtime event
     emit_realtime_event(
         {
             "type": "project.created",
             "message": f"Project '{project_name}' created.",
             "data": serialized_project,
         },
-        recipients=[current_user.get("email"), assigned_manager],
+        recipients=collect_project_recipients(
+            saved,
+            extra=[
+                current_user.get("email"),
+                assigned_manager,
+            ],
+        ),
     )
+
     return {
         "message": "Project created successfully",
         "project": serialized_project,
@@ -255,7 +313,12 @@ def update_project(
             "message": f"Project '{serialized_project.get('name')}' updated.",
             "data": serialized_project,
         },
-        recipients=[current_user.get("email"), serialized_project.get("assigned_manager"), serialized_project.get("owner_email")],
+        recipients=collect_project_recipients(updated, extra=[current_user.get("email")]),
+    )
+    add_notification(
+        serialized_project.get("assigned_manager"),
+        f"Project '{serialized_project.get('name')}' details were updated.",
+        "Project Updated",
     )
     return {
         "message": "Project updated successfully",
@@ -264,7 +327,7 @@ def update_project(
 
 
 @router.put("/projects/{project_id}/assign-manager")
-def assign_manager(
+async def assign_manager(
     project_id: str,
     payload: AssignManagerPayload,
     current_user: dict = Depends(require_roles(Role.ADMIN)),
@@ -278,6 +341,8 @@ def assign_manager(
         raise HTTPException(status_code=404, detail="Project not found")
 
     manager = _validate_manager(_requested_manager_email(payload))
+
+    # Update project manager
     db.projects.update_one(
         {"_id": object_id},
         {
@@ -289,11 +354,29 @@ def assign_manager(
         },
     )
 
+    # Notification to manager
     add_notification(
         manager["email"],
         f"You were assigned to manage project '{project.get('project_name') or project.get('name')}'.",
         "Manager Assignment",
     )
+
+    # Notification to admins
+    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+        add_notification(
+            admin_email,
+            f"Manager {manager['email']} was assigned to project '{project.get('project_name') or project.get('name')}'.",
+            "Manager Assigned",
+        )
+
+    # EMAIL SEND TO MANAGER
+    await send_project_assignment_email(
+        manager["email"],
+        project.get("project_name") or project.get("name"),
+        current_user.get("email"),
+    )
+
+    # Activity log
     record_activity(
         current_user,
         "Manager assigned",
@@ -301,18 +384,27 @@ def assign_manager(
         manager["email"],
     )
 
+    # Fetch updated project
     updated = db.projects.find_one({"_id": object_id})
     serialized_project = serialize_project(updated)
+
+    # Realtime websocket event
     emit_realtime_event(
         {
             "type": "project.manager.assigned",
             "message": f"Manager assigned to project '{serialized_project.get('name')}'.",
             "data": serialized_project,
         },
-        recipients=[current_user.get("email"), manager["email"]],
+        recipients=collect_project_recipients(
+            updated,
+            extra=[current_user.get("email"), manager["email"]],
+        ),
     )
-    return {"message": "Manager assigned successfully", "project": serialized_project}
 
+    return {
+        "message": "Manager assigned successfully",
+        "project": serialized_project,
+    }
 
 @router.get("/projects/{project_id}/team")
 def get_project_team(
@@ -346,59 +438,17 @@ def get_project_team(
 
 @router.get("/admin/dashboard-stats")
 def admin_dashboard_stats(current_user: dict = Depends(require_roles(Role.ADMIN))):
-    tasks = [serialize_task(item) for item in db.tasks.find(get_visible_task_filter(current_user))]
-    projects = [serialize_project(item) for item in db.projects.find(get_visible_project_filter(current_user))]
-    activities = list(db.activity_log.find().sort("timestamp", -1).limit(8))
-
-    completed_tasks = [task for task in tasks if task.get("overall_status") == "Completed"]
-    pending_tasks = [task for task in tasks if task.get("overall_status") == "Pending"]
-    in_progress_tasks = [task for task in tasks if task.get("overall_status") == "In Progress"]
-
-    project_progress = []
-    for project in projects:
-        project_tasks = [task for task in tasks if str(task.get("project_id")) == str(project["id"])]
-        total = len(project_tasks)
-        completed = len([task for task in project_tasks if task.get("overall_status") == "Completed"])
-        project_progress.append(
-            {
-                "project_id": project["id"],
-                "project_name": project.get("project_name") or project.get("name") or "Untitled Project",
-                "total_tasks": total,
-                "completed_tasks": completed,
-                "progress_percent": round((completed / total) * 100) if total else 0,
-                "status": project.get("status"),
-            }
-        )
-
-    return {
-        "total_users": db.users.count_documents({}),
-        "total_projects": len(projects),
-        "total_tasks": len(tasks),
-        "completed_tasks": len(completed_tasks),
-        "pending_tasks": len(pending_tasks),
-        "in_progress_tasks": len(in_progress_tasks),
-        "recent_activities": [
-            {
-                "id": str(item.get("_id")),
-                "user_email": item.get("user_email"),
-                "username": item.get("username"),
-                "action": item.get("action"),
-                "target": item.get("target"),
-                "details": item.get("details"),
-                "timestamp": item.get("timestamp").isoformat() if hasattr(item.get("timestamp"), "isoformat") else item.get("timestamp"),
-            }
-            for item in activities
-        ],
-        "project_progress": project_progress,
-        "notifications": db.notifications.count_documents({"read": False}),
-        "reports_generated_at": datetime.utcnow().isoformat(),
-    }
+    return build_admin_dashboard_stats()
 
 
 @router.get("/reports/summary")
 def report_summary(current_user: dict = Depends(get_current_user)):
     projects = [serialize_project(item) for item in db.projects.find(get_visible_project_filter(current_user))]
     tasks = [serialize_task(item) for item in db.tasks.find(get_visible_task_filter(current_user))]
+    if normalize_role(current_user.get("role")) != Role.ADMIN.value:
+        for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+            add_notification(admin_email, f"{current_user.get('email')} generated a report summary.", "Report Activity")
+    emit_admin_dashboard_update("Admin dashboard updated after report activity.")
 
     users = db.users.count_documents({})
     completed = len([item for item in tasks if item.get("overall_status") == "Completed"])
@@ -460,10 +510,6 @@ def delete_project(
             "message": f"Project '{serialized_project.get('name')}' deleted.",
             "data": serialized_project,
         },
-        recipients=[
-            current_user.get("email"),
-            serialized_project.get("assigned_manager"),
-            serialized_project.get("owner_email"),
-        ],
+        recipients=collect_project_recipients(project, extra=[current_user.get("email")]),
     )
     return {"message": "Project deleted"}

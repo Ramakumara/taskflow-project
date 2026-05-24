@@ -13,6 +13,8 @@ import requests
 import os
 import secrets
 import string
+from taskflow_utils import add_notification
+from websocket_manager import emit_realtime_event
 
 router = APIRouter()
 
@@ -77,7 +79,20 @@ def register(user: UserRegister):
 
     db.users.insert_one(new_user)
     record_activity(new_user, "User registered", "Account", f"Role: {new_user['role']}")
-
+    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+        add_notification(admin_email, f"New user registered: {new_user['email']}.", "New User")
+    emit_realtime_event(
+        {
+            "type": "user.created",
+            "message": f"User '{new_user['email']}' registered.",
+            "data": {
+                "username": new_user["username"],
+                "email": new_user["email"],
+                "role": new_user["role"],
+            },
+        },
+        recipients=db.users.distinct("email", {"role": "admin"}) or [],
+    )
     return {"message": "User registered"}
 
 @router.post("/admin/users")
@@ -115,7 +130,20 @@ def admin_create_user(
         f"User: {new_user['email']}",
         f"Role: {new_user['role']}"
     )
-
+    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+        add_notification(admin_email, f"User '{new_user['email']}' was created with role {new_user['role']}.", "New User")
+    emit_realtime_event(
+        {
+            "type": "user.created",
+            "message": f"User '{new_user['email']}' created.",
+            "data": {
+                "username": new_user["username"],
+                "email": new_user["email"],
+                "role": new_user["role"],
+            },
+        },
+        recipients=db.users.distinct("email", {"role": "admin"}) or [],
+    )
     return {
         "message": "User created successfully",
         "temporary_password": temporary_password,
@@ -155,7 +183,21 @@ def login(user: UserLogin):
         })
 
         record_activity(found, "User logged in", "Authentication", "Successful login")
-
+        for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+            if admin_email != found.get("email"):
+                add_notification(admin_email, f"{found.get('email')} logged in.", "Manager Activity" if found.get("role") == "manager" else "User Login")
+        emit_realtime_event(
+            {
+                "type": "user.login",
+                "message": f"{found.get('email')} logged in.",
+                "data": {
+                    "email": found.get("email"),
+                    "role": found.get("role"),
+                    "username": found.get("username"),
+                },
+            },
+            recipients=db.users.distinct("email", {"role": "admin"}) or [],
+        )
         return {
             "message": "Login success",
             "access_token": token,
@@ -185,6 +227,27 @@ def get_users(current_user: dict = Depends(get_current_user)):
         })
 
     return users
+
+
+@router.post("/logout")
+def logout(current_user: dict = Depends(get_current_user)):
+    record_activity(current_user, "User logged out", "Authentication", "Successful logout")
+    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+        if admin_email != current_user.get("email"):
+            add_notification(admin_email, f"{current_user.get('email')} logged out.", "Manager Activity" if current_user.get("role") == "manager" else "User Logout")
+    emit_realtime_event(
+        {
+            "type": "user.logout",
+            "message": f"{current_user.get('email')} logged out.",
+            "data": {
+                "email": current_user.get("email"),
+                "role": current_user.get("role"),
+                "username": current_user.get("username"),
+            },
+        },
+        recipients=db.users.distinct("email", {"role": "admin"}) or [],
+    )
+    return {"message": "Logout success"}
 
 @router.get("/admin/stats")
 def admin_stats(current_user: dict = Depends(require_roles(Role.ADMIN))):
@@ -225,7 +288,17 @@ def update_role(
         f"User: {email}",
         f"{target_user.get('role', 'user')} -> {new_role}"
     )
-
+    emit_realtime_event(
+        {
+            "type": "user.updated",
+            "message": f"User role for '{email}' updated.",
+            "data": {
+                "email": email,
+                "role": new_role,
+            },
+        },
+        recipients=db.users.distinct("email", {"role": "admin"}) or [],
+    )
     return {"message": "Role updated"}
 
 @router.delete("/users/{email}")
@@ -239,7 +312,17 @@ def delete_user(email: str, current_user: dict = Depends(require_permission(Perm
 
     db.users.delete_one({"email": email})
     record_activity(current_user, "User deleted", f"User: {email}", f"Role: {target_user.get('role', 'user')}")
-
+    emit_realtime_event(
+        {
+            "type": "user.deleted",
+            "message": f"User '{email}' deleted.",
+            "data": {
+                "email": email,
+                "role": target_user.get("role", "user"),
+            },
+        },
+        recipients=db.users.distinct("email", {"role": "admin"}) or [],
+    )
     return {"message": "User deleted"}
 
 @router.get("/teams")

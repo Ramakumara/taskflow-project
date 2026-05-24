@@ -170,7 +170,11 @@ function initializeAdminDashboard() {
     });
     loadAdminNotifications();
     attachAdminMenuCloseHandler();
-    setInterval(loadAdminNotifications, 30000);
+    setInterval(() => {
+        if (document.documentElement.dataset.realtimeStatus !== "connected") {
+            loadAdminNotifications();
+        }
+    }, 60000);
 }
 
 async function refreshAdminData() {
@@ -3306,7 +3310,6 @@ function renderProjectCard(project) {
                     <span>${completionRate}% Complete · ${escapeHtml(project.status || "Planning")}</span>
                 </div>
                 <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-                    ${managerControl}
                     <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">Delete</button>
                 </div>
             </div>
@@ -4144,12 +4147,10 @@ function renderAdminNotifications() {
                 <div class="notification-item-meta">
                     <span class="notification-state-pill ${notification.read ? "" : "unread"}">${notification.read ? "Read" : "Unread"}</span>
                     <span class="notification-category-pill">${escapeHtml(capitalize(notification.category))}</span>
-                    <span class="notification-priority-pill ${escapeHtml(notification.priority)}">${escapeHtml(notification.priority)} priority</span>
                 </div>
                 <div class="notification-item-actions">
                     ${notification.read ? "" : `<button type="button" onclick="markAdminNotificationRead('${escapeHtml(notification.id)}', event)">Mark as read</button>`}
                     <button class="primary" type="button" onclick="openAdminNotificationTarget('${escapeHtml(notification.id)}', event)">Open ${escapeHtml(getAdminNotificationModuleLabel(notification.category))}</button>
-                    <button class="danger" type="button" onclick="clearAdminNotification('${escapeHtml(notification.id)}', event)">Clear</button>
                 </div>
             </div>
         </article>
@@ -4169,31 +4170,65 @@ function setAdminNotificationFilter(filter) {
 }
 
 async function markAdminNotificationRead(id, event) {
+
     if (event) event.stopPropagation();
+
     const token = sessionStorage.getItem("token");
     if (!id) return;
 
     try {
-        const notification = adminState.notifications.find((item) => String(item.id) === String(id));
+
+        const notification =
+            adminState.notifications.find(
+                (item) => String(item.id) === String(id)
+            );
+
         if (notification?.sourceId && token) {
-            await fetch(`${BASE_URL}/notifications/${encodeURIComponent(notification.sourceId)}/read`, {
-                method: "PUT",
-                headers: {
-                    "Authorization": "Bearer " + token
+            await fetch(
+                `${BASE_URL}/notifications/${encodeURIComponent(notification.sourceId)}/read`,
+                {
+                    method: "PUT",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    }
                 }
-            });
+            );
         }
 
-        adminState.notifications = adminState.notifications.map((notification) => (
-            String(notification.id) === String(id)
-                ? { ...notification, read: true }
-                : notification
-        ));
+        // mark read
+        adminState.notifications =
+            adminState.notifications.map((notification) => (
+                String(notification.id) === String(id)
+                    ? { ...notification, read: true }
+                    : notification
+            ));
+
         rememberAdminNotificationRead(id);
+
         updateNotificationCount();
         renderAdminNotifications();
+
+        // AUTO DELETE AFTER 60 SEC
+        setTimeout(() => {
+
+            adminState.notifications =
+                adminState.notifications.filter(
+                    (notification) =>
+                        String(notification.id) !== String(id)
+                );
+
+            rememberAdminNotificationDismissed([id]);
+
+            updateNotificationCount();
+            renderAdminNotifications();
+
+        }, 60000);
+
     } catch (error) {
-        console.error("Failed to mark notification read", error);
+        console.error(
+            "Failed to mark notification read",
+            error
+        );
     }
 }
 
@@ -4446,6 +4481,19 @@ function formatSize(size) {
     if (size < 1024 * 1024) return (size / 1024).toFixed(1) + " KB";
     return (size / (1024 * 1024)).toFixed(1) + " MB";
 }
+
+document.addEventListener("taskflow:realtime-status", (event) => {
+    if (event?.detail?.status === "connected") {
+        loadAdminNotifications();
+    }
+});
+
+document.addEventListener("taskflow:realtime", (event) => {
+    const payload = event?.detail || {};
+    if (payload.type === "admin.dashboard.updated" && payload.data) {
+        adminState.dashboardStats = payload.data;
+    }
+});
 
 window.initializeAdminDashboard = initializeAdminDashboard;
 window.handleAdminSearch = handleAdminSearch;

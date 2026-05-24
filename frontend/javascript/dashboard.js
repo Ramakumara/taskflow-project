@@ -3484,7 +3484,17 @@ async function loadNotifications() {
 
 window.addEventListener("load", loadNotifications);
 
-setInterval(loadNotifications, 5000);
+setInterval(() => {
+    if (document.documentElement.dataset.realtimeStatus !== "connected") {
+        loadNotifications();
+    }
+}, 60000);
+
+document.addEventListener("taskflow:realtime-status", (event) => {
+    if (event?.detail?.status === "connected") {
+        loadNotifications();
+    }
+});
 
 function renderNotifications() {
 

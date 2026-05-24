@@ -12,6 +12,7 @@ from routes.activity import record_activity
 from taskflow_utils import (
     add_notification,
     calculate_overall_status,
+    collect_task_recipients,
     ensure_task_assignments,
     get_visible_task_filter,
     normalize_assignment_emails,
@@ -76,6 +77,12 @@ async def _notify_task_assignment(users: list[dict], task_title: str, assigned_b
             f"You were assigned task '{task_title}'.",
             "New Task Assigned",
         )
+        if due_date:
+            add_notification(
+                user.get("email"),
+                f"Task '{task_title}' is due on {due_date}.",
+                "Due Reminder",
+            )
         try:
             await send_task_email(user["email"], task_title, assigned_by)
             if due_date:
@@ -134,6 +141,12 @@ async def create_task(
     db.task_assignments.insert_many(assignment_rows)
 
     await _notify_task_assignment(users, title, current_user.get("email"), document["due_date"])
+    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+        add_notification(
+            admin_email,
+            f"Task '{title}' was created in project '{project.get('project_name') or project.get('name')}'.",
+            "Task Created",
+        )
 
     record_activity(
         current_user,
@@ -150,7 +163,7 @@ async def create_task(
             "message": f"Task '{title}' created.",
             "data": serialized_task,
         },
-        recipients=[*assignees, current_user.get("email"), project.get("assigned_manager"), project.get("owner_email")],
+        recipients=collect_task_recipients(saved, project, extra=[current_user.get("email")]),
     )
     return {"message": "Task created successfully", "task": serialized_task}
 
@@ -194,6 +207,24 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
                 f"{current_user['email']} updated '{task.get('task_title') or task.get('title')}' to {status}.",
                 "Task Updated",
             )
+        if status == "Completed":
+            add_notification(
+                current_user.get("email"),
+                f"Task '{task.get('task_title') or task.get('title')}' is marked completed.",
+                "Task Completed",
+            )
+            if project and project.get("assigned_manager"):
+                add_notification(
+                    project["assigned_manager"],
+                    f"Task '{task.get('task_title') or task.get('title')}' was completed by {current_user['email']}.",
+                    "Task Completed",
+                )
+            for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+                add_notification(
+                    admin_email,
+                    f"Task '{task.get('task_title') or task.get('title')}' was completed by {current_user['email']}.",
+                    "Task Completed",
+                )
         record_activity(
             current_user,
             "Task updated",
@@ -208,7 +239,14 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
                 "message": f"Task '{task.get('task_title') or task.get('title')}' updated.",
                 "data": serialized_task,
             },
-            recipients=[current_user.get("email"), project.get("assigned_manager") if project else None, *(serialized_task.get("assigned_to") or [])],
+            recipients=list({
+                *collect_task_recipients(
+                    saved,
+                    project,
+                    extra=[current_user.get("email")],
+                ),
+                *(db.users.distinct("email", {"role": "admin"}) or [])
+            }),
         )
         return {"message": "Task updated", "task": serialized_task}
 
@@ -254,6 +292,13 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
                 f"You were added to task '{title or task.get('task_title') or task.get('title')}'.",
                 "Task Assignment Updated",
             )
+            due_value = _task_due_date(update) or task.get("due_date") or task.get("deadline")
+            if due_value:
+                add_notification(
+                    user["email"],
+                    f"Task '{title or task.get('task_title') or task.get('title')}' is due on {due_value}.",
+                    "Due Reminder",
+                )
         db.files.update_many(
             {"task_id": str(object_id), "source": "task_attachment"},
             {"$set": {"shared_with": assignees, "updated_at": utc_now_iso()}},
@@ -288,13 +333,23 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
     )
     saved = db.tasks.find_one({"_id": object_id})
     serialized_task = serialize_task(saved)
+    if serialized_task.get("overall_status") == "Completed":
+        for recipient in collect_task_recipients(saved, project):
+            add_notification(recipient, f"Task '{serialized_task.get('title')}' was completed.", "Task Completed")
     emit_realtime_event(
         {
             "type": "task.updated",
             "message": f"Task '{serialized_task.get('title')}' updated.",
             "data": serialized_task,
         },
-        recipients=[current_user.get("email"), project.get("assigned_manager"), project.get("owner_email"), *(serialized_task.get("assigned_to") or [])],
+        recipients=list({
+            *collect_task_recipients(
+                saved,
+                project,
+                extra=[current_user.get("email")],
+            ),
+            *(db.users.distinct("email", {"role": "admin"}) or [])
+        }),
     )
     return {"message": "Task updated successfully", "task": serialized_task}
 
@@ -369,7 +424,7 @@ def add_task_comment(
             "message": f"New comment added to '{serialized_task.get('title')}'.",
             "data": serialized_task,
         },
-        recipients=[current_user.get("email"), *(serialized_task.get("assigned_to") or [])],
+        recipients=collect_task_recipients(saved, extra=[current_user.get("email")]),
     )
     return {"message": "Comment added", "task": serialized_task}
 
@@ -428,22 +483,35 @@ async def upload_task_attachment(
     )
     record_activity(
         current_user,
-        "Task attachment uploaded",
+        "File uploaded",
         f"Task: {task.get('task_title') or task.get('title')}",
         file.filename,
     )
+    for assignee in normalize_assignment_emails(task.get("assigned_users") or task.get("assigned_to") or []):
+        if assignee != current_user.get("email"):
+            add_notification(
+                assignee,
+                f"File '{file.filename}' was shared on task '{task.get('task_title') or task.get('title')}'.",
+                "File Shared",
+            )
+    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+        add_notification(
+            admin_email,
+            f"File '{file.filename}' was uploaded to task '{task.get('task_title') or task.get('title')}'.",
+            "File Uploaded",
+        )
     saved = db.tasks.find_one({"_id": object_id})
     serialized_task = serialize_task(saved)
     emit_realtime_event(
         {
-            "type": "task.attachment.created",
+            "type": "file.uploaded",
             "message": f"Attachment added to '{serialized_task.get('title')}'.",
             "data": {
                 "task": serialized_task,
                 "attachment": attachment,
             },
         },
-        recipients=[current_user.get("email"), *(serialized_task.get("assigned_to") or [])],
+        recipients=collect_task_recipients(saved, extra=[current_user.get("email")]),
     )
     return {"message": "Attachment uploaded", "task": serialized_task, "attachment": attachment}
 
@@ -529,11 +597,6 @@ def delete_task(
             "message": f"Task '{serialized_task.get('title')}' deleted.",
             "data": serialized_task,
         },
-        recipients=[
-            current_user.get("email"),
-            project.get("assigned_manager"),
-            project.get("owner_email"),
-            *(serialized_task.get("assigned_to") or []),
-        ],
+        recipients=collect_task_recipients(task, project, extra=[current_user.get("email")]),
     )
     return {"message": "Task deleted"}

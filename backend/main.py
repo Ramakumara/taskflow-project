@@ -1,21 +1,30 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+import json
+import os
+
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-import os
 from routes import user, project, task, file, activity
 from auth_utils import router as auth_router
 from auth.google_oauth import init_oauth
 from routes.google_auth import router as google_router
 from starlette.middleware.sessions import SessionMiddleware
-from fastapi import WebSocket, WebSocketDisconnect
 from websocket_manager import manager
 from routes.notifications import router as notification_router
+from auth_utils import verify_token
+from database import db
 
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await manager.startup()
+    yield
+    await manager.shutdown()
 
-clients = []
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -155,16 +164,73 @@ def test_session(request: Request):
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
 
-    await websocket.accept()
-    clients.append(websocket)
+    payload = verify_token(token)
+    if not payload:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    user_email = str(payload.get("email") or "").strip().lower()
+    if not user_email:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    user = db.users.find_one(
+        {"email": user_email},
+        {"_id": 0, "email": 1, "username": 1, "role": 1},
+    )
+    if not user:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    connection = await manager.connect(websocket, user)
+
+    await manager.send_to_user(
+        user_email,
+        {
+            "type": "system.connected",
+            "message": "Realtime connected",
+            "data": {
+                "connection_id": connection["connection_id"],
+                "email": user_email,
+                "role": user.get("role"),
+            },
+        }
+    )
 
     try:
         while True:
             data = await websocket.receive_text()
+            await manager.touch(websocket)
 
-            for client in clients:
-                await client.send_text(data)
+            try:
+                incoming = json.loads(data)
+                event_type = str(incoming.get("type") or "").strip().lower()
+                if event_type in {"system.ping", "ping", "heartbeat"}:
+                    await manager.send_to_user(
+                        user_email,
+                        {
+                            "type": "system.pong",
+                            "message": "Heartbeat acknowledged",
+                            "data": {
+                                "connection_id": connection["connection_id"],
+                            },
+                        }
+                    )
+            except Exception:
+                pass
 
     except WebSocketDisconnect:
-        clients.remove(websocket)
+        await manager.disconnect(websocket, user_email)
+    except Exception:
+        await manager.disconnect(websocket, user_email)
+        try:
+            await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
+        except Exception:
+            pass
+    finally:
+        await manager.disconnect(websocket, user_email)
