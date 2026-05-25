@@ -1,12 +1,12 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from routes import user, project, task, file, activity
 from auth_utils import router as auth_router
 from auth.google_oauth import init_oauth
 from routes.google_auth import router as google_router
-from starlette.middleware.sessions import SessionMiddleware
 from websocket_manager import manager
 from routes.notifications import router as notification_router
 from auth_utils import verify_token

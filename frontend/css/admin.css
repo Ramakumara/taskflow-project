@@ -4685,3 +4685,33 @@ body {
         padding-right: 18px;
     }
 }
+
+/* Remove duplicate wrapper edge borders across admin views */
+.common-content-card,
+.data-panel,
+.panel,
+.table-panel,
+.deadlines-panel {
+    border-color: transparent !important;
+}
+
+/* Flatten inner grid-table corners */
+.grid-table-ui thead th:first-child,
+.grid-table-ui thead th:last-child,
+.grid-table-ui tbody tr:last-child td:first-child,
+.grid-table-ui tbody tr:last-child td:last-child {
+    border-radius: 0 !important;
+}
+
+/* Box-style shared admin wrappers */
+.common-toolbar,
+.common-content-card {
+    border-radius: 10px !important;
+}
+
+.common-search-box,
+.common-filter-select,
+.common-action-btn,
+.common-toolbar .admin-activity-date-control .action-btn {
+    border-radius: 10px !important;
+}

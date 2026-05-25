@@ -11153,3 +11153,46 @@ body.dashboard-theme-dark .dashboard-profile-card {
   background-color: #333;
   transform: none;
 }
+
+/* Remove duplicate wrapper edge borders across dashboard/user/manager views */
+.common-content-card,
+.common-toolbar,
+.dashboard .data-panel,
+.dashboard .panel,
+.dashboard .table-panel,
+.dashboard .deadlines-panel {
+  border-color: transparent !important;
+}
+
+.common-content-card:hover {
+  border-color: transparent !important;
+}
+
+/* Flatten inner grid-table corners */
+.grid-table-ui thead th:first-child,
+.grid-table-ui thead th:last-child,
+.grid-table-ui tbody tr:last-child td:first-child,
+.grid-table-ui tbody tr:last-child td:last-child {
+  border-radius: 0 !important;
+}
+
+/* Box-style shared dashboard wrappers */
+.common-toolbar,
+.common-content-card {
+  border-radius: 10px !important;
+}
+
+.common-toolbar .team-search,
+.common-toolbar .task-board-filter,
+.common-toolbar .team-filter-select,
+.common-toolbar .category-dropdown-btn,
+.common-toolbar .storage-dropdown-btn,
+.common-toolbar .files-sort,
+.common-toolbar .activity-log-date-btn,
+.common-toolbar .report-date-btn,
+.common-toolbar .settings-select,
+.common-toolbar .profile-list-button,
+.common-toolbar .calendar-year-select,
+.common-toolbar .calendar-nav-btn {
+  border-radius: 10px !important;
+}
