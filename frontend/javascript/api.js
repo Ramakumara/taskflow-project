@@ -2,6 +2,7 @@ const BASE_URL = window.location.origin;
 let socket = null;
 let socketReconnectTimer = null;
 let socketHeartbeatTimer = null;
+const recentRealtimeToastCache = new Map();
 const realtimeState = {
     connected: false,
     reconnectAttempts: 0,
@@ -139,11 +140,79 @@ function handleRealtimeMessage(raw) {
         return;
     }
 
-    if (payload.type === "notification.created" && payload.message) {
-        showNotification(payload.message, "success");
-    }
+    showRealtimeToast(payload);
 
     refreshRealtimeViews(payload);
+}
+
+function getRealtimeToastMeta(payload) {
+    const type = String(payload?.type || "").toLowerCase();
+
+    if (type === "notification.created") {
+        return {
+            title: "New Notification",
+            level: "success"
+        };
+    }
+
+    if (type.startsWith("task.")) {
+        return {
+            title: "Task Update",
+            level: type.includes("deleted") ? "warning" : "success"
+        };
+    }
+
+    if (type.startsWith("project.")) {
+        return {
+            title: "Project Update",
+            level: type.includes("deleted") ? "warning" : "success"
+        };
+    }
+
+    if (type.startsWith("file.")) {
+        return {
+            title: "File Update",
+            level: "info"
+        };
+    }
+
+    if (type.startsWith("user.")) {
+        return {
+            title: "User Update",
+            level: "info"
+        };
+    }
+
+    return null;
+}
+
+function showRealtimeToast(payload) {
+    const meta = getRealtimeToastMeta(payload);
+    const message = String(payload?.message || "").trim();
+
+    if (!meta || !message) {
+        return;
+    }
+
+    const cacheKey = `${String(payload?.type || "").toLowerCase()}|${message}`;
+    const now = Date.now();
+    const lastShownAt = recentRealtimeToastCache.get(cacheKey) || 0;
+
+    if (now - lastShownAt < 4000) {
+        return;
+    }
+
+    recentRealtimeToastCache.set(cacheKey, now);
+
+    if (recentRealtimeToastCache.size > 50) {
+        for (const [key, shownAt] of recentRealtimeToastCache.entries()) {
+            if (now - shownAt > 15000) {
+                recentRealtimeToastCache.delete(key);
+            }
+        }
+    }
+
+    showNotification(message, meta.level, meta.title);
 }
 
 function refreshRealtimeViews(payload) {
@@ -334,20 +403,26 @@ document.addEventListener("visibilitychange", () => {
     }
 });
 
-function showNotification(message, type = "success") {
+function showNotification(message, type = "success", title = "TaskFlow Notification") {
+
+    const normalizedType = ["success", "error", "warning", "info"].includes(type) ? type : "success";
 
     const notification = document.createElement("div");
 
-    notification.className = `taskflow-notification ${type}`;
+    notification.className = `taskflow-notification ${normalizedType}`;
 
     let icon = "fa-circle-check";
 
-    if (type === "error") {
+    if (normalizedType === "error") {
         icon = "fa-circle-xmark";
     }
 
-    if (type === "warning") {
+    if (normalizedType === "warning") {
         icon = "fa-triangle-exclamation";
+    }
+
+    if (normalizedType === "info") {
+        icon = "fa-bell";
     }
 
     notification.innerHTML = `
@@ -356,7 +431,7 @@ function showNotification(message, type = "success") {
         </div>
 
         <div class="notification-content">
-            <h4>TaskFlow Notification</h4>
+            <h4>${title}</h4>
             <p>${message}</p>
         </div>
 
