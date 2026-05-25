@@ -2007,8 +2007,8 @@ async function submitAddUser(event) {
         adminUserFilters.page = 1;
         closeAddUserModal();
         renderUsersView();
-        showNotification(`User created. Temporary password: ${data.temporary_password}`);
-        alert(`User created successfully.\nTemporary password: ${data.temporary_password}`);
+        showNotification("User created and temporary password sent by email.");
+        alert("User created successfully.\nA temporary password was sent to the user's email.");
     } catch (error) {
         adminState.isCreatingUser = false;
         renderUsersView();
@@ -4860,14 +4860,16 @@ function renderProjectCard(project) {
                     </div>
                 </div>
                 <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-                    <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">Delete</button>
                 </div>
                 <div class="project-card-footer">
                     <span>Created: ${escapeHtml(getAdminProjectCreatedDate(project))}</span>
-                    <button class="project-card-cta" type="button" onclick="event.stopPropagation(); openAdminProjectWorkspace('${escapeHtml(project.id)}')">
-                        <span>View Details</span>
-                        <i class="fas fa-arrow-right"></i>
-                    </button>
+                    <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+                        <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">Delete</button>
+                        <button class="project-card-cta" type="button" onclick="event.stopPropagation(); openAdminProjectWorkspace('${escapeHtml(project.id)}')">
+                            <span>View Details</span>
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </article>

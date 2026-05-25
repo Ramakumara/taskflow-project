@@ -1714,7 +1714,7 @@ function applyDashboardRoleVisibility() {
     }
 
     if (teamMenu) {
-        teamMenu.style.display = isUser ? "none" : "";
+        teamMenu.style.display = "";
     }
 
     if (activityExportCard) {

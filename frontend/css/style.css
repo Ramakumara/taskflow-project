@@ -6240,9 +6240,11 @@ button {
 .workspace-title-row h1,
 .report-header h2 {
     color: var(--tf-text);
-    font-size: 24px;
-    line-height: 1.2;
-    letter-spacing: 0;
+    font-family: var(--tf-font);
+    font-size: clamp(28px, 2vw, 34px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
 }
 
 .dashboard .section-head p,
@@ -6913,8 +6915,11 @@ button {
 .profile-page-title,
 .workspace-title-row h1,
 .report-header h2 {
-    font-size: 24px;
-    font-weight: 750;
+    font-family: var(--tf-font);
+    font-size: clamp(28px, 2vw, 34px);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
 }
 
 .dashboard .section-head p {
@@ -9457,6 +9462,7 @@ button {
 .common-page-title h3 {
     margin: 0;
     color: #132038;
+    font-family: var(--tf-font);
     font-size: clamp(28px, 2vw, 34px);
     line-height: 1.08;
     font-weight: 800;

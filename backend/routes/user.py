@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Body, Query
 from database import db
 from models.users import UserRegister, UserLogin, AdminCreateUser
 from passlib.context import CryptContext
-from auth_utils import create_access_token
+from auth_utils import create_access_token, send_account_creation_email
 from fastapi import Depends
 from auth_utils import get_current_user
 from routes.activity import record_activity
@@ -96,7 +96,7 @@ def register(user: UserRegister):
     return {"message": "User registered"}
 
 @router.post("/admin/users")
-def admin_create_user(
+async def admin_create_user(
     user: AdminCreateUser,
     current_user: dict = Depends(require_roles(Role.ADMIN))
 ):
@@ -123,7 +123,22 @@ def admin_create_user(
         "role": normalized_role
     }
 
-    db.users.insert_one(new_user)
+    inserted = db.users.insert_one(new_user)
+
+    try:
+        await send_account_creation_email(
+            new_user["email"],
+            new_user["username"],
+            temporary_password,
+            new_user["role"],
+        )
+    except Exception:
+        db.users.delete_one({"_id": inserted.inserted_id})
+        raise HTTPException(
+            status_code=500,
+            detail="User could not be created because the welcome email failed to send"
+        )
+
     record_activity(
         current_user,
         "User created",

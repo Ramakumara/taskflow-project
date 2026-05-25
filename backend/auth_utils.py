@@ -361,3 +361,59 @@ async def send_project_assignment_email(
 
     fm = FastMail(conf)
     await fm.send_message(message)
+
+
+async def send_account_creation_email(
+    email: str,
+    username: str,
+    temporary_password: str,
+    role: str,
+):
+    message = MessageSchema(
+        subject="Welcome to TaskFlow - Your Temporary Password",
+        recipients=[email],
+        body=f"""
+        <div style="font-family:Arial,sans-serif;padding:20px;color:#172033;">
+            <h2 style="color:#16a34a;margin:0 0 16px;">Your TaskFlow account is ready</h2>
+
+            <p>Hello {username or "there"},</p>
+
+            <p>An administrator created a TaskFlow account for you.</p>
+
+            <div style="
+                background:#f8fafc;
+                border:1px solid #dbe4ef;
+                border-radius:10px;
+                padding:16px;
+                margin:16px 0;
+            ">
+                <p style="margin:0 0 8px;"><b>Email:</b> {email}</p>
+                <p style="margin:0 0 8px;"><b>Role:</b> {role}</p>
+                <p style="margin:0;"><b>Temporary Password:</b> {temporary_password}</p>
+            </div>
+
+            <p>Please sign in and change this password as soon as possible.</p>
+
+            <a href="http://127.0.0.1:8000/"
+               style="
+                   display:inline-block;
+                   background:#16a34a;
+                   color:white;
+                   padding:10px 16px;
+                   text-decoration:none;
+                   border-radius:8px;
+                   font-weight:700;
+               ">
+               Open TaskFlow
+            </a>
+
+            <p style="margin-top:20px;font-size:12px;color:#667085;">
+                This is an automated message from TaskFlow.
+            </p>
+        </div>
+        """,
+        subtype="html"
+    )
+
+    fm = FastMail(conf)
+    await fm.send_message(message)
