@@ -1,7 +1,3 @@
-from contextlib import asynccontextmanager
-import json
-import os
-
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -15,6 +11,9 @@ from websocket_manager import manager
 from routes.notifications import router as notification_router
 from auth_utils import verify_token
 from database import db
+from contextlib import asynccontextmanager
+import json
+import os
 
 
 @asynccontextmanager

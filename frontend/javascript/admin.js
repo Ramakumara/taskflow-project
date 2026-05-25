@@ -232,8 +232,21 @@ function setProfileAvatar() {
 }
 
 function handleAdminSearch(event) {
-    adminState.searchTerm = (event.target.value || "").trim().toLowerCase();
-    renderCurrentSection();
+    adminState.searchTerm = (event.target.value || "").toLowerCase();
+
+    if (adminState.currentSection === "tasks") {
+        renderTasksView();
+    } else if (adminState.currentSection === "projects") {
+        renderProjectsView();
+    }
+
+    setTimeout(() => {
+        const input = document.getElementById("adminTasksPageSearch");
+        if (input) {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
+    }, 0);
 }
 
 function setActiveNav(section) {
@@ -1288,6 +1301,14 @@ function toggleAdminTeamProject(projectId) {
 function setAdminTeamSearch(value) {
     adminTeamFilters.searchTerm = String(value || "");
     renderTeamView();
+
+    setTimeout(() => {
+        const input = document.getElementById("adminTeamSearch");
+        if (input) {
+            input.focus();
+            input.setSelectionRange(input.value.length, input.value.length);
+        }
+    }, 0);
 }
 
 function setAdminTeamProjectFilter(value) {
@@ -3250,10 +3271,23 @@ function sortAdminFiles(a, b, sortKey) {
     return new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0);
 }
 
-function setAdminFileSearch(value) {
-    adminFileFilters.searchTerm = String(value || "");
+async function setAdminFileSearch(value) {
+    adminFileFilters.searchTerm = String(value || "").trim().toLowerCase();
     adminFileFilters.page = 1;
-    renderFilesView();
+
+    // wait until files UI finishes rendering
+    await renderFilesView();
+
+    const input = document.getElementById("adminFilesSearch");
+
+    if (input) {
+        input.focus();
+
+        // restore text and cursor
+        input.value = adminFileFilters.searchTerm;
+        const pos = input.value.length;
+        input.setSelectionRange(pos, pos);
+    }
 }
 
 function setAdminFileCategoryFilter(value) {
