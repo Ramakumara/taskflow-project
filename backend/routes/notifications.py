@@ -12,9 +12,32 @@ router = APIRouter()
 
 @router.get("/notifications")
 async def get_notifications(current_user: dict = Depends(get_current_user)):
-    query = {}
+    now = datetime.utcnow()
+    legacy_cutoff = now - timedelta(minutes=60)
+    query = {
+        "$nor": [
+            {"expires_at": {"$lte": now}},
+            {
+                "$and": [
+                    {"read": True},
+                    {
+                        "$or": [
+                            {"expires_at": {"$exists": False}},
+                            {"expires_at": None},
+                        ]
+                    },
+                    {"created_at": {"$lte": legacy_cutoff}},
+                ]
+            }
+        ]
+    }
     if current_user.get("role") != "admin":
-        query = {"$or": [{"email": current_user["email"]}, {"user_id": current_user["email"]}]}
+        query = {
+            "$and": [
+                query,
+                {"$or": [{"email": current_user["email"]}, {"user_id": current_user["email"]}]}
+            ]
+        }
 
     notifications = list(
         db.notifications.find(
@@ -44,6 +67,9 @@ async def mark_notification_read(
     if current_user.get("role") != "admin" and owner != current_user.get("email"):
         raise HTTPException(status_code=403, detail="Access denied")
 
+    read_at = datetime.utcnow()
+    expires_at = read_at + timedelta(minutes=60)
+
     result = db.notifications.update_one(
 
         {
@@ -52,9 +78,10 @@ async def mark_notification_read(
 
         {
             "$set": {
-                "read": True
-                ,
-                "is_read": True
+                "read": True,
+                "is_read": True,
+                "read_at": read_at,
+                "expires_at": expires_at,
             }
         }
     )
@@ -82,15 +109,19 @@ async def mark_all_notifications_read(
     if current_user.get("role") != "admin":
         query["$or"] = [{"email": current_user["email"]}, {"user_id": current_user["email"]}]
 
+    read_at = datetime.utcnow()
+    expires_at = read_at + timedelta(minutes=60)
+
     result = db.notifications.update_many(
 
         query,
 
         {
             "$set": {
-                "read": True
-                ,
-                "is_read": True
+                "read": True,
+                "is_read": True,
+                "read_at": read_at,
+                "expires_at": expires_at,
             }
         }
     )
@@ -114,15 +145,29 @@ async def mark_all_notifications_read(
 
 @router.delete("/notifications/cleanup")
 async def cleanup_notifications(current_user: dict = Depends(require_roles(Role.ADMIN))):
-    one_hour_ago = datetime.utcnow() - timedelta(minutes=60)
+    now = datetime.utcnow()
+    legacy_cutoff = now - timedelta(minutes=60)
 
     db.notifications.delete_many({
-
-        "read": True,
-
-        "created_at": {
-            "$lte": one_hour_ago
-        }
+        "$or": [
+            {
+                "expires_at": {
+                    "$lte": now
+                }
+            },
+            {
+                "$and": [
+                    {"read": True},
+                    {
+                        "$or": [
+                            {"expires_at": {"$exists": False}},
+                            {"expires_at": None},
+                        ]
+                    },
+                    {"created_at": {"$lte": legacy_cutoff}},
+                ]
+            }
+        ]
     })
 
     return {

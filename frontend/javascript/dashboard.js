@@ -1,5 +1,6 @@
 let allNotifications = [];
 let currentFilter = "all";
+let notificationClock = null;
 
 const params = new URLSearchParams(window.location.search);
 
@@ -3359,6 +3360,8 @@ async function initializeDashboardPage() {
         applySettingsPreferences();
     }
 
+    startNotificationClock();
+
     applyDashboardRoleVisibility();
 
     let defaultView = sessionStorage.getItem("settings.defaultView") || "dashboard";
@@ -3395,16 +3398,6 @@ document.addEventListener("click", function () {
 async function loadNotifications() {
 
     const token = sessionStorage.getItem("token");
-    const role = sessionStorage.getItem("role");
-
-    if (token && role === "admin") {
-        await fetch(`${BASE_URL}/notifications/cleanup`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": "Bearer " + token
-            }
-        });
-    }
 
     try {
 
@@ -3551,6 +3544,9 @@ function renderNotifications() {
     }
 
     filtered.forEach(notification => {
+        const rawTime = notification.time || notification.created_at;
+        const exactTime = formatNotificationTime(rawTime);
+        const liveTime = formatNotificationTimeAgo(rawTime);
 
         list.innerHTML += `
         
@@ -3567,8 +3563,8 @@ function renderNotifications() {
 
                 <p>${notification.message}</p>
 
-                <small>
-                    ${formatNotificationTime(notification.time)}
+                <small title="${exactTime}">
+                    ${liveTime}
                 </small>
 
             </div>
@@ -3686,8 +3682,8 @@ async function markAllNotificationsRead(event) {
 }
 
 function formatNotificationTime(timeString) {
-
-    const date = new Date(timeString);
+    const date = parseNotificationDate(timeString);
+    if (Number.isNaN(date.getTime())) return "Just now";
 
     return date.toLocaleString("en-IN", {
 
@@ -3705,4 +3701,41 @@ function formatNotificationTime(timeString) {
 
         hour12: true
     });
+}
+
+function formatNotificationTimeAgo(timeString) {
+    const date = parseNotificationDate(timeString);
+    if (Number.isNaN(date.getTime())) return "Just now";
+
+    const seconds = Math.max(Math.floor((Date.now() - date.getTime()) / 1000), 0);
+    if (seconds < 60) return "Just now";
+
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
+
+    return formatNotificationTime(timeString);
+}
+
+function parseNotificationDate(value) {
+    if (value instanceof Date) return value;
+    const raw = String(value || "").trim();
+    if (!raw) return new Date("");
+    const normalized = /(?:z|[+\-]\d{2}:\d{2})$/i.test(raw) ? raw : `${raw}Z`;
+    return new Date(normalized);
+}
+
+function startNotificationClock() {
+    if (notificationClock) return;
+    notificationClock = window.setInterval(() => {
+        const list = document.getElementById("notification-list");
+        if (list && !list.querySelector(".notification-empty")) {
+            renderNotifications();
+        }
+    }, 30000);
 }

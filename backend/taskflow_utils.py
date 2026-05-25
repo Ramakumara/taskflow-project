@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import re
 from typing import Iterable, List, Optional
 
@@ -36,7 +36,15 @@ PRIORITY_MAP = {
 
 
 def utc_now_iso() -> str:
-    return datetime.utcnow().isoformat()
+    return datetime.now(timezone.utc).isoformat()
+
+
+def ensure_utc_datetime(value):
+    if not hasattr(value, "isoformat"):
+        return value
+    if getattr(value, "tzinfo", None) is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 def safe_object_id(value: str) -> Optional[ObjectId]:
@@ -100,10 +108,16 @@ def get_manager_emails() -> list[str]:
 
 
 def serialize_notification(doc: dict) -> dict:
-    created_at = doc.get("created_at")
+    created_at = ensure_utc_datetime(doc.get("created_at"))
     time_value = doc.get("time")
+    expires_at = ensure_utc_datetime(doc.get("expires_at"))
+    read_at = ensure_utc_datetime(doc.get("read_at"))
     if hasattr(created_at, "isoformat"):
         created_at = created_at.isoformat()
+    if hasattr(expires_at, "isoformat"):
+        expires_at = expires_at.isoformat()
+    if hasattr(read_at, "isoformat"):
+        read_at = read_at.isoformat()
     if not time_value:
         time_value = created_at or utc_now_iso()
     return {
@@ -115,6 +129,8 @@ def serialize_notification(doc: dict) -> dict:
         "read": bool(doc.get("read", doc.get("is_read", False))),
         "time": time_value,
         "created_at": created_at or time_value,
+        "read_at": read_at,
+        "expires_at": expires_at,
     }
 
 
@@ -412,7 +428,7 @@ def add_notification(user_id: Optional[str], message: str, title: str = "TaskFlo
     if not user_id:
         return None
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     document = {
         "user_id": user_id,
         "email": user_id,

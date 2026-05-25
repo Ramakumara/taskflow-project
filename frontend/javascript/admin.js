@@ -42,6 +42,7 @@ let projectStatusChart = null;
 let taskOverviewChart = null;
 let adminReportStatusChart = null;
 let adminReportProjectChart = null;
+let adminNotificationClock = null;
 
 const adminReportState = {
     startDate: "",
@@ -165,6 +166,7 @@ function getTaskMemberStatusSearchText(task) {
 function initializeAdminDashboard() {
     setProfileAvatar();
     applyAdminSettingsPreferences();
+    startAdminNotificationClock();
     refreshAdminData().then(() => {
         renderCurrentSection();
     });
@@ -4043,7 +4045,7 @@ function buildAdminNotificationFeed(rawNotifications) {
         .sort((first, second) => {
             const priorityDelta = notificationPriorityWeight(second.priority) - notificationPriorityWeight(first.priority);
             if (priorityDelta !== 0) return priorityDelta;
-            return safeTime(second.createdAt) - safeTime(first.createdAt);
+            return getNotificationTimeValue(second.createdAt) - getNotificationTimeValue(first.createdAt);
         })
         .slice(0, 40);
 
@@ -4556,7 +4558,7 @@ function renderAdminNotifications() {
                     <p>${escapeHtml(notification.message || "")}</p>
                 </div>
                 ${notification.relatedName ? `<div class="notification-item-target">${escapeHtml(notification.relatedName)}</div>` : ""}
-                <span class="notification-item-time">${escapeHtml(formatAdminNotificationTime(notification.createdAt))}</span>
+                <span class="notification-item-time" title="${escapeHtml(formatAdminNotificationTime(notification.createdAt))}">${escapeHtml(formatAdminNotificationTimeAgo(notification.createdAt))}</span>
                 <div class="notification-item-meta">
                     <span class="notification-state-pill ${notification.read ? "" : "unread"}">${notification.read ? "Read" : "Unread"}</span>
                     <span class="notification-category-pill">${escapeHtml(capitalize(notification.category))}</span>
@@ -4621,7 +4623,7 @@ async function markAdminNotificationRead(id, event) {
         updateNotificationCount();
         renderAdminNotifications();
 
-        // AUTO DELETE AFTER 60 SEC
+        // Auto remove from the open panel after 60 minutes.
         setTimeout(() => {
 
             adminState.notifications =
@@ -4635,7 +4637,7 @@ async function markAdminNotificationRead(id, event) {
             updateNotificationCount();
             renderAdminNotifications();
 
-        }, 60000);
+        }, 60 * 60 * 1000);
 
     } catch (error) {
         console.error(
@@ -4748,7 +4750,7 @@ function getAdminNotificationModuleLabel(category) {
 
 function formatAdminNotificationTime(value) {
     if (!value) return "Just now";
-    const date = new Date(value);
+    const date = parseNotificationDate(value);
     if (Number.isNaN(date.getTime())) return String(value);
 
     return date.toLocaleString("en-IN", {
@@ -4764,7 +4766,7 @@ function formatAdminNotificationTime(value) {
 
 function formatAdminNotificationTimeAgo(value) {
     if (!value) return "Just now";
-    const date = new Date(value);
+    const date = parseNotificationDate(value);
     if (Number.isNaN(date.getTime())) return "Just now";
 
     const seconds = Math.max(Math.floor((Date.now() - date.getTime()) / 1000), 0);
@@ -4780,6 +4782,29 @@ function formatAdminNotificationTimeAgo(value) {
     if (days < 7) return `${days} day${days === 1 ? "" : "s"} ago`;
 
     return formatAdminNotificationTime(value);
+}
+
+function parseNotificationDate(value) {
+    if (value instanceof Date) return value;
+    const raw = String(value || "").trim();
+    if (!raw) return new Date("");
+    const normalized = /(?:z|[+\-]\d{2}:\d{2})$/i.test(raw) ? raw : `${raw}Z`;
+    return new Date(normalized);
+}
+
+function getNotificationTimeValue(value) {
+    const date = parseNotificationDate(value);
+    return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+function startAdminNotificationClock() {
+    if (adminNotificationClock) return;
+    adminNotificationClock = window.setInterval(() => {
+        const list = document.getElementById("adminNotificationList");
+        if (list && !list.querySelector(".notification-empty")) {
+            renderAdminNotifications();
+        }
+    }, 30000);
 }
 
 function getAdminProjectDateRange(project) {
