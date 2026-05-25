@@ -780,6 +780,9 @@ async function loadUsers() {
 async function createTask() {
     const token = sessionStorage.getItem("token");
     const role = sessionStorage.getItem("role");
+    const submitButton = document.getElementById("dashboardTaskSubmitButton");
+    const submitLabel = submitButton?.querySelector("span");
+    const submitIcon = submitButton?.querySelector("i");
 
     if (role !== "manager" && role !== "admin") {
         alert("Only manager or admin can create tasks");
@@ -809,62 +812,86 @@ async function createTask() {
         return;
     }
 
-    const res = await fetch(`${BASE_URL}/tasks`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token
-        },
-        body: JSON.stringify({
-            title,
-            task_title: title,
-            project_id,
-            description,
-            priority,
-            assigned_to,
-            assigned_users: assigned_to,
-            status: "Pending",
-            deadline,
-            due_date: deadline
-        })
-    });
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.classList.add("is-loading");
+    }
+    if (submitLabel) {
+        submitLabel.textContent = "Assigning...";
+    }
+    if (submitIcon) {
+        submitIcon.className = "fas fa-plus";
+    }
 
-    const data = await res.json().catch(() => ({}));
-    alert(data?.message || data?.detail || (res.ok ? "Task created" : "Unable to create task"));
-    if (!res.ok) return;
+    try {
+        const res = await fetch(`${BASE_URL}/tasks`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                title,
+                task_title: title,
+                project_id,
+                description,
+                priority,
+                assigned_to,
+                assigned_users: assigned_to,
+                status: "Pending",
+                deadline,
+                due_date: deadline
+            })
+        });
 
-    if (attachments.length && data?.task?.id) {
-        for (const file of attachments) {
-            const formData = new FormData();
-            formData.append("file", file);
-            await fetch(`${BASE_URL}/tasks/${encodeURIComponent(data.task.id)}/attachments`, {
-                method: "POST",
-                headers: {
-                    "Authorization": "Bearer " + token
-                },
-                body: formData
-            });
+        const data = await res.json().catch(() => ({}));
+        alert(data?.message || data?.detail || (res.ok ? "Task created" : "Unable to create task"));
+        if (!res.ok) return;
+
+        if (attachments.length && data?.task?.id) {
+            for (const file of attachments) {
+                const formData = new FormData();
+                formData.append("file", file);
+                await fetch(`${BASE_URL}/tasks/${encodeURIComponent(data.task.id)}/attachments`, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    },
+                    body: formData
+                });
+            }
+        }
+        sendRealtimeMessage({ type: "client.task.created", data: { title } });
+        document.getElementById("task-title").value = "";
+        document.getElementById("task-description").value = "";
+        document.querySelectorAll("#assigned-to-list input:checked").forEach(input => {
+            input.checked = false;
+        });
+        const search = document.getElementById("assigned-user-search");
+        if (search) search.value = "";
+        filterDashboardTaskAssignees("");
+        document.getElementById("deadline").value = "";
+        document.getElementById("task-priority").value = "Medium";
+        document.getElementById("task-attachments").value = "";
+        document.getElementById("project-select").value = "";
+
+
+        loadProjects();
+        if (typeof loadAllTasks === "function") loadAllTasks();
+        if (typeof loadProjectWorkspace === "function") loadProjectWorkspace();
+        document.getElementById("create-section").classList.add("hidden");
+    } finally {
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.classList.remove("is-loading");
+        }
+        if (submitLabel) {
+            submitLabel.textContent = "Assign Task";
+        }
+        if (submitIcon) {
+            submitIcon.className = "fas fa-plus";
         }
     }
-    sendRealtimeMessage({ type: "client.task.created", data: { title } });
-    document.getElementById("task-title").value = "";
-    document.getElementById("task-description").value = "";
-    document.querySelectorAll("#assigned-to-list input:checked").forEach(input => {
-        input.checked = false;
-    });
-    const search = document.getElementById("assigned-user-search");
-    if (search) search.value = "";
-    filterDashboardTaskAssignees("");
-    document.getElementById("deadline").value = "";
-    document.getElementById("task-priority").value = "Medium";
-    document.getElementById("task-attachments").value = "";
-    document.getElementById("project-select").value = "";
-
-
-    loadProjects();
-    if (typeof loadAllTasks === "function") loadAllTasks();
-    if (typeof loadProjectWorkspace === "function") loadProjectWorkspace();
-    document.getElementById("create-section").classList.add("hidden");
 }
 
 function filterDashboardTaskAssignees(value) {

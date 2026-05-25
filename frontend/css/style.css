@@ -2176,6 +2176,14 @@ select option[value="done"] {
     background: linear-gradient(135deg, #1ba955, #179c48);
 }
 
+.dashboard-task-submit-btn:disabled,
+.dashboard-task-submit-btn.is-loading {
+    cursor: not-allowed;
+    opacity: 0.95;
+    background: linear-gradient(135deg, #22c55e, #20b864);
+    box-shadow: none;
+}
+
 .dashboard input,
 .dashboard select {
     border: 1px solid #dfe6f1;
