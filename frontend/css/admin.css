@@ -3034,13 +3034,14 @@ body {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #d1fae5, #34d399);
-    color: #064e3b;
+    background: #16a34a;
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
     font-weight: 900;
+    box-shadow: none;
 }
 
 .admin-task-name {
@@ -3277,13 +3278,41 @@ body {
     width: 28px;
     height: 28px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #34d399, var(--brand-green));
+    background: #16a34a;
     color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
     font-weight: 800;
+    box-shadow: none;
+}
+
+.admin-user-cell {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-user-cell > span:last-child {
+    color: #172033;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.status-chip {
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #ecfdf3;
+    color: #16a34a;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1px solid #bbf7d0;
+    white-space: nowrap;
 }
 
 @media (max-width: 720px) {
@@ -4167,6 +4196,17 @@ body {
     width: var(--admin-control-height);
     min-width: var(--admin-control-height);
     padding: 0;
+    background: #ecfdf3;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+    box-shadow: none;
+}
+
+.action-btn.common-icon-btn:hover {
+    background: #dcfce7;
+    color: #15803d;
+    border-color: #86efac;
+    box-shadow: none;
 }
 
 .common-content-card {

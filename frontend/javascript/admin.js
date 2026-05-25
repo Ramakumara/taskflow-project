@@ -541,8 +541,7 @@ function renderDashboardView() {
                     ${renderCommonContentCard(`
                         <div class="project-board-head common-section-head">
                             <div>
-                                <h3>Projects Overview</h3>
-                                <p>Open a workspace, assign ownership, and keep every project on track.</p>
+                                <h3>Projects</h3>
                             </div>
                         </div>
                         <div class="admin-project-grid">
@@ -740,26 +739,6 @@ function renderAdminProjectModal() {
                                         `;
                                     }).join("") : `<div class="admin-task-user-empty admin-project-manager-empty">No managers available</div>`}
                                 </div>
-                            </label>
-
-                            <!-- Status -->
-                            <label class="admin-form-field">
-                                <span>Status</span>
-
-                                <select
-                                    id="admin-project-status"
-                                    oninput="updateAdminProjectField('status', this.value)"
-                                    onchange="updateAdminProjectField('status', this.value)">
-
-                                    ${["Planning", "Active", "Completed", "On Hold"].map((status) => `
-                                        <option
-                                            value="${status}"
-                                            ${adminState.newProjectForm.status === status ? "selected" : ""}>
-
-                                            ${status}
-                                        </option>
-                                    `).join("")}
-                                </select>
                             </label>
 
                             <!-- Start Date -->
