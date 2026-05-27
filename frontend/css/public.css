@@ -502,6 +502,7 @@ body.page-leaving {
     transition: transform var(--tf-transition), box-shadow var(--tf-transition), background-color var(--tf-transition), color var(--tf-transition);
 }
 
+
 .btn-primary {
     background: linear-gradient(135deg, var(--tf-green), #32bc70);
     color: #fff;
@@ -515,8 +516,8 @@ body.page-leaving {
 }
 
 .btn-secondary {
-    background: rgba(31, 157, 85, 0.1);
-    color: var(--tf-green-dark);
+    background: linear-gradient(135deg, var(--tf-green), #32bc70);
+    color: white;
 }
 
 .btn-secondary:hover,
@@ -534,7 +535,6 @@ body.page-leaving {
 
 .card,
 .feature-card,
-.stat-card,
 .timeline-card,
 .pricing-card,
 .faq-card,
@@ -550,6 +550,18 @@ body.page-leaving {
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
     transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 22px;
+    border-radius: var(--tf-radius-md);
+    background: linear-gradient(135deg, rgba(31, 157, 85, 0.12), rgba(77, 207, 135, 0.22));
+     border: 1px solid rgba(31, 157, 85, 0.18);
+     box-shadow: 0 18px 38px rgba(15, 23, 42, 0.12);
 }
 
 .card:hover,

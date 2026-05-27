@@ -63,8 +63,352 @@ body {
 }
 
 body.admin-theme-dark {
+    color-scheme: dark;
     background: #0f1726;
     color: #d7dfec;
+}
+
+body.admin-theme-dark .topbar,
+body.admin-theme-dark .content-area,
+body.admin-theme-dark .profile-dropdown,
+body.admin-theme-dark .notification-dropdown,
+body.admin-theme-dark .common-toolbar,
+body.admin-theme-dark .common-content-card,
+body.admin-theme-dark .settings-list-card,
+body.admin-theme-dark .admin-report-panel,
+body.admin-theme-dark .data-panel {
+    background: #182235;
+    border-color: #2d3a50;
+    color: #edf2f7;
+}
+
+body.admin-theme-dark .main-panel,
+body.admin-theme-dark .content-area {
+    background: #111827;
+}
+
+body.admin-theme-dark .search-box,
+body.admin-theme-dark .notification-button,
+body.admin-theme-dark .profile-wrap,
+body.admin-theme-dark .profile-option,
+body.admin-theme-dark .common-search-box,
+body.admin-theme-dark .common-filter-select,
+body.admin-theme-dark .settings-select {
+    background: #111827;
+    border-color: #2d3a50;
+    color: #edf2f7;
+}
+
+body.admin-theme-dark .search-box input,
+body.admin-theme-dark .common-search-box input,
+body.admin-theme-dark .search-box i,
+body.admin-theme-dark .notification,
+body.admin-theme-dark .profile-wrap,
+body.admin-theme-dark .profile-wrap i,
+body.admin-theme-dark .profile-option,
+body.admin-theme-dark .profile-option i,
+body.admin-theme-dark .common-page-title h1,
+body.admin-theme-dark .common-page-title h2,
+body.admin-theme-dark .common-page-title h3,
+body.admin-theme-dark .settings-title,
+body.admin-theme-dark .settings-row-copy strong,
+body.admin-theme-dark .notification-dropdown-head h3 {
+    color: #f8fafc;
+}
+
+body.admin-theme-dark .search-box input::placeholder,
+body.admin-theme-dark .common-search-box input::placeholder,
+body.admin-theme-dark .common-page-title p,
+body.admin-theme-dark .settings-heading p,
+body.admin-theme-dark .settings-row-copy small,
+body.admin-theme-dark .notification-dropdown-head p,
+body.admin-theme-dark .profile-option span {
+    color: #a8b3c7;
+}
+
+body.admin-theme-dark .settings-row,
+body.admin-theme-dark .notification-dropdown-head,
+body.admin-theme-dark .notification-filter-row {
+    border-color: #2d3a50;
+}
+
+body.admin-theme-dark .notification-button:hover,
+body.admin-theme-dark .notification-button.open,
+body.admin-theme-dark .profile-wrap:hover,
+body.admin-theme-dark .profile-wrap[aria-expanded="true"],
+body.admin-theme-dark .profile-option:hover,
+body.admin-theme-dark .common-search-box:focus-within,
+body.admin-theme-dark .settings-select:focus {
+    background: #0f172a;
+    border-color: rgba(37, 194, 107, 0.45);
+    box-shadow: 0 0 0 4px rgba(37, 194, 107, 0.12);
+}
+
+body.admin-theme-dark .notification-filter-chip {
+    background: #0f172a;
+    color: #cbd5e1;
+}
+
+body.admin-theme-dark .notification-filter-chip.active,
+body.admin-theme-dark .notification-filter-chip:hover {
+    background: rgba(37, 194, 107, 0.18);
+    color: #dcfce7;
+}
+
+body.admin-theme-dark .settings-status-pill {
+    background: rgba(34, 197, 94, 0.18);
+    color: #bbf7d0;
+}
+
+body.admin-theme-dark .settings-status-pill.muted {
+    background: #1f2937;
+    color: #a8b3c7;
+}
+
+body.admin-theme-dark #admin-settings-language-select,
+body.admin-theme-dark #admin-settings-language-select option {
+    color: #edf2f7;
+    background: #111827;
+}
+
+body.admin-theme-dark .stat-card,
+body.admin-theme-dark .admin-kpi-card,
+body.admin-theme-dark .admin-project-stat-card,
+body.admin-theme-dark .admin-team-project-card,
+body.admin-theme-dark .admin-project-card,
+body.admin-theme-dark .admin-project-create-card,
+body.admin-theme-dark .project-empty-state,
+body.admin-theme-dark .common-table-wrapper {
+    background: #182235 !important;
+    border-color: #2d3a50 !important;
+    color: #edf2f7 !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.2);
+}
+
+body.admin-theme-dark .common-content-card,
+body.admin-theme-dark .common-content-card.task-table-panel,
+body.admin-theme-dark .common-content-card.admin-activity-log-panel,
+body.admin-theme-dark .admin-files-page .common-content-card,
+body.admin-theme-dark .project-board-panel {
+    background: #182235 !important;
+    border-color: #2d3a50 !important;
+}
+
+body.admin-theme-dark .common-section-head h3,
+body.admin-theme-dark .project-card-title,
+body.admin-theme-dark .admin-project-card-copy h4,
+body.admin-theme-dark .admin-project-stat-copy strong,
+body.admin-theme-dark .admin-kpi-card strong,
+body.admin-theme-dark #welcome-user {
+    color: #f8fafc !important;
+}
+
+body.admin-theme-dark .common-section-head p,
+body.admin-theme-dark .project-card-meta-row,
+body.admin-theme-dark .project-card-meta-row span,
+body.admin-theme-dark .project-card-footer,
+body.admin-theme-dark .admin-project-card-copy p,
+body.admin-theme-dark .admin-project-card-copy span,
+body.admin-theme-dark .admin-project-stat-copy span,
+body.admin-theme-dark .project-empty-state,
+body.admin-theme-dark .empty-state {
+    color: #a8b3c7 !important;
+}
+
+body.admin-theme-dark .project-card-icon,
+body.admin-theme-dark .admin-project-stat-icon,
+body.admin-theme-dark .admin-kpi-card .icon,
+body.admin-theme-dark .settings-row-icon {
+    background: rgba(34, 197, 94, 0.16) !important;
+    color: #86efac !important;
+}
+
+body.admin-theme-dark .project-card-chip.subtle {
+    background: #0f172a !important;
+    color: #cbd5e1 !important;
+}
+
+body.admin-theme-dark .project-card-chip.status,
+body.admin-theme-dark .project-card-chip.status.completed,
+body.admin-theme-dark .project-card-chip.status.on-hold,
+body.admin-theme-dark .project-card-chip.status.planning {
+    border: 1px solid transparent;
+}
+
+body.admin-theme-dark .project-card-chip.status {
+    background: rgba(34, 197, 94, 0.18) !important;
+    color: #bbf7d0 !important;
+}
+
+body.admin-theme-dark .project-card-chip.status.completed {
+    background: rgba(99, 102, 241, 0.18) !important;
+    color: #c7d2fe !important;
+}
+
+body.admin-theme-dark .project-card-chip.status.on-hold,
+body.admin-theme-dark .project-card-chip.status.planning {
+    background: rgba(245, 158, 11, 0.16) !important;
+    color: #fcd34d !important;
+}
+
+body.admin-theme-dark .project-card-footer,
+body.admin-theme-dark .settings-row,
+body.admin-theme-dark .common-table-wrapper,
+body.admin-theme-dark .admin-table thead th,
+body.admin-theme-dark .admin-compact-table thead th,
+body.admin-theme-dark .admin-table tbody td,
+body.admin-theme-dark .admin-compact-table tbody td {
+    border-color: #2d3a50 !important;
+}
+
+body.admin-theme-dark .admin-table thead th,
+body.admin-theme-dark .admin-compact-table thead th,
+body.admin-theme-dark .admin-compact-table th {
+    background: #0f172a !important;
+    color: #cbd5e1 !important;
+}
+
+body.admin-theme-dark .admin-table tbody td,
+body.admin-theme-dark .admin-compact-table tbody td,
+body.admin-theme-dark .admin-compact-table td {
+    background: transparent !important;
+    color: #edf2f7 !important;
+}
+
+body.admin-theme-dark .admin-table tbody tr:hover,
+body.admin-theme-dark .admin-compact-table tbody tr:hover,
+body.admin-theme-dark .admin-project-card:hover {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-color: #3b4b63 !important;
+}
+
+body.admin-theme-dark .project-card-cta,
+body.admin-theme-dark .action-btn.common-icon-btn {
+    background: #0f172a !important;
+    border-color: #2d3a50 !important;
+    color: #e2e8f0 !important;
+}
+
+body.admin-theme-dark .project-card-cta:hover,
+body.admin-theme-dark .action-btn.common-icon-btn:hover {
+    background: #162033 !important;
+    border-color: rgba(37, 194, 107, 0.4) !important;
+    color: #f8fafc !important;
+}
+
+body.admin-theme-dark .admin-compact-table tbody tr:nth-child(even),
+body.admin-theme-dark .admin-table tbody tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.015) !important;
+}
+
+body.admin-theme-dark .admin-task-assignee-card,
+body.admin-theme-dark .admin-team-project-head,
+body.admin-theme-dark .admin-project-modal-card,
+body.admin-theme-dark .admin-modal-card,
+body.admin-theme-dark .admin-project-modal-card .admin-modal-actions {
+    background: #111827 !important;
+    border-color: #2d3a50 !important;
+    color: #edf2f7 !important;
+}
+
+body.admin-theme-dark .admin-task-name,
+body.admin-theme-dark .admin-modal-head h3,
+body.admin-theme-dark .admin-user-form-section h4 {
+    color: #f8fafc !important;
+}
+
+body.admin-theme-dark .admin-modal-head,
+body.admin-theme-dark .admin-project-modal-card .admin-modal-actions,
+body.admin-theme-dark .admin-task-footer {
+    border-color: #2d3a50 !important;
+}
+
+body.admin-theme-dark .admin-modal-head p,
+body.admin-theme-dark .admin-task-footer,
+body.admin-theme-dark .admin-date-field {
+    color: #a8b3c7 !important;
+}
+
+body.admin-theme-dark .admin-modal-close {
+    color: #cbd5e1 !important;
+}
+
+body.admin-theme-dark .admin-modal-close:hover {
+    background: #162033 !important;
+    color: #f8fafc !important;
+}
+
+body.admin-theme-dark .admin-date-field input,
+body.admin-theme-dark .admin-project-modal-card .admin-form-field input,
+body.admin-theme-dark .admin-project-modal-card .admin-form-field select,
+body.admin-theme-dark .admin-user-form input,
+body.admin-theme-dark .admin-user-form textarea,
+body.admin-theme-dark .admin-user-form select,
+body.admin-theme-dark .admin-task-user-option,
+body.admin-theme-dark .admin-project-manager-option {
+    background: #0f172a !important;
+    border-color: #2d3a50 !important;
+    color: #edf2f7 !important;
+}
+
+body.admin-theme-dark .admin-task-assignee-card .admin-member-status,
+body.admin-theme-dark .admin-task-more {
+    color: #93c5fd !important;
+}
+
+body.admin-theme-dark .admin-member-status,
+body.admin-theme-dark .status-pill,
+body.admin-theme-dark .admin-task-table .status-pill {
+    background: #0f172a !important;
+}
+
+body.admin-theme-dark .status-pill.pending,
+body.admin-theme-dark .status-pill.todo,
+body.admin-theme-dark .status-pill.on-hold,
+body.admin-theme-dark .admin-task-table .status-pill.pending {
+    border-color: rgba(96, 165, 250, 0.35) !important;
+    background: rgba(37, 99, 235, 0.16) !important;
+    color: #93c5fd !important;
+}
+
+body.admin-theme-dark .status-pill.in-progress,
+body.admin-theme-dark .status-pill.progress,
+body.admin-theme-dark .admin-task-table .status-pill.in-progress {
+    border-color: rgba(251, 146, 60, 0.32) !important;
+    background: rgba(234, 88, 12, 0.16) !important;
+    color: #fdba74 !important;
+}
+
+body.admin-theme-dark .status-pill.completed,
+body.admin-theme-dark .status-pill.done,
+body.admin-theme-dark .admin-task-table .status-pill.completed {
+    border-color: rgba(74, 222, 128, 0.28) !important;
+    background: rgba(22, 163, 74, 0.16) !important;
+    color: #86efac !important;
+}
+
+body.admin-theme-dark .task-priority-pill.low {
+    background: rgba(22, 163, 74, 0.14) !important;
+    border-color: rgba(74, 222, 128, 0.26) !important;
+    color: #86efac !important;
+}
+
+body.admin-theme-dark .task-priority-pill.medium {
+    background: rgba(37, 99, 235, 0.14) !important;
+    border-color: rgba(96, 165, 250, 0.28) !important;
+    color: #93c5fd !important;
+}
+
+body.admin-theme-dark .task-priority-pill.high {
+    background: rgba(234, 88, 12, 0.14) !important;
+    border-color: rgba(251, 146, 60, 0.28) !important;
+    color: #fdba74 !important;
+}
+
+body.admin-theme-dark .task-priority-pill.urgent {
+    background: rgba(220, 38, 38, 0.16) !important;
+    border-color: rgba(248, 113, 113, 0.28) !important;
+    color: #fca5a5 !important;
 }
 
 #toast-container {

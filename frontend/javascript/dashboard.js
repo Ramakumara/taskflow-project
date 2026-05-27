@@ -1,6 +1,8 @@
 let allNotifications = [];
 let currentFilter = "all";
 let notificationClock = null;
+let dashboardThemeMediaQuery = null;
+let dashboardThemeMediaQueryHandlerBound = false;
 
 const params = new URLSearchParams(window.location.search);
 
@@ -354,9 +356,11 @@ function applySettingsPreferences() {
     const compactTables = sessionStorage.getItem("settings.compactTables") === "true";
     const quietNotifications = sessionStorage.getItem("settings.quietNotifications") === "true";
     const theme = sessionStorage.getItem("settings.theme") || "light";
+    const resolvedTheme = getResolvedDashboardTheme(theme);
     document.body.classList.toggle("compact-dashboard-tables", compactTables);
     document.body.classList.toggle("quiet-dashboard-notifications", quietNotifications);
-    document.body.classList.toggle("dashboard-theme-dark", getResolvedDashboardTheme(theme) === "dark");
+    document.body.classList.toggle("dashboard-theme-dark", resolvedTheme === "dark");
+    document.documentElement.dataset.dashboardTheme = resolvedTheme;
 
     const notificationState = document.getElementById("settings-notification-state");
     if (notificationState) {
@@ -371,6 +375,34 @@ function getResolvedDashboardTheme(theme) {
         return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     return theme;
+}
+
+function bindDashboardThemePreference() {
+    if (!window.matchMedia) {
+        return;
+    }
+
+    if (!dashboardThemeMediaQuery) {
+        dashboardThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    }
+
+    if (dashboardThemeMediaQueryHandlerBound) {
+        return;
+    }
+
+    const handleThemePreferenceChange = () => {
+        if ((sessionStorage.getItem("settings.theme") || "light") === "system") {
+            applySettingsPreferences();
+        }
+    };
+
+    if (typeof dashboardThemeMediaQuery.addEventListener === "function") {
+        dashboardThemeMediaQuery.addEventListener("change", handleThemePreferenceChange);
+    } else if (typeof dashboardThemeMediaQuery.addListener === "function") {
+        dashboardThemeMediaQuery.addListener(handleThemePreferenceChange);
+    }
+
+    dashboardThemeMediaQueryHandlerBound = true;
 }
 
 
@@ -3395,6 +3427,7 @@ async function initializeDashboardPage() {
 window.addEventListener("load", initializeDashboardPage);
 window.addEventListener("load", loadDashboardSummary);
 window.addEventListener("load", applySettingsPreferences);
+window.addEventListener("load", bindDashboardThemePreference);
 
 function toggleNotifications(event) {
 

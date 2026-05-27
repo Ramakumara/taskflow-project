@@ -43,6 +43,8 @@ let taskOverviewChart = null;
 let adminReportStatusChart = null;
 let adminReportProjectChart = null;
 let adminNotificationClock = null;
+let adminThemeMediaQuery = null;
+let adminThemeMediaQueryHandlerBound = false;
 
 const adminReportState = {
     startDate: "",
@@ -166,6 +168,7 @@ function getTaskMemberStatusSearchText(task) {
 function initializeAdminDashboard() {
     setProfileAvatar();
     applyAdminSettingsPreferences();
+    bindAdminThemePreference();
     startAdminNotificationClock();
     refreshAdminData().then(() => {
         renderCurrentSection();
@@ -503,9 +506,11 @@ function toggleAdminQuietNotifications() {
 function applyAdminSettingsPreferences() {
     const quietNotifications = sessionStorage.getItem("settings.quietNotifications") === "true";
     const theme = sessionStorage.getItem("settings.theme") || "light";
+    const resolvedTheme = resolveAdminTheme(theme);
 
     document.body.classList.toggle("quiet-admin-notifications", quietNotifications);
-    document.body.classList.toggle("admin-theme-dark", resolveAdminTheme(theme) === "dark");
+    document.body.classList.toggle("admin-theme-dark", resolvedTheme === "dark");
+    document.documentElement.dataset.adminTheme = resolvedTheme;
 
     const notificationState = document.getElementById("admin-settings-notification-state");
     if (notificationState) {
@@ -519,6 +524,34 @@ function resolveAdminTheme(theme) {
         return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
     return theme;
+}
+
+function bindAdminThemePreference() {
+    if (!window.matchMedia) {
+        return;
+    }
+
+    if (!adminThemeMediaQuery) {
+        adminThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    }
+
+    if (adminThemeMediaQueryHandlerBound) {
+        return;
+    }
+
+    const handleThemePreferenceChange = () => {
+        if ((sessionStorage.getItem("settings.theme") || "light") === "system") {
+            applyAdminSettingsPreferences();
+        }
+    };
+
+    if (typeof adminThemeMediaQuery.addEventListener === "function") {
+        adminThemeMediaQuery.addEventListener("change", handleThemePreferenceChange);
+    } else if (typeof adminThemeMediaQuery.addListener === "function") {
+        adminThemeMediaQuery.addListener(handleThemePreferenceChange);
+    }
+
+    adminThemeMediaQueryHandlerBound = true;
 }
 
 
