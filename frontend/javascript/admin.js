@@ -4047,11 +4047,9 @@ function buildAdminNotificationFeed(rawNotifications) {
     ].filter((notification) => !dismissedIds.has(String(notification.id)));
 
     const merged = [...normalized, ...synthetic]
-        .sort((first, second) => {
-            const priorityDelta = notificationPriorityWeight(second.priority) - notificationPriorityWeight(first.priority);
-            if (priorityDelta !== 0) return priorityDelta;
-            return getNotificationTimeValue(second.createdAt) - getNotificationTimeValue(first.createdAt);
-        })
+        .sort((first, second) =>
+            getNotificationTimeValue(second.createdAt) - getNotificationTimeValue(first.createdAt)
+        )
         .slice(0, 40);
 
     return dedupeAdminNotifications(merged);
