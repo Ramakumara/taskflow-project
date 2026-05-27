@@ -408,13 +408,17 @@ function showNotification(message, type = "success", title = "TaskFlow Notificat
     const normalizedType = ["success", "error", "warning", "info"].includes(type) ? type : "success";
 
     const notification = document.createElement("div");
+    const safeMessage = String(message || "").trim();
 
     notification.className = `taskflow-notification ${normalizedType}`;
+    notification.setAttribute("role", "status");
+    notification.setAttribute("aria-live", "polite");
+    notification.setAttribute("title", String(title || "TaskFlow"));
 
     let icon = "fa-circle-check";
 
     if (normalizedType === "error") {
-        icon = "fa-circle-xmark";
+        icon = "fa-circle-exclamation";
     }
 
     if (normalizedType === "warning") {
@@ -426,29 +430,15 @@ function showNotification(message, type = "success", title = "TaskFlow Notificat
     }
 
     notification.innerHTML = `
-        <div class="notification-left">
+        <span class="notification-icon-wrap" aria-hidden="true">
             <i class="fas ${icon}"></i>
-        </div>
-
-        <div class="notification-content">
-            <h4>${title}</h4>
-            <p>${message}</p>
-        </div>
-
-        <button class="notification-close">
-            <i class="fas fa-xmark"></i>
-        </button>
+        </span>
+        <div class="notification-copy">${safeMessage}</div>
     `;
 
     document
         .getElementById("toast-container")
         .appendChild(notification);
-
-    const closeBtn = notification.querySelector(".notification-close");
-
-    closeBtn.onclick = () => {
-        notification.remove();
-    };
 
     setTimeout(() => {
         notification.classList.add("show");

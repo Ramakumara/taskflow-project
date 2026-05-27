@@ -5194,135 +5194,75 @@ body.export-modal-open {
 
 #toast-container {
     position: fixed !important;
-    top: 20px !important;
-    right: 20px !important;
+    top: 92px !important;
+    right: 18px !important;
     left: auto !important;
     bottom: auto !important;
-    width: min(380px, calc(100vw - 24px));
+    width: min(360px, calc(100vw - 32px));
     z-index: 999999;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
+    display: grid;
     gap: 12px;
     pointer-events: none;
 }
 
 .taskflow-notification {
-    width: min(360px, calc(100vw - 24px));
-    background: rgba(255, 255, 255, 0.98);
-    border: 1px solid #e3ebf5;
-    border-left-width: 4px;
+    width: 100%;
     border-radius: 18px;
-    padding: 14px 16px;
-    box-shadow: 0 16px 38px rgba(16, 24, 40, 0.14);
+    padding: 16px 18px;
+    color: #ffffff;
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16);
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
     gap: 12px;
     box-sizing: border-box;
     pointer-events: auto;
     opacity: 0;
-    transform: translateY(-6px);
-    transition: opacity 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+    transform: translateX(20px);
+    transition: opacity 0.24s ease, transform 0.24s ease;
 }
 
 .taskflow-notification.show {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateX(0);
 }
 
 .taskflow-notification.success {
-    border-left-color: #16a34a;
+    background: linear-gradient(135deg, #188f4f, #2fbe71);
 }
 
 .taskflow-notification.info {
-    border-left-color: #2563eb;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
 }
 
 .taskflow-notification.error {
-    border-left-color: #dc2626;
+    background: linear-gradient(135deg, #b42332, #d94a57);
 }
 
 .taskflow-notification.warning {
-    border-left-color: #f59e0b;
+    background: linear-gradient(135deg, #d97706, #f59e0b);
 }
 
-.notification-left {
-    width: 40px;
-    height: 40px;
-    border-radius: 12px;
+.notification-icon-wrap {
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: #ecfdf3;
-    color: #16a34a;
     flex: 0 0 auto;
+    margin-top: 1px;
 }
 
-.taskflow-notification.info .notification-left {
-    background: #eff6ff;
-    color: #2563eb;
-}
-
-.taskflow-notification.error .notification-left {
-    background: #fef2f2;
-    color: #dc2626;
-}
-
-.taskflow-notification.warning .notification-left {
-    background: #fff7ed;
-    color: #f59e0b;
-}
-
-.notification-left i {
-    font-size: 18px;
-}
-
-.notification-content {
+.notification-copy {
     flex: 1;
     min-width: 0;
-}
-
-.notification-content h4 {
-    margin: 0;
-    color: #172033;
-    font-family: var(--tf-font);
-    font-size: 14px;
-    font-weight: 800;
-    line-height: 1.2;
-}
-
-.notification-content p {
-    margin: 6px 0 0;
-    color: #64748b;
+    color: #ffffff;
     font-size: 13px;
+    font-weight: 500;
     line-height: 1.5;
     word-break: break-word;
-}
-
-.notification-close {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-    background: transparent;
-    border: 0;
-    cursor: pointer;
-    font-size: 14px;
-    color: #94a3b8;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.notification-close:hover {
-    background: #f8fafc;
-    color: #0f172a;
-}
-
-.taskflow-notification.success {
-    border-left-color: #16a34a;
 }
 
 .activity-top-actions{
