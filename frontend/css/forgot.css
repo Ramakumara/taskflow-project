@@ -427,6 +427,12 @@ body{
     background:#15803d;
 }
 
+.submit-btn:disabled,
+.submit-btn.is-loading{
+    opacity:0.8;
+    cursor:not-allowed;
+}
+
 .submit-btn i{
     font-size:10px;
 }

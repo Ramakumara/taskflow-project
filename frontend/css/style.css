@@ -5,7 +5,7 @@
 }
 
 :root {
-    --app-scroll-track: #eaf1f7;
+    --app-scroll-track: #eaf7edda;
     --app-scroll-thumb: #6dd8a0;
     --app-scroll-thumb-hover: #27c06a;
 }
@@ -53,7 +53,7 @@
 }
 
 .create-btn {
-    background: #2d6cdf;
+    background: #036619;
     color: white;
     border: none;
     padding: 8px 16px;
@@ -62,20 +62,7 @@
 }
 
 /* Dashboard page restyle */
-.dashboard {
-    --dashboard-sidebar-bg: #233246;
-    --dashboard-sidebar-active: #4582ec;
-    --dashboard-sidebar-accent: linear-gradient(135deg, #4ea7ff, #19d9e8);
-    --dashboard-page-bg: #eef2f7;
-    --dashboard-panel-bg: #ffffff;
-    --dashboard-content-bg: #f1f4f9;
-    --dashboard-border: #e7ecf3;
-    --dashboard-text: #151b26;
-    --dashboard-muted: #707b8c;
-    --dashboard-shadow: 0 10px 30px rgba(20, 32, 56, 0.08);
-    min-height: 100vh;
-    background: var(--dashboard-page-bg);
-}
+
 
 .dashboard .topbar {
     height: 90px;
@@ -1496,7 +1483,7 @@ select option[value="done"] {
 
 .dashboard .summary-card h3 {
     margin-top: 4px;
-    font-size: 29px;
+    font-size: 22px !important;
     font-weight: 700;
 }
 
@@ -3092,7 +3079,7 @@ select option[value="done"] {
 .settings-heading p {
     margin: 0;
     color: #667085;
-    font-size: 16px;
+    font-size: 13px;
 }
 
 .settings-list-card {
@@ -3132,7 +3119,7 @@ button.settings-row:active {
 }
 
 button.settings-row:focus-visible {
-    outline: 2px solid rgba(79, 99, 255, 0.24);
+    outline: 2px solid rgba(15, 159, 85, 0.24);
     outline-offset: -2px;
     border-radius: 8px;
 }
@@ -3145,8 +3132,8 @@ button.settings-row:focus-visible {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    background: #eef1ff;
-    color: #5d6dfd;
+    background: var(--brand-green-soft);
+    color: var(--brand-green-dark);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3182,8 +3169,8 @@ button.settings-row:focus-visible {
     min-width: 72px;
     min-height: 34px;
     border-radius: 999px;
-    background: #eef6ff;
-    color: #2f63d8;
+    background: var(--brand-green-soft);
+    color: var(--brand-green-dark);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -3209,17 +3196,17 @@ button.settings-row:focus-visible {
 }
 
 .settings-select:hover {
-    border-color: #c7d2fe;
+    border-color: rgba(15, 159, 85, 0.35);
 }
 
 .settings-select:focus {
-    border-color: #6b7cff;
-    box-shadow: 0 0 0 4px rgba(91, 108, 255, 0.12);
+    border-color: rgba(15, 159, 85, 0.55);
+    box-shadow: 0 0 0 4px rgba(15, 159, 85, 0.12);
 }
 
 button.settings-row:hover .settings-row-copy strong,
 button.settings-row:hover .settings-row-chevron {
-    color: #4f63ff;
+    color: var(--brand-green-dark);
 }
 
 button.settings-row:active .settings-row-copy strong,
@@ -6310,15 +6297,15 @@ button {
 }
 
 .project-card-icon {
-    width: 64px;
-    height: 64px;
+    width: 40px;
+    height: 40px;
     border-radius: 14px;
     background: linear-gradient(180deg, #f4fff7, #e9fbef);
     color: #16a34a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 28px;
+    font-size: 24px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
@@ -6332,7 +6319,7 @@ button {
 .project-card-title {
     color: var(--tf-text);
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 500;
     line-height: 1.35;
     margin: 0;
 }
@@ -8230,7 +8217,7 @@ button {
 
 /* Button */
 .task-add-btn{
-    height: 44px;
+    height: 35px;
 
     padding: 0 22px;
 
@@ -8245,8 +8232,8 @@ button {
     justify-content: center;
     gap: 8px;
 
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 400;
 
     cursor: pointer;
 
@@ -8466,7 +8453,7 @@ button {
 
 .task-add-btn {
     flex: 0 0 auto;
-    height: 44px;
+    height: 35px;
     padding: 0 18px;
     border: 0;
     border-radius: 8px;
@@ -8475,7 +8462,7 @@ button {
     display: inline-flex;
     align-items: center;
     gap: 9px;
-    font-weight: 800;
+    font-weight: 500;
     cursor: pointer;
     box-shadow: 0 10px 22px rgba(15, 159, 85, 0.22);
 }
@@ -8552,7 +8539,6 @@ button {
 
 .task-title-text {
     color: #172033;
-    font-weight: 750;
     line-height: 1.35;
     overflow-wrap: anywhere;
 }
@@ -9482,14 +9468,14 @@ button {
     font-family: var(--tf-font);
     font-size: clamp(28px, 2vw, 34px);
     line-height: 1.08;
-    font-weight: 800;
+    font-weight: 500;
     letter-spacing: -0.03em;
 }
 
 .common-page-title p {
     margin: 0;
     color: var(--dashboard-muted);
-    font-size: 15px;
+    font-size: 13px;
     line-height: 1.5;
     max-width: 720px;
 }
@@ -11195,4 +11181,79 @@ body.dashboard-theme-dark .dashboard-profile-card {
 .common-toolbar .calendar-year-select,
 .common-toolbar .calendar-nav-btn {
   border-radius: 10px !important;
+}
+
+
+/* Hide Google top bar */
+.goog-te-banner-frame,
+iframe.skiptranslate {
+    display: none !important;
+}
+
+/* Hide Google logo and gadget */
+.goog-logo-link,
+.goog-te-gadget,
+.goog-te-gadget-icon,
+.goog-te-gadget span {
+    display: none !important;
+}
+
+/* Hide popup + highlights */
+#goog-gt-tt,
+.goog-tooltip,
+.goog-text-highlight {
+    display: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+/* Hide floating Google icon */
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-xl07Ob-lTBxed {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+body {
+    top: 0 !important;
+}
+
+/* Protect our dropdown */
+#settings-language-select {
+    color: #111 !important;
+    background: #fff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#settings-language-select option {
+    color: #111 !important;
+    background: #fff !important;
+}
+
+/* Protect language selector */
+
+.language-select-wrapper {
+    translate: no;
+}
+
+.language-select-wrapper select {
+    color: #111 !important;
+    background: #fff !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Prevent Google translating our dropdown */
+
+#settings-language-select,
+#settings-language-select option {
+    -webkit-appearance: menulist !important;
+    appearance: menulist !important;
+    translate: no;
+    color: #111 !important;
+    background: #fff !important;
 }

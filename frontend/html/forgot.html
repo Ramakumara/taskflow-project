@@ -103,6 +103,7 @@
             </div>
 
             <button
+                id="sendOtpButton"
                 class="submit-btn"
                 onclick="sendOTP()"
             >
@@ -180,6 +181,7 @@
             <!-- VERIFY BUTTON -->
 
             <button
+                id="verifyOtpButton"
                 class="submit-btn"
                 onclick="verifyOTP()"
             >
@@ -276,58 +278,108 @@
 
 <script>
 
+function setButtonLoading(buttonId, labelText, isLoading){
+
+    const button =
+        document.getElementById(buttonId);
+
+    if(!button){
+        return;
+    }
+
+    const label =
+        button.querySelector("span");
+
+    if(isLoading){
+
+        button.disabled = true;
+        button.dataset.originalLabel =
+            label ? label.textContent : "";
+
+        button.classList.add("is-loading");
+
+        if(label){
+            label.textContent = labelText;
+        }
+
+        return;
+    }
+
+    button.disabled = false;
+    button.classList.remove("is-loading");
+
+    if(label && button.dataset.originalLabel){
+        label.textContent = button.dataset.originalLabel;
+    }
+}
+
 async function sendOTP(){
 
-    const email =
-        document.getElementById("email").value;
+    setButtonLoading(
+        "sendOtpButton",
+        "Sending...",
+        true
+    );
 
-    const response = await fetch("/forgot-password",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({email})
-    });
+    try{
 
-    const data = await response.json();
+        const email =
+            document.getElementById("email").value;
 
-    alert(data.detail || data.message);
+        const response = await fetch("/forgot-password",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({email})
+        });
 
-    if(response.ok){
+        const data = await response.json();
 
-        // UPDATE TEXT
+        alert(data.detail || data.message);
 
-        document.getElementById("topSubtitle")
-            .innerHTML = `
-                We have sent a 6-digit OTP to your email<br>
-                <span class="email-highlight">${email}</span>
-            `;
+        if(response.ok){
 
-        // SHOW OTP SECTION
+            // UPDATE TEXT
 
-        document.getElementById("emailSection")
-            .style.display = "none";
+            document.getElementById("topSubtitle")
+                .innerHTML = `
+                    We have sent a 6-digit OTP to your email<br>
+                    <span class="email-highlight">${email}</span>
+                `;
 
-        document.getElementById("otpSection")
-            .style.display = "block";
+            // SHOW OTP SECTION
 
-        // STEP UPDATE
+            document.getElementById("emailSection")
+                .style.display = "none";
 
-        document.getElementById("step1")
-            .classList.remove("active");
+            document.getElementById("otpSection")
+                .style.display = "block";
 
-        document.getElementById("step1")
-            .classList.add("completed");
+            // STEP UPDATE
 
-        document.getElementById("step1")
-            .querySelector(".step-circle")
-            .innerHTML = `<i class="fa-solid fa-check"></i>`;
+            document.getElementById("step1")
+                .classList.remove("active");
 
-        document.getElementById("line1")
-            .classList.add("active");
+            document.getElementById("step1")
+                .classList.add("completed");
 
-        document.getElementById("step2")
-            .classList.add("active");
+            document.getElementById("step1")
+                .querySelector(".step-circle")
+                .innerHTML = `<i class="fa-solid fa-check"></i>`;
+
+            document.getElementById("line1")
+                .classList.add("active");
+
+            document.getElementById("step2")
+                .classList.add("active");
+        }
+    }finally{
+        setButtonLoading(
+            "sendOtpButton",
+            "Sending...",
+            false
+        );
     }
 }
 
@@ -351,67 +403,82 @@ async function resendOTP(){
 
 async function verifyOTP(){
 
-    const email =
-        document.getElementById("email").value;
+    setButtonLoading(
+        "verifyOtpButton",
+        "Verifying...",
+        true
+    );
 
-    const otpInputs =
-        document.querySelectorAll(".otp-box");
+    try{
 
-    let otp = "";
+        const email =
+            document.getElementById("email").value;
 
-    otpInputs.forEach(input=>{
-        otp += input.value;
-    });
+        const otpInputs =
+            document.querySelectorAll(".otp-box");
 
-    const response = await fetch("/verify-otp",{
-        method:"POST",
-        headers:{
-            "Content-Type":"application/json"
-        },
-        body:JSON.stringify({
-            email,
-            otp
-        })
-    });
+        let otp = "";
 
-    const data = await response.json();
+        otpInputs.forEach(input=>{
+            otp += input.value;
+        });
 
-    alert(data.detail || data.message);
+        const response = await fetch("/verify-otp",{
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                email,
+                otp
+            })
+        });
 
-    if(response.ok){
+        const data = await response.json();
 
-        // UPDATE TEXT
+        alert(data.detail || data.message);
 
-        document.getElementById("topSubtitle")
-            .innerHTML = `
-                Almost there! Create a new strong password for your account.
-            `;
+        if(response.ok){
 
-        // SHOW PASSWORD SECTION
+            // UPDATE TEXT
 
-        document.getElementById("otpSection")
-            .style.display = "none";
+            document.getElementById("topSubtitle")
+                .innerHTML = `
+                    Almost there! Create a new strong password for your account.
+                `;
 
-        document.getElementById("passwordSection")
-            .style.display = "block";
+            // SHOW PASSWORD SECTION
 
-        // STEP UPDATE
+            document.getElementById("otpSection")
+                .style.display = "none";
 
-        document.getElementById("step2")
-            .classList.remove("active");
+            document.getElementById("passwordSection")
+                .style.display = "block";
 
-        document.getElementById("step2")
-            .classList.add("completed");
+            // STEP UPDATE
 
-        document.getElementById("step2")
-            .querySelector(".step-circle")
-            .innerHTML = `<i class="fa-solid fa-check"></i>`;
+            document.getElementById("step2")
+                .classList.remove("active");
 
-        document.getElementById("line2")
-            .classList.add("active");
+            document.getElementById("step2")
+                .classList.add("completed");
 
-        document.getElementById("step3")
-            .classList.add("active");
+            document.getElementById("step2")
+                .querySelector(".step-circle")
+                .innerHTML = `<i class="fa-solid fa-check"></i>`;
+
+            document.getElementById("line2")
+                .classList.add("active");
+
+            document.getElementById("step3")
+                .classList.add("active");
+        }
+    }finally{
+        setButtonLoading(
+            "verifyOtpButton",
+            "Verifying...",
+            false
+        );
     }
 }
 

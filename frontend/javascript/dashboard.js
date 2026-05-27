@@ -170,13 +170,70 @@ function loadSettingsView() {
     const themeSelect = document.getElementById("settings-theme-select");
     const languageSelect = document.getElementById("settings-language-select");
     if (themeSelect) themeSelect.value = sessionStorage.getItem("settings.theme") || "light";
-    if (languageSelect) languageSelect.value = sessionStorage.getItem("settings.language") || "english";
+    if (languageSelect) {
+        languageSelect.value = getSavedDashboardLanguage();
+    }
     applySettingsPreferences();
 }
 
 function saveSettingsPreference(key, value) {
     sessionStorage.setItem(`settings.${key}`, String(value));
+
+    if (key === "language") {
+        const lang = value === "hindi" ? "hi" : "en";
+
+        const interval = setInterval(() => {
+            const combo = document.querySelector(".goog-te-combo");
+            if (combo) {
+                combo.value = lang;
+                combo.dispatchEvent(new Event("change"));
+                clearInterval(interval);
+            }
+        }, 500);
+    }
+
     applySettingsPreferences();
+}
+
+function changeGoogleLanguage(lang) {
+    localStorage.setItem("selectedLanguage", lang);
+    sessionStorage.setItem("settings.language", lang);
+
+    const select = document.getElementById("settings-language-select");
+    if (select) select.value = lang;
+
+    document.cookie = "googtrans=/en/" + lang + ";path=/";
+    document.cookie =
+        "googtrans=/en/" + lang +
+        ";domain=" + location.hostname + ";path=/";
+
+    const apply = () => {
+        const combo = document.querySelector(".goog-te-combo");
+
+        if (combo) {
+            combo.value = lang;
+            combo.dispatchEvent(new Event("change"));
+        } else {
+            setTimeout(apply, 300);
+        }
+    };
+
+    apply();
+}
+
+function getSavedDashboardLanguage() {
+    const savedPreference =
+        String(sessionStorage.getItem("settings.language") || "").trim().toLowerCase();
+
+    if (savedPreference === "hi" || savedPreference === "hindi") {
+        return "hi";
+    }
+
+    if (savedPreference === "en" || savedPreference === "english") {
+        return "en";
+    }
+
+    return localStorage.getItem("selectedLanguage") || "en";
 }
 
 function getTaskAssignedBy(task, project) {
@@ -297,7 +354,6 @@ function applySettingsPreferences() {
     const compactTables = sessionStorage.getItem("settings.compactTables") === "true";
     const quietNotifications = sessionStorage.getItem("settings.quietNotifications") === "true";
     const theme = sessionStorage.getItem("settings.theme") || "light";
-    const language = sessionStorage.getItem("settings.language") || "english";
     document.body.classList.toggle("compact-dashboard-tables", compactTables);
     document.body.classList.toggle("quiet-dashboard-notifications", quietNotifications);
     document.body.classList.toggle("dashboard-theme-dark", getResolvedDashboardTheme(theme) === "dark");
@@ -308,7 +364,6 @@ function applySettingsPreferences() {
         notificationState.classList.toggle("muted", quietNotifications);
     }
 
-    updateSettingsLanguage(language);
 }
 
 function getResolvedDashboardTheme(theme) {
@@ -318,44 +373,6 @@ function getResolvedDashboardTheme(theme) {
     return theme;
 }
 
-function updateSettingsLanguage(language) {
-    const copy = {
-        english: {
-            title: "Settings",
-            subtitle: "Manage your account and preferences.",
-            profileTitle: "Profile",
-            profileCopy: "View and update your personal information.",
-            notificationsTitle: "Notifications",
-            notificationsCopy: "Manage your notification preferences.",
-            securityTitle: "Security",
-            securityCopy: "Change your password and security settings.",
-            appearanceTitle: "Appearance",
-            appearanceCopy: "Choose your preferred theme.",
-            languageTitle: "Language",
-            languageCopy: "Select your preferred language."
-        },
-        hindi: {
-            title: "सेटिंग्स",
-            subtitle: "अपना खाता और पसंद प्रबंधित करें.",
-            profileTitle: "प्रोफाइल",
-            profileCopy: "अपनी व्यक्तिगत जानकारी देखें और अपडेट करें.",
-            notificationsTitle: "सूचनाएं",
-            notificationsCopy: "अपनी सूचना पसंद प्रबंधित करें.",
-            securityTitle: "सुरक्षा",
-            securityCopy: "अपना पासवर्ड और सुरक्षा सेटिंग्स बदलें.",
-            appearanceTitle: "रूप",
-            appearanceCopy: "अपनी पसंदीदा थीम चुनें.",
-            languageTitle: "भाषा",
-            languageCopy: "अपनी पसंदीदा भाषा चुनें."
-        }
-    };
-
-    const selectedCopy = copy[language] || copy.english;
-    document.querySelectorAll("[data-settings-text]").forEach(node => {
-        const key = node.dataset.settingsText;
-        if (selectedCopy[key]) node.textContent = selectedCopy[key];
-    });
-}
 
 function goBack() {
     hideAllViews();
@@ -615,9 +632,9 @@ function renderDashboardTaskBoard() {
             : renderTaskAssigneeStatusList(task, users);
 
         row.innerHTML = `
-            <td class="task-title-cell">
-                <div class="task-title-block">
-                    <span class="task-title-text">${escapeTeamHtml(task.title || "Untitled Task")}</span>
+            <td >
+                <div >
+                    <span>${escapeTeamHtml(task.title || "Untitled Task")}</span>
                     ${renderTaskAttachments(task)}
                 </div>
             </td>
@@ -1289,9 +1306,9 @@ async function loadProjectWorkspace() {
             const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
 
             row.innerHTML = `
-                <td class="task-title-cell">
-                    <div class="task-title-block">
-                        <span class="task-title-text">${escapeTeamHtml(t.title || "Untitled Task")}</span>
+                <td >
+                    <div>
+                        <span >${escapeTeamHtml(t.title || "Untitled Task")}</span>
                         ${renderTaskAttachments(t)}
                     </div>
                 </td>

@@ -445,13 +445,54 @@ function loadAdminSettingsView() {
     const themeSelect = document.getElementById("admin-settings-theme-select");
     const languageSelect = document.getElementById("admin-settings-language-select");
     if (themeSelect) themeSelect.value = sessionStorage.getItem("settings.theme") || "light";
-    if (languageSelect) languageSelect.value = sessionStorage.getItem("settings.language") || "english";
+    if (languageSelect) {
+        languageSelect.value = getSavedAdminLanguage();
+    }    
     applyAdminSettingsPreferences();
 }
 
 function saveAdminSettingsPreference(key, value) {
     sessionStorage.setItem(`settings.${key}`, String(value));
     applyAdminSettingsPreferences();
+}
+
+function applyAdminGoogleLanguage(lang) {
+
+    localStorage.setItem(
+        "selectedLanguage",
+        lang
+    );
+    sessionStorage.setItem(
+        "settings.language",
+        lang
+    );
+
+    document.cookie =
+        "googtrans=/en/" + lang +
+        ";path=/";
+
+    document.cookie =
+        "googtrans=/en/" + lang +
+        ";domain=" +
+        location.hostname +
+        ";path=/";
+
+    location.reload();
+}
+
+function getSavedAdminLanguage() {
+    const savedPreference =
+        String(sessionStorage.getItem("settings.language") || "").trim().toLowerCase();
+
+    if (savedPreference === "hi" || savedPreference === "hindi") {
+        return "hi";
+    }
+
+    if (savedPreference === "en" || savedPreference === "english") {
+        return "en";
+    }
+
+    return localStorage.getItem("selectedLanguage") || "en";
 }
 
 function toggleAdminQuietNotifications() {
@@ -462,7 +503,6 @@ function toggleAdminQuietNotifications() {
 function applyAdminSettingsPreferences() {
     const quietNotifications = sessionStorage.getItem("settings.quietNotifications") === "true";
     const theme = sessionStorage.getItem("settings.theme") || "light";
-    const language = sessionStorage.getItem("settings.language") || "english";
 
     document.body.classList.toggle("quiet-admin-notifications", quietNotifications);
     document.body.classList.toggle("admin-theme-dark", resolveAdminTheme(theme) === "dark");
@@ -472,8 +512,6 @@ function applyAdminSettingsPreferences() {
         notificationState.textContent = quietNotifications ? "Muted" : "On";
         notificationState.classList.toggle("muted", quietNotifications);
     }
-
-    updateAdminSettingsLanguage(language);
 }
 
 function resolveAdminTheme(theme) {
@@ -483,46 +521,7 @@ function resolveAdminTheme(theme) {
     return theme;
 }
 
-function updateAdminSettingsLanguage(language) {
-    const copy = {
-        english: {
-            title: "Settings",
-            subtitle: "Manage your account and preferences.",
-            profileTitle: "Profile",
-            profileCopy: "View and update your personal information.",
-            notificationsTitle: "Notifications",
-            notificationsCopy: "Manage your notification preferences.",
-            securityTitle: "Security",
-            securityCopy: "Change your password and security settings.",
-            appearanceTitle: "Appearance",
-            appearanceCopy: "Choose your preferred theme.",
-            languageTitle: "Language",
-            languageCopy: "Select your preferred language."
-        },
-        hindi: {
-            title: "Settings",
-            subtitle: "Manage your account and preferences.",
-            profileTitle: "Profile",
-            profileCopy: "View and update your personal information.",
-            notificationsTitle: "Notifications",
-            notificationsCopy: "Manage your notification preferences.",
-            securityTitle: "Security",
-            securityCopy: "Change your password and security settings.",
-            appearanceTitle: "Appearance",
-            appearanceCopy: "Choose your preferred theme.",
-            languageTitle: "Language",
-            languageCopy: "Select your preferred language."
-        }
-    };
 
-    const values = copy[language] || copy.english;
-    document.querySelectorAll("[data-admin-settings-text]").forEach((node) => {
-        const key = node.dataset.adminSettingsText;
-        if (values[key]) {
-            node.textContent = values[key];
-        }
-    });
-}
 
 function renderDashboardView() {
     const filteredProjects = filterCollection(adminState.projects, (project) => [
@@ -555,8 +554,8 @@ function renderDashboardView() {
                     </section>
                     ${renderCommonContentCard(`
                         <div class="project-board-head common-section-head">
-                            <div>
-                                <h3>Projects</h3>
+                            <div class="common-page-title">
+                                <h1>Projects</h1>
                             </div>
                         </div>
                         <div class="admin-project-grid">
@@ -2098,132 +2097,136 @@ function renderReportsView() {
 
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view admin-report-dashboard">
-            <div class="view-header report-view-header">
-                <div>
-                    <h3>Reports</h3>
-                    <p>Filter task and project performance by deadline date.</p>
-                </div>
-                <div class="admin-report-actions">
-                    <label class="admin-date-field">
-                        <span>Start</span>
-                        <input id="admin-report-start-date" type="date" value="${escapeHtml(adminReportState.startDate)}" onchange="setAdminReportDateRange()">
-                    </label>
-                    <label class="admin-date-field">
-                        <span>End</span>
-                        <input id="admin-report-end-date" type="date" value="${escapeHtml(adminReportState.endDate)}" onchange="setAdminReportDateRange()">
-                    </label>
-                    <button class="action-btn secondary-btn" type="button" onclick="clearAdminReportDateRange()">
-                        <i class="fas fa-rotate-left"></i>
-                        Clear
-                    </button>
-                    <div class="admin-export-group">
-                        <button class="action-btn export-btn" type="button" onclick="exportAdminReport('excel')">
-                            <i class="fas fa-file-excel"></i>
-                            Excel
+            ${renderCommonPageLayout({
+                pageClass: "admin-module-page admin-reports-page",
+                header: renderCommonPageHeader(
+                    "Reports",
+                    "Filter task and project performance by deadline date."
+                ),
+                toolbar: `
+                    <div class="common-toolbar admin-report-toolbar">
+                        <label class="admin-date-field" for="admin-report-start-date">
+                            <span>Start</span>
+                            <input id="admin-report-start-date" type="date" value="${escapeHtml(adminReportState.startDate)}" onchange="setAdminReportDateRange()">
+                        </label>
+                        <label class="admin-date-field" for="admin-report-end-date">
+                            <span>End</span>
+                            <input id="admin-report-end-date" type="date" value="${escapeHtml(adminReportState.endDate)}" onchange="setAdminReportDateRange()">
+                        </label>
+                        <button class="action-btn common-action-btn secondary-btn" type="button" onclick="clearAdminReportDateRange()">
+                            <i class="fas fa-rotate-left"></i>
+                            Clear
                         </button>
-                        <button class="action-btn export-btn" type="button" onclick="exportAdminReport('pdf')">
-                            <i class="fas fa-file-pdf"></i>
-                            PDF
-                        </button>
-                        <button class="action-btn export-btn" type="button" onclick="exportAdminReport('csv')">
-                            <i class="fas fa-file-csv"></i>
-                            CSV
-                        </button>
+                        <div class="admin-export-group">
+                            <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('excel')">
+                                <i class="fas fa-file-excel"></i>
+                                Excel
+                            </button>
+                            <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('pdf')">
+                                <i class="fas fa-file-pdf"></i>
+                                PDF
+                            </button>
+                            <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('csv')">
+                                <i class="fas fa-file-csv"></i>
+                                CSV
+                            </button>
+                        </div>
                     </div>
-                </div>
-            </div>
+                `,
+                content: `
+                    <section class="admin-report-kpis">
+                        ${renderAdminReportKpi("Total Users", adminState.users.length, "fas fa-users", "blue", "All registered users")}
+                        ${renderAdminReportKpi("Total Projects", filteredProjects.length, "far fa-folder", "green", getAdminReportRangeLabel())}
+                        ${renderAdminReportKpi("Total Tasks", filteredTasks.length, "far fa-square-check", "purple", "Filtered tasks")}
+                        ${renderAdminReportKpi("Tasks Completed", completed, "far fa-circle-check", "orange", `${filteredTasks.length ? Math.round((completed / filteredTasks.length) * 100) : 0}% of tasks`)}
+                    </section>
 
-            <section class="admin-report-kpis">
-                ${renderAdminReportKpi("Total Users", adminState.users.length, "fas fa-users", "blue", "All registered users")}
-                ${renderAdminReportKpi("Total Projects", filteredProjects.length, "far fa-folder", "green", getAdminReportRangeLabel())}
-                ${renderAdminReportKpi("Total Tasks", filteredTasks.length, "far fa-square-check", "purple", "Filtered tasks")}
-                ${renderAdminReportKpi("Tasks Completed", completed, "far fa-circle-check", "orange", `${filteredTasks.length ? Math.round((completed / filteredTasks.length) * 100) : 0}% of tasks`)}
-            </section>
-
-            <section class="admin-report-main-grid">
-                <article class="admin-report-panel task-overview-panel">
-                    <div class="admin-report-panel-head">
-                        <h3>Task Overview</h3>
-                        <select class="admin-report-select" aria-label="Task overview range">
-                            <option>Daily</option>
-                            <option>Weekly</option>
-                            <option>Monthly</option>
-                        </select>
-                    </div>
-                    <div class="admin-line-legend">
-                        <span><i class="legend-line created"></i>Created</span>
-                        <span><i class="legend-line completed"></i>Completed</span>
-                        <span><i class="legend-line overdue"></i>Overdue</span>
-                    </div>
-                    <div class="admin-report-chart-wrap line">
-                        <canvas id="adminReportProjectChart"></canvas>
-                    </div>
-                </article>
-
-                <article class="admin-report-panel status-breakdown-panel">
-                    <div class="admin-report-panel-head">
-                        <h3>Tasks by Status</h3>
-                    </div>
-                    <div class="admin-status-layout">
-                        <div class="admin-report-chart-wrap donut">
-                            <canvas id="adminReportStatusChart"></canvas>
-                            <div class="admin-donut-total">
-                                <strong>${filteredTasks.length}</strong>
-                                <span>Total</span>
+                    <section class="admin-report-main-grid">
+                        <article class="admin-report-panel task-overview-panel">
+                            <div class="admin-report-panel-head">
+                                <h3>Task Overview</h3>
+                                <select class="admin-report-select" aria-label="Task overview range">
+                                    <option>Daily</option>
+                                    <option>Weekly</option>
+                                    <option>Monthly</option>
+                                </select>
                             </div>
-                        </div>
-                        <div class="admin-status-list">
-                            ${renderAdminStatusItem("Completed", completed, filteredTasks.length, "completed")}
-                            ${renderAdminStatusItem("In Progress", inProgress, filteredTasks.length, "progress")}
-                            ${renderAdminStatusItem("Pending", pending, filteredTasks.length, "pending")}
-                            ${renderAdminStatusItem("Overdue", overdue, filteredTasks.length, "overdue")}
-                        </div>
-                    </div>
-                </article>
-            </section>
+                            <div class="admin-line-legend">
+                                <span><i class="legend-line created"></i>Created</span>
+                                <span><i class="legend-line completed"></i>Completed</span>
+                                <span><i class="legend-line overdue"></i>Overdue</span>
+                            </div>
+                            <div class="admin-report-chart-wrap line">
+                                <canvas id="adminReportProjectChart"></canvas>
+                            </div>
+                        </article>
 
-            <section class="admin-report-bottom-grid">
-                <article class="admin-report-panel">
-                    <div class="admin-report-panel-head">
-                        <h3>Top Active Projects</h3>
-                        ${renderAdminShowToggle("projects", topProjects.length)}
-                    </div>
-                    <div class="table-scroll">
-                        <table class="admin-compact-table">
-                            <thead>
-                                <tr>
-                                    <th>Project</th>
-                                    <th>Owner</th>
-                                    <th>Members</th>
-                                    <th>Tasks</th>
-                                    <th>Completed</th>
-                                    <th>Progress</th>
-                                </tr>
-                            </thead>
-                            <tbody>${renderAdminTopProjectRows(topProjects)}</tbody>
-                        </table>
-                    </div>
-                </article>
+                        <article class="admin-report-panel status-breakdown-panel">
+                            <div class="admin-report-panel-head">
+                                <h3>Tasks by Status</h3>
+                            </div>
+                            <div class="admin-status-layout">
+                                <div class="admin-report-chart-wrap donut">
+                                    <canvas id="adminReportStatusChart"></canvas>
+                                    <div class="admin-donut-total">
+                                        <strong>${filteredTasks.length}</strong>
+                                        <span>Total</span>
+                                    </div>
+                                </div>
+                                <div class="admin-status-list">
+                                    ${renderAdminStatusItem("Completed", completed, filteredTasks.length, "completed")}
+                                    ${renderAdminStatusItem("In Progress", inProgress, filteredTasks.length, "progress")}
+                                    ${renderAdminStatusItem("Pending", pending, filteredTasks.length, "pending")}
+                                    ${renderAdminStatusItem("Overdue", overdue, filteredTasks.length, "overdue")}
+                                </div>
+                            </div>
+                        </article>
+                    </section>
 
-                <article class="admin-report-panel">
-                    <div class="admin-report-panel-head">
-                        <h3>User Activity Summary</h3>
-                        ${renderAdminShowToggle("activity", activityItems.length)}
-                    </div>
-                    <div class="table-scroll">
-                        <table class="admin-compact-table activity-table">
-                            <thead>
-                                <tr>
-                                    <th>Activity</th>
-                                    <th>Count</th>
-                                    <th>Change</th>
-                                </tr>
-                            </thead>
-                            <tbody>${renderAdminUserActivityRows(activityItems)}</tbody>
-                        </table>
-                    </div>
-                </article>
-            </section>
+                    <section class="admin-report-bottom-grid">
+                        <article class="admin-report-panel">
+                            <div class="admin-report-panel-head">
+                                <h3>Top Active Projects</h3>
+                                ${renderAdminShowToggle("projects", topProjects.length)}
+                            </div>
+                            <div class="table-scroll">
+                                <table class="admin-compact-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Project</th>
+                                            <th>Owner</th>
+                                            <th>Members</th>
+                                            <th>Tasks</th>
+                                            <th>Completed</th>
+                                            <th>Progress</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${renderAdminTopProjectRows(topProjects)}</tbody>
+                                </table>
+                            </div>
+                        </article>
+
+                        <article class="admin-report-panel">
+                            <div class="admin-report-panel-head">
+                                <h3>User Activity Summary</h3>
+                                ${renderAdminShowToggle("activity", activityItems.length)}
+                            </div>
+                            <div class="table-scroll">
+                                <table class="admin-compact-table activity-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Activity</th>
+                                            <th>Count</th>
+                                            <th>Change</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>${renderAdminUserActivityRows(activityItems)}</tbody>
+                                </table>
+                            </div>
+                        </article>
+                    </section>
+                `
+            })}
         </div>
     `;
 
@@ -3408,9 +3411,11 @@ function renderSettingsView() {
                         <strong data-admin-settings-text="languageTitle">Language</strong>
                         <small data-admin-settings-text="languageCopy">Select your preferred language.</small>
                     </span>
-                    <select id="admin-settings-language-select" class="settings-select" onchange="saveAdminSettingsPreference('language', this.value)" aria-label="Choose language">
-                        <option value="english">English</option>
-                        <option value="hindi">Hindi</option>
+                    <select id="admin-settings-language-select"
+                            class="settings-select"
+                            onchange="applyAdminGoogleLanguage(this.value)">
+                        <option value="en">English</option>
+                        <option value="hi">Hindi</option>
                     </select>
                 </div>
             </section>

@@ -978,7 +978,7 @@ select {
     color: #132038;
     font-family: var(--tf-font);
     font-size: clamp(28px, 2vw, 34px);
-    font-weight: 800;
+    font-weight: 500;
     letter-spacing: -0.03em;
     line-height: 1.08;
 }
@@ -986,7 +986,7 @@ select {
 .settings-heading p {
     margin: 0;
     color: #667085;
-    font-size: 16px;
+    font-size: 13px;
 }
 
 .settings-list-card {
@@ -1503,20 +1503,22 @@ button.settings-row:hover .settings-row-chevron {
 
 .admin-date-field {
     display: grid;
-    gap: 5px;
-    color: var(--muted-text);
+    gap: 6px;
+    min-width: 170px;
+    color: #64748b;
     font-size: 12px;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .admin-date-field input {
-    min-width: 150px;
-    height: 40px;
-    padding: 0 11px;
-    border: 1px solid #d8deea;
-    border-radius: 6px;
+    min-width: 170px;
+    min-height: var(--admin-control-height);
+    padding: 0 14px;
+    border: 1px solid #dbe4ef;
+    border-radius: var(--admin-control-radius);
     background: #ffffff;
-    color: var(--heading);
+    color: #0f172a;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .action-btn {
@@ -1570,6 +1572,7 @@ button.settings-row:hover .settings-row-chevron {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    margin-left: auto;
 }
 
 .admin-add-user-btn {
@@ -1853,46 +1856,50 @@ button.settings-row:hover .settings-row-chevron {
 }
 
 .admin-report-dashboard {
-    gap: 14px;
+    gap: var(--admin-page-gap);
+}
+
+.admin-report-toolbar {
+    align-items: end;
 }
 
 .admin-report-kpis {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 14px;
+    gap: 18px;
 }
 
 .admin-kpi-card,
 .admin-report-panel {
-    background: #ffffff;
-    border: 1px solid #e3e8f2;
-    border-radius: 8px;
-    box-shadow: 0 1px 5px rgba(19, 33, 61, 0.06);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid #e3ebf5;
+    border-radius: var(--admin-card-radius);
+    box-shadow: var(--admin-shadow-soft);
 }
 
 .admin-kpi-card {
-    min-height: 104px;
-    padding: 18px;
+    min-height: 80px;
+    padding: 22px;
     display: grid;
-    grid-template-columns: 54px minmax(0, 1fr);
+    grid-template-columns: 56px minmax(0, 1fr);
     align-items: center;
-    gap: 14px;
+    gap: 16px;
 }
 
 .admin-kpi-icon {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 18px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 22px;
 }
 
-.admin-kpi-icon.blue { background: #e8f1ff; color: #1668f2; }
+.admin-kpi-icon.blue { background: #dcf7e9; color: #13a86b; }
 .admin-kpi-icon.green { background: #dcf7e9; color: #13a86b; }
-.admin-kpi-icon.purple { background: #efe7ff; color: #7c3aed; }
-.admin-kpi-icon.orange { background: #fff0d8; color: #f59e0b; }
+.admin-kpi-icon.purple { background: #dcf7e9; color: #13a86b; }
+.admin-kpi-icon.orange { background: #dcf7e9; color: #13a86b; }
 
 .admin-kpi-copy {
     min-width: 0;
@@ -1900,27 +1907,29 @@ button.settings-row:hover .settings-row-chevron {
 
 .admin-kpi-copy span {
     display: block;
-    color: #1f2a44;
+    color: #334155;
     font-size: 12px;
-    font-weight: 800;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
 }
 
 .admin-kpi-copy strong {
     display: block;
-    margin-top: 4px;
-    color: #111d38;
-    font-size: 28px;
-    line-height: 1;
+    margin-top: 6px;
+    color: #0f172a;
+    font-size: 22px;
+    line-height: 1.05;
 }
 
 .admin-kpi-copy small {
     display: flex;
     align-items: center;
     gap: 6px;
-    margin-top: 9px;
-    color: #59667d;
-    font-size: 11px;
-    font-weight: 700;
+    margin-top: 10px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 .admin-kpi-copy small i {
@@ -1931,7 +1940,7 @@ button.settings-row:hover .settings-row-chevron {
 .admin-report-main-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.95fr);
-    gap: 14px;
+    gap: 18px;
 }
 
 .admin-report-panel {
@@ -1940,9 +1949,9 @@ button.settings-row:hover .settings-row-chevron {
 }
 
 .admin-report-panel-head {
-    min-height: 48px;
-    padding: 13px 16px;
-    border-bottom: 1px solid #e7ebf2;
+    min-height: 62px;
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid #edf2f7;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1951,9 +1960,9 @@ button.settings-row:hover .settings-row-chevron {
 
 .admin-report-panel-head h3 {
     margin: 0;
-    color: #17213a;
+    color: #0f172a;
     font-size: 15px;
-    font-weight: 800;
+    font-weight: 500;
 }
 
 .admin-show-toggle {
@@ -1972,24 +1981,26 @@ button.settings-row:hover .settings-row-chevron {
 }
 
 .admin-report-select {
-    height: 32px;
-    min-width: 92px;
-    border: 1px solid #dbe2ee;
-    border-radius: 6px;
-    padding: 0 10px;
-    color: #34415b;
+    min-height: 38px;
+    min-width: 110px;
+    border: 1px solid #dbe4ef;
+    border-radius: 12px;
+    padding: 0 12px;
+    color: #334155;
     background: #ffffff;
     font-size: 12px;
     font-weight: 700;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 .admin-line-legend {
     display: flex;
     gap: 26px;
-    padding: 12px 18px 0;
-    color: #40506a;
+    padding: 14px 22px 0;
+    color: #475569;
     font-size: 12px;
     font-weight: 700;
+    flex-wrap: wrap;
 }
 
 .admin-line-legend span {
@@ -2010,17 +2021,17 @@ button.settings-row:hover .settings-row-chevron {
 .legend-line.overdue { background: #f04438; }
 
 .admin-report-chart-wrap.line {
-    height: 260px;
-    padding: 8px 14px 14px;
+    height: 280px;
+    padding: 12px 18px 18px;
 }
 
 .admin-status-layout {
-    min-height: 318px;
-    padding: 18px;
+    min-height: 332px;
+    padding: 22px;
     display: grid;
     grid-template-columns: minmax(180px, 1fr) minmax(190px, 0.9fr);
     align-items: center;
-    gap: 18px;
+    gap: 22px;
 }
 
 .admin-report-chart-wrap.donut {
@@ -2038,15 +2049,15 @@ button.settings-row:hover .settings-row-chevron {
 
 .admin-donut-total strong {
     display: block;
-    color: #182340;
-    font-size: 25px;
+    color: #0f172a;
+    font-size: 28px;
     line-height: 1;
 }
 
 .admin-donut-total span {
     display: block;
     margin-top: 6px;
-    color: #6a7589;
+    color: #64748b;
     font-size: 12px;
     font-weight: 800;
 }
@@ -2092,7 +2103,7 @@ button.settings-row:hover .settings-row-chevron {
 .admin-report-bottom-grid {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(360px, 0.95fr);
-    gap: 14px;
+    gap: 18px;
 }
 
 .admin-compact-table {
@@ -2113,11 +2124,11 @@ button.settings-row:hover .settings-row-chevron {
 .admin-compact-table th {
     background: #f8fafc;
     color: #283550;
-    font-weight: 800;
+    font-weight: 600;   /* reduced from 800 */
 }
 
 .admin-compact-table td {
-    font-weight: 650;
+    font-weight: 400;   /* reduced from 650 */
 }
 
 .admin-compact-table tr:last-child td {
@@ -2220,6 +2231,20 @@ button.settings-row:hover .settings-row-chevron {
 
     .legend-list {
         padding-right: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-report-toolbar,
+    .admin-report-toolbar .admin-date-field,
+    .admin-report-toolbar .admin-date-field input,
+    .admin-report-toolbar .admin-export-group,
+    .admin-report-toolbar .action-btn {
+        width: 100%;
+    }
+
+    .admin-report-toolbar .admin-export-group {
+        margin-left: 0;
     }
 }
 
@@ -2466,7 +2491,8 @@ body {
 .deadlines-panel h3,
 .data-panel h3 {
     color: var(--tf-text);
-    font-size: 24px;
+    font-size: clamp(28px, 2vw, 34px);;
+    font-weight: 500;
     line-height: 1.2;
 }
 
@@ -3496,7 +3522,7 @@ body {
     min-height: 94px;
     padding: 22px;
     border: 1px solid #dbe5f0;
-    border-radius: 12px;
+    border-radius: 7px !important;
     background: #ffffff;
     display: grid;
     grid-template-columns: 52px minmax(0, 1fr);
@@ -3506,8 +3532,8 @@ body {
 }
 
 .admin-project-stat-icon {
-    width: 52px;
-    height: 52px;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
     display: inline-flex;
     align-items: center;
@@ -3535,7 +3561,7 @@ body {
 
 .admin-project-stat-copy strong {
     color: #172033;
-    font-size: 20px;
+    font-size: 18px;
     line-height: 1;
 }
 
@@ -4094,7 +4120,7 @@ body {
     color: #132038;
     font-family: var(--tf-font);
     font-size: clamp(28px, 2vw, 34px);
-    font-weight: 800;
+    font-weight: 500;
     letter-spacing: -0.03em;
     line-height: 1.08;
 }
@@ -4103,7 +4129,7 @@ body {
     margin: 0;
     max-width: 760px;
     color: #64748b;
-    font-size: 14px;
+    font-size: 13px;
     line-height: 1.6;
 }
 
@@ -4183,13 +4209,8 @@ body {
 
 .common-action-btn,
 .action-btn.common-icon-btn {
-    min-height: var(--admin-control-height);
-    padding: 0 18px;
-    border-radius: var(--admin-control-radius);
     font-size: 14px;
-    font-weight: 800;
-    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    font-weight: 500;
 }
 
 .common-action-btn:hover,
@@ -4347,7 +4368,7 @@ body {
 }
 
 .admin-project-stat-copy strong {
-    font-size: 24px;
+    font-size: 22px;
 }
 
 .admin-project-grid {
@@ -4406,7 +4427,7 @@ body {
     margin: 0;
     color: #172033;
     font-size: 16px;
-    font-weight: 800;
+    font-weight: 500;
     line-height: 1.3;
 }
 
@@ -4714,4 +4735,65 @@ body {
 .common-action-btn,
 .common-toolbar .admin-activity-date-control .action-btn {
     border-radius: 10px !important;
+}
+
+
+/* File Delete Button Fix */
+
+.action-btn.delete-btn.common-icon-btn {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.action-btn.delete-btn.common-icon-btn:hover {
+    background: #fee2e2;
+    color: #b91c1c;
+    border-color: #f87171;
+    transform: translateY(-1px);
+}
+
+/* ===== HIDE GOOGLE TRANSLATE TOP BAR ===== */
+
+.goog-te-banner-frame.skiptranslate,
+iframe.skiptranslate {
+    display: none !important;
+    visibility: hidden !important;
+    height: 0 !important;
+    width: 0 !important;
+}
+
+body {
+    top: 0 !important;
+    position: static !important;
+}
+
+/* Hide Google translate gadget */
+.goog-te-gadget,
+.goog-logo-link,
+.goog-te-gadget span,
+.goog-te-gadget-icon,
+.goog-te-gadget-simple,
+.goog-te-gadget-simple img {
+    display: none !important;
+    visibility: hidden !important;
+}
+
+/* Hide floating icon */
+#goog-gt-tt,
+.goog-tooltip,
+.goog-text-highlight,
+.VIpgJd-ZVi9od-aZ2wEe-wOHMyf,
+.VIpgJd-ZVi9od-l4eHX-hSRGPd,
+.VIpgJd-ZVi9od-ORHb-OEVmcd,
+.VIpgJd-ZVi9od-xl07Ob-lTBxed {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+/* Remove highlight effect */
+.goog-text-highlight {
+    background: transparent !important;
+    box-shadow: none !important;
 }

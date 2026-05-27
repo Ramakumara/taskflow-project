@@ -10,6 +10,7 @@
     <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
+    <meta name="google" content="notranslate">
 </head>
 <body>
 <div id="toast-container"></div>
@@ -258,8 +259,8 @@
                 </div>
 
                 <section class="project-section data-panel">
-                    <div class="section-head">
-                        <div>
+                    <div class="common-page-header">
+                        <div class="common-page-title">
                             <h3>Projects</h3>
                         </div>
                     </div>
@@ -929,7 +930,6 @@
                     
 
                     <section class="common-content-card settings-list-card">
-                        <section class="settings-list-card">
                         <button class="settings-row" type="button" onclick="goToProfile()">
                             <span class="settings-row-icon"><i class="far fa-user"></i></span>
                             <span class="settings-row-copy">
@@ -976,13 +976,16 @@
                                 <strong data-settings-text="languageTitle">Language</strong>
                                 <small data-settings-text="languageCopy">Select your preferred language.</small>
                             </span>
-                            <select id="settings-language-select" class="settings-select" onchange="saveSettingsPreference('language', this.value)" aria-label="Choose language">
-                                <option value="english">English</option>
-                                <option value="hindi">Hindi</option>
-                            </select>
+                            <div class="language-select-wrapper notranslate" translate="no">
+                                <select id="settings-language-select"
+                                        class="settings-select"
+                                        onchange="applyGoogleLanguage(this.value)">
+                                    <option value="en">English</option>
+                                    <option value="hi">Hindi</option>
+                                </select>
+                            </div>
                         </div>
                     </section>
-                </div>
                 </section>
             </div>
 
@@ -1031,5 +1034,59 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<div id="google_translate_element" style="display:none"></div>
+
+<script>
+function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'en,hi',
+        autoDisplay: false
+    }, 'google_translate_element');
+}
+
+function applyGoogleLanguage(lang) {
+
+    localStorage.setItem("selectedLanguage", lang);
+    sessionStorage.setItem("settings.language", lang);
+
+    const select =
+        document.getElementById("settings-language-select");
+
+    if (select) {
+        select.value = lang;
+    }
+
+    document.cookie =
+        "googtrans=/en/" + lang + ";path=/";
+
+    document.cookie =
+        "googtrans=/en/" + lang +
+        ";domain=" + location.hostname + ";path=/";
+
+    location.reload();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+
+    const select =
+        document.getElementById("settings-language-select");
+
+    const saved =
+        sessionStorage.getItem("settings.language") ||
+        localStorage.getItem("selectedLanguage") ||
+        "en";
+
+    select.selectedIndex =
+        saved === "hi" ? 1 : 0;
+
+    setTimeout(() => {
+        select.value = saved;
+    }, 200);
+});
+</script>
+
+<script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
 </body>
 </html>
