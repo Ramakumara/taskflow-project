@@ -28,6 +28,20 @@
     --app-scroll-thumb-hover: #27c06a;
 }
 
+/* Permanent 90% visual scaling for admin dashboard surfaces only */
+body:has(.dashboard-shell) {
+    zoom: 0.9;
+}
+
+html:has(.dashboard-shell),
+body:has(.dashboard-shell) {
+    background: var(--page-bg);
+}
+
+body:has(.dashboard-shell) .dashboard-shell {
+    min-height: calc(100vh / 0.9);
+}
+
 * {
     box-sizing: border-box;
     scrollbar-width: thin;
@@ -1336,7 +1350,7 @@ select {
 }
 
 .settings-list-card {
-    width: min(100%, 1040px);
+    width: 100%;
     background: #ffffff;
     border: 1px solid #e6ebf3;
     border-radius: 8px;
@@ -4833,7 +4847,7 @@ body {
 
 .project-card-meta-row {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     color: #667085;
     font-size: 12px;
@@ -4849,6 +4863,7 @@ body {
 
 .project-card-meta-row span {
     min-width: 0;
+    flex: 1;
     word-break: break-word;
 }
 
@@ -4881,7 +4896,15 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+}
+
+.project-card-footer .admin-project-card-actions {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: nowrap;
 }
 
 .project-card-cta {
@@ -5671,3 +5694,4 @@ body {
     background: transparent !important;
     box-shadow: none !important;
 }
+

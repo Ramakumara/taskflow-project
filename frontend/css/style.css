@@ -1,7 +1,20 @@
-﻿body {
+body {
     margin: 0;
     font-family: Arial, sans-serif;
     background: white;
+}
+/* Permanent 90% visual scaling for dashboard surfaces only */
+body:has(.dashboard) {
+    zoom: 0.9;
+}
+
+html:has(.dashboard),
+body:has(.dashboard) {
+    background: var(--tf-bg, #f4f8f6);
+}
+
+body:has(.dashboard) .dashboard {
+    min-height: calc(100vh / 0.9);
 }
 
 :root {
@@ -721,8 +734,8 @@ tr:nth-child(even) {
     left: 50%;
     transform: translateX(-50%);
     width: 400px;
-    max-height: 80vh;   /* ðŸ”¥ important */
-    overflow-y: auto;   /* ðŸ”¥ enables scroll */
+    max-height: 80vh;   /* 🔥 important */
+    overflow-y: auto;   /* 🔥 enables scroll */
     background: white;
     padding: 20px;
     border-radius: 12px;
@@ -846,7 +859,7 @@ select option[value="done"] {
 
     display: flex;
     flex-direction: column;
-    align-items: center;   /* ðŸ”¥ center horizontally */
+    align-items: center;   /* 🔥 center horizontally */
     justify-content: center;
 }
 
@@ -863,7 +876,7 @@ select option[value="done"] {
 
     display: flex;
     flex-direction: column;
-    align-items: center;   /* ðŸ”¥ center horizontally */
+    align-items: center;   /* 🔥 center horizontally */
     justify-content: center;
 }
 
@@ -877,7 +890,7 @@ select option[value="done"] {
     font-size: 17px;
 }
 #project-charts {
-    width: 100%; /* ðŸ”¥ fix (was 5%) */
+    width: 100%; /* 🔥 fix (was 5%) */
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 25px;
@@ -896,7 +909,7 @@ select option[value="done"] {
     margin-left: 30px;
 }
 
-/* ðŸ”¥ Vertical line (between 2 columns) */
+/* 🔥 Vertical line (between 2 columns) */
 .project-chart:nth-child(2n+1)::after {
     content: "";
     position: absolute;
@@ -942,12 +955,12 @@ select option[value="done"] {
 }
 
 .status-info p {
-    display: flex;          /* ðŸ”¥ keeps items in one line */
+    display: flex;          /* 🔥 keeps items in one line */
     align-items: center;
     gap: 3px;
     margin: 10px 0;
     font-size: 15px;
-    white-space: nowrap;    /* ðŸ”¥ prevents breaking */
+    white-space: nowrap;    /* 🔥 prevents breaking */
 }
 
 .status-info span {
@@ -1155,7 +1168,7 @@ select option[value="done"] {
 
 .menu-item {
     display: flex;
-    align-items: center;   /* ðŸ”¥ vertical center */
+    align-items: center;   /* 🔥 vertical center */
     gap: 12px;
     padding: 12px 20px;
     font-size: 16px;
@@ -1559,7 +1572,7 @@ select option[value="done"] {
 
 .dashboard .project-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
 }
 
@@ -2650,8 +2663,8 @@ select option[value="done"] {
 
 .google-btn {
     display: flex;
-    align-items: center;        /* ðŸ”¥ vertical center */
-    justify-content: center;    /* ðŸ”¥ horizontal center */
+    align-items: center;        /* 🔥 vertical center */
+    justify-content: center;    /* 🔥 horizontal center */
     gap: 10px;
 
     width: 90%;
@@ -3382,7 +3395,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 
 .files-tab {
     border: none;
-    background: transparent !important;   /* 🔥 force remove red */
+    background: transparent !important;   /* ?? force remove red */
     color: #51607c;
     font-size: 17px;
     padding: 10px 14px;
@@ -3392,7 +3405,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
 }
 
 .files-tab.active {
-    background: #2f7bff !important;   /* 🔥 active color */
+    background: #2f7bff !important;   /* ?? active color */
     color: white;
     border-bottom: none;
 }
@@ -5162,7 +5175,7 @@ body.dashboard-theme-dark .dashboard-file-unassigned {
 }
 
 .member-cell span {
-    white-space: nowrap;   /* 🔥 prevents line break */
+    white-space: nowrap;   /* ?? prevents line break */
 }
 
 .member-cell {
@@ -5175,7 +5188,7 @@ body.dashboard-theme-dark .dashboard-file-unassigned {
 .member-cell span {
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;  /* 🔥 shows ... */
+    text-overflow: ellipsis;  /* ?? shows ... */
     max-width: 180px;         /* adjust based on UI */
 }
 
@@ -6740,30 +6753,30 @@ button {
 }
 
 .project-card-main {
-    padding: 20px;
+    padding: 14px 16px;
     display: grid;
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: 18px;
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 12px;
     align-items: start;
 }
 
 .project-card-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 14px;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
     background: linear-gradient(180deg, #f4fff7, #e9fbef);
     color: #16a34a;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
+    font-size: 20px;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .project-card-copy {
     min-width: 0;
     display: grid;
-    gap: 12px;
+    gap: 8px;
 }
 
 .card-body h4,
@@ -6778,18 +6791,18 @@ button {
 .project-card-badges {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 
 .project-card-chip {
-    min-height: 28px;
-    padding: 0 12px;
+    min-height: 26px;
+    padding: 0 10px;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
-    gap: 7px;
-    font-size: 12px;
+    gap: 6px;
+    font-size: 11px;
     font-weight: 700;
     white-space: nowrap;
 }
@@ -6817,16 +6830,16 @@ button {
 
 .project-card-meta {
     display: grid;
-    gap: 10px;
+    gap: 6px;
 }
 
 .project-card-meta-row {
     display: flex;
-    align-items: center;
-    gap: 10px;
+    align-items: flex-start;
+    gap: 8px;
     color: #667085;
-    font-size: 13px;
-    line-height: 1.45;
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 .project-card-meta-row i {
@@ -6838,6 +6851,7 @@ button {
 
 .project-card-meta-row span {
     min-width: 0;
+    flex: 1;
     word-break: break-word;
 }
 
@@ -6862,29 +6876,30 @@ button {
 
 .project-card-footer {
     border-top: 1px solid #eef2f6;
-    padding: 14px 20px 16px;
+    padding: 10px 16px 12px;
     color: #98a2b3;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 14px;
-    flex-wrap: wrap;
+    gap: 10px;
+    flex-wrap: nowrap;
 }
 
 .project-card-cta {
-    min-height: 38px;
-    padding: 0 14px;
+    min-height: 34px;
+    padding: 0 12px;
     border: 1px solid #dbe4ef;
     border-radius: 10px;
     background: #ffffff;
     color: #475467;
     display: inline-flex;
     align-items: center;
-    gap: 9px;
-    font-size: 13px;
+    gap: 8px;
+    font-size: 12px;
     font-weight: 700;
+    white-space: nowrap;
     cursor: pointer;
     transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
@@ -11839,3 +11854,4 @@ body.dashboard-theme-dark .clear-btn:hover {
     border-color: rgba(22, 163, 74, 0.4) !important;
     color: #f8fafc !important;
 }
+

@@ -3860,13 +3860,18 @@ function updateAdminFileUploadMessageCount() {
 
 function renderSettingsView() {
     document.getElementById("mainContent").innerHTML = `
-        <section class="settings-page admin-settings-page">
-            <div class="settings-heading">
-                <h1 class="settings-title" data-admin-settings-text="title">Settings</h1>
-                <p data-admin-settings-text="subtitle">Manage your account and preferences.</p>
-            </div>
-
-            <section class="settings-list-card">
+        ${renderCommonPageLayout({
+            pageClass: "admin-module-page settings-page admin-settings-page",
+            header: `
+                <header class="common-page-header settings-heading">
+                    <div class="common-page-title">
+                        <h1 class="settings-title" data-admin-settings-text="title">Settings</h1>
+                        <p data-admin-settings-text="subtitle">Manage your account and preferences.</p>
+                    </div>
+                </header>
+            `,
+            content: `
+                <section class="settings-list-card">
                 <button class="settings-row" type="button" onclick="goToProfile()">
                     <span class="settings-row-icon"><i class="far fa-user"></i></span>
                     <span class="settings-row-copy">
@@ -3920,8 +3925,9 @@ function renderSettingsView() {
                         <option value="hi">Hindi</option>
                     </select>
                 </div>
-            </section>
-        </section>
+                </section>
+            `
+        })}
     `;
     loadAdminSettingsView();
 }
@@ -4233,7 +4239,9 @@ function renderProjectCard(project) {
                     <span>${completionRate}% Complete · ${escapeHtml(project.status || "Planning")}</span>
                 </div>
                 <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-                    <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">Delete</button>
+                    <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         </article>
@@ -5365,12 +5373,12 @@ function renderProjectCard(project) {
                         </div>
                     </div>
                 </div>
-                <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-                </div>
                 <div class="project-card-footer">
                     <span>Created: ${escapeHtml(getAdminProjectCreatedDate(project))}</span>
                     <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-                        <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">Delete</button>
+                        <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
                         <button class="project-card-cta" type="button" onclick="event.stopPropagation(); openAdminProjectWorkspace('${escapeHtml(project.id)}')">
                             <span>View Details</span>
                             <i class="fas fa-arrow-right"></i>
