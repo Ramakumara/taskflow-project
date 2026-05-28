@@ -3,6 +3,19 @@ let currentFilter = "all";
 let notificationClock = null;
 let dashboardThemeMediaQuery = null;
 let dashboardThemeMediaQueryHandlerBound = false;
+let dashboardPageInitialized = false;
+const DASHBOARD_VIEW_IDS = [
+    "dashboard-view",
+    "tasks-view",
+    "team-view",
+    "calendar-view",
+    "activity-view",
+    "files-view",
+    "profile-view",
+    "settings-view",
+    "project-workspace-view",
+    "report-view"
+];
 
 const params = new URLSearchParams(window.location.search);
 
@@ -20,21 +33,12 @@ if (token) {
     window.history.replaceState({}, document.title, "/dashboard-page");
 }
     
-// Hide all views
 function hideAllViews() {
-    document.getElementById('dashboard-view').classList.add('hidden');
-    document.getElementById('tasks-view').classList.add('hidden');
-    document.getElementById('team-view').classList.add('hidden');
-    document.getElementById('calendar-view').classList.add('hidden');
-    document.getElementById('activity-view').classList.add('hidden');
-    document.getElementById('files-view').classList.add('hidden');
-    document.getElementById('profile-view').classList.add('hidden');
-    document.getElementById('settings-view').classList.add('hidden');
-    document.getElementById('project-workspace-view').classList.add('hidden');
-    document.getElementById('report-view').classList.add('hidden');
+    DASHBOARD_VIEW_IDS.forEach((id) => {
+        document.getElementById(id)?.classList.add("hidden");
+    });
 }
 
-// Show specific view
 function showView(viewId) {
     hideAllViews();
     const view = document.getElementById(viewId);
@@ -43,7 +47,6 @@ function showView(viewId) {
     }
 }
 
-// Set active sidebar menu item
 function setActiveMenu(menuName) {
     document.querySelectorAll('.menu-item').forEach(item => {
         item.classList.remove('active');
@@ -3063,6 +3066,13 @@ function renderFiles() {
     const tbody = document.getElementById("files-table-body");
     const footer = document.getElementById("files-footer-copy");
     if (!tbody) return;
+    const role = sessionStorage.getItem("role");
+    const table = document.querySelector(".files-table");
+    if (table) {
+        table.classList.remove("files-table-user", "files-table-manager", "files-table-admin");
+        table.classList.add(`files-table-${role || "user"}`);
+    }
+
     if (!fileAssigneeToggleBound) {
         tbody.addEventListener("click", (event) => {
             const toggle = event.target.closest(".dashboard-file-assigned-toggle");
@@ -3122,7 +3132,6 @@ function renderFiles() {
     }
 
     tbody.innerHTML = "";
-    const role = sessionStorage.getItem("role");
 
     const header = document.getElementById("assigned-header");
     if (header) {
@@ -3779,10 +3788,16 @@ function formatDateTime(value) {
 }
 
 async function initializeDashboardPage() {
+    if (dashboardPageInitialized) {
+        return;
+    }
+    dashboardPageInitialized = true;
+
     if (typeof applySettingsPreferences === "function") {
         applySettingsPreferences();
     }
 
+    bindDashboardThemePreference();
     startNotificationClock();
 
     applyDashboardRoleVisibility();
@@ -3798,10 +3813,10 @@ async function initializeDashboardPage() {
     }
 }
 
-window.addEventListener("load", initializeDashboardPage);
-window.addEventListener("load", loadDashboardSummary);
-window.addEventListener("load", applySettingsPreferences);
-window.addEventListener("load", bindDashboardThemePreference);
+window.addEventListener("load", () => {
+    initializeDashboardPage();
+    loadDashboardSummary();
+});
 
 function toggleNotifications(event) {
 

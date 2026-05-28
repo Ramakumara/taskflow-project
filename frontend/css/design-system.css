@@ -1,0 +1,134 @@
+:root {
+    --tf-font-sans: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    --tf-bg: #edf1f7;
+    --tf-surface: #ffffff;
+    --tf-surface-muted: #f7f9fc;
+    --tf-border: #dfe6f0;
+    --tf-border-soft: #eef2f6;
+    --tf-heading: #172033;
+    --tf-text: #465066;
+    --tf-muted: #7b879a;
+    --tf-primary: #0f9f55;
+    --tf-primary-dark: #0b7f43;
+    --tf-primary-soft: #e7f8ee;
+    --tf-focus: rgba(15, 159, 85, 0.16);
+    --tf-danger: #d92d20;
+    --tf-warning: #f59e0b;
+    --tf-info: #2563eb;
+    --tf-radius-sm: 8px;
+    --tf-radius-md: 12px;
+    --tf-radius-lg: 18px;
+    --tf-radius-xl: 24px;
+    --tf-shadow-sm: 0 2px 8px rgba(19, 33, 61, 0.08);
+    --tf-shadow-md: 0 14px 34px rgba(19, 33, 61, 0.12);
+    --tf-shadow-lg: 0 24px 70px rgba(19, 33, 61, 0.16);
+    --tf-space-1: 4px;
+    --tf-space-2: 8px;
+    --tf-space-3: 12px;
+    --tf-space-4: 16px;
+    --tf-space-5: 20px;
+    --tf-space-6: 24px;
+    --tf-space-8: 32px;
+    --app-scroll-track: #eaf1f7;
+    --app-scroll-thumb: #6dd8a0;
+    --app-scroll-thumb-hover: #27c06a;
+}
+
+* {
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: var(--app-scroll-thumb) var(--app-scroll-track);
+}
+
+*::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+    background: var(--app-scroll-track);
+    border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, var(--app-scroll-thumb), #46c983);
+    border-radius: 999px;
+    border: 2px solid var(--app-scroll-track);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, var(--app-scroll-thumb-hover), #15a34a);
+}
+
+.hidden,
+[hidden] {
+    display: none !important;
+}
+
+.tf-card {
+    border: 1px solid var(--tf-border);
+    border-radius: var(--tf-radius-lg);
+    background: var(--tf-surface);
+    box-shadow: var(--tf-shadow-sm);
+}
+
+.tf-control {
+    min-height: 42px;
+    border: 1px solid var(--tf-border);
+    border-radius: var(--tf-radius-md);
+    background: var(--tf-surface);
+    color: var(--tf-text);
+    font: inherit;
+    transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.tf-control:focus,
+.tf-control:focus-within {
+    outline: none;
+    border-color: var(--tf-primary);
+    box-shadow: 0 0 0 4px var(--tf-focus);
+}
+
+.tf-button {
+    min-height: 42px;
+    border: 0;
+    border-radius: var(--tf-radius-md);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--tf-space-2);
+    padding: 0 var(--tf-space-5);
+    background: var(--tf-primary);
+    color: #ffffff;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.tf-button:hover {
+    background: var(--tf-primary-dark);
+    box-shadow: 0 10px 24px rgba(15, 159, 85, 0.24);
+    transform: translateY(-1px);
+}
+
+.tf-button-secondary {
+    border: 1px solid var(--tf-border);
+    background: var(--tf-surface);
+    color: var(--tf-text);
+}
+
+.tf-button-secondary:hover {
+    border-color: rgba(15, 159, 85, 0.36);
+    background: var(--tf-primary-soft);
+    color: var(--tf-primary-dark);
+}
+
+.tf-empty-state {
+    padding: var(--tf-space-8);
+    border: 1px dashed var(--tf-border);
+    border-radius: var(--tf-radius-lg);
+    background: var(--tf-surface-muted);
+    color: var(--tf-muted);
+    text-align: center;
+}

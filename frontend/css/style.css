@@ -1,3 +1,5 @@
+@import url("/static/css/design-system.css");
+
 body {
     margin: 0;
     font-family: Arial, sans-serif;
@@ -3683,12 +3685,6 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     border-radius: 8px;
 }
 
-.files-table {
-    width: 100%;
-    min-width: 1180px;
-    border-collapse: separate;
-    border-spacing: 0 10px;
-}
 
 .files-table thead th {
     background: transparent;
@@ -3803,13 +3799,7 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     font-size: 14px;
 }
 
-.dashboard-file-assigned-list {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    min-width: 150px;
-}
+
 
 .dashboard-file-assigned-pill {
     min-height: 28px;
@@ -6939,12 +6929,12 @@ button {
     text-transform: uppercase;
 }
 
-.workspace-table td,
+workspace-table td,
 .files-table td,
-.admin-table td {
-    color: var(--tf-text);
-    border-bottom: 1px solid var(--tf-border-soft);
-    font-size: 14px;
+.admin-files-table td {
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: unset;
 }
 
 .workspace-table tbody tr:hover,
@@ -7404,12 +7394,6 @@ button {
 .files-table-card {
     border-radius: 8px;
     overflow: auto;
-}
-
-.workspace-table,
-.files-table {
-    width: 100%;
-    table-layout: auto;
 }
 
 .workspace-table th,
@@ -8945,17 +8929,93 @@ button {
 }
 
 .task-board-table {
-    min-width: 1120px;
+    min-width: 1240px;
+    table-layout: fixed;
+}
+
+.task-board-table th,
+.task-board-table td {
+    border-bottom: 1px solid #e6edf5;
+    vertical-align: middle;
+}
+
+.task-board-table tbody tr:last-child td {
+    border-bottom: 1px solid #e6edf5;
+}
+
+.task-board-table th {
+    white-space: nowrap;
+}
+
+.task-board-table th:nth-child(1),
+.task-board-table td:nth-child(1) {
+    width: 48px;
+}
+
+.task-board-table th:nth-child(2),
+.task-board-table td:nth-child(2) {
+    width: 180px;
 }
 
 .task-board-table th:nth-child(3),
 .task-board-table td:nth-child(3) {
-    width: 140px;
+    width: 180px;
 }
 
 .task-board-table th:nth-child(4),
 .task-board-table td:nth-child(4) {
-    width: 360px;
+    width: 140px;
+}
+
+.task-board-table th:nth-child(5),
+.task-board-table td:nth-child(5) {
+    width: 320px;
+}
+
+.task-board-table th:nth-child(6),
+.task-board-table td:nth-child(6) {
+    width: 150px;
+}
+
+.task-board-table th:nth-child(7),
+.task-board-table td:nth-child(7) {
+    width: 140px;
+}
+
+.task-board-table th:nth-child(8),
+.task-board-table td:nth-child(8) {
+    width: 110px;
+}
+
+.task-board-table td:nth-child(2),
+.task-board-table td:nth-child(3),
+.task-board-table td:nth-child(7) {
+    white-space: nowrap;
+}
+
+.task-board-table td:nth-child(2) span,
+.task-board-table td:nth-child(3) {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-board-table .member-status-list,
+.task-board-table .assignee-list {
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    max-width: 100%;
+}
+
+.task-board-table .member-status-badge,
+.task-board-table .assignee-pill {
+    white-space: nowrap;
+}
+
+.task-board-table .status-pill,
+.task-board-table .task-priority-pill,
+.task-board-table .delete-btn {
+    white-space: nowrap;
 }
 
 .task-board-table.task-board-table-user {
@@ -9726,12 +9786,6 @@ button {
     overflow-x: auto;
 }
 
-.files-table {
-    min-width: 1180px;
-    border-collapse: separate;
-    border-spacing: 0;
-}
-
 .files-table thead th,
 .files-table th {
     padding: 11px 14px;
@@ -10156,6 +10210,161 @@ button {
 .common-content-card .workspace-table,
 .common-content-card .files-table {
     width: 100%;
+}
+
+.files-table {
+    min-width: 1180px;
+    table-layout: auto;
+}
+
+.files-table th,
+.files-table td {
+    border-bottom: 1px solid #e6edf5;
+    vertical-align: middle;
+}
+
+.files-table tbody tr:last-child td {
+    border-bottom: 1px solid #e6edf5;
+}
+
+.files-table th {
+    white-space: nowrap;
+}
+
+.files-table td {
+    overflow: visible;
+    text-overflow: unset;
+}
+
+.files-table td:nth-child(1),
+.files-table th:nth-child(1) {
+    width: 48px;
+}
+
+.files-table td:nth-child(2),
+.files-table th:nth-child(2) {
+    width: 240px;
+}
+
+.files-table td:nth-child(3),
+.files-table th:nth-child(3) {
+    width: 280px;
+}
+
+.files-table td:nth-child(4),
+.files-table th:nth-child(4) {
+    width: 240px;
+}
+
+.files-table td:nth-child(5),
+.files-table th:nth-child(5) {
+    width: 180px;
+}
+
+.files-table td:nth-child(6),
+.files-table th:nth-child(6) {
+    min-width: 180px;
+    width: 180px;
+    white-space: nowrap;
+
+}
+
+.files-table td:nth-child(7),
+.files-table th:nth-child(7) {
+    width: 110px;
+}
+
+.files-table td:nth-child(8),
+.files-table th:nth-child(8) {
+    width: 170px;
+}
+
+.files-table td:nth-child(9),
+.files-table th:nth-child(9) {
+    width: 130px;
+}
+
+.files-table.files-table-manager {
+    min-width: 1120px;
+}
+
+.files-table.files-table-manager td:nth-child(6),
+.files-table.files-table-manager th:nth-child(6) {
+    width: 110px;
+}
+
+.files-table.files-table-manager td:nth-child(7),
+.files-table.files-table-manager th:nth-child(7) {
+    width: 150px;
+}
+
+.files-table.files-table-manager td:nth-child(8),
+.files-table.files-table-manager th:nth-child(8) {
+    width: 130px;
+}
+
+.files-table.files-table-user {
+    min-width: 1080px;
+}
+
+.files-table.files-table-user td:nth-child(4),
+.files-table.files-table-user th:nth-child(4) {
+    width: 180px;
+}
+
+.files-table.files-table-user td:nth-child(5),
+.files-table.files-table-user th:nth-child(5) {
+    width: 180px;
+}
+
+.files-table.files-table-user td:nth-child(6),
+.files-table.files-table-user th:nth-child(6) {
+    width: 110px;
+}
+
+.files-table.files-table-user td:nth-child(7),
+.files-table.files-table-user th:nth-child(7) {
+    width: 150px;
+}
+
+.files-table.files-table-user td:nth-child(8),
+.files-table.files-table-user th:nth-child(8) {
+    width: 130px;
+}
+
+.files-table td:nth-child(2),
+.files-table td:nth-child(3),
+.files-table td:nth-child(5),
+.files-table td:nth-child(6),
+.files-table td:nth-child(7),
+.files-table td:nth-child(8) {
+    white-space: nowrap;
+}
+
+.files-table td:last-child {
+    white-space: nowrap;
+    overflow: visible !important;
+}
+
+.files-table td:last-child .action-btn,
+.files-table td:last-child .delete-btn {
+    margin-right: 8px;
+    white-space: nowrap;
+}
+
+.dashboard-file-assigned-list {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.dashboard-file-assigned-pill,
+.dashboard-file-assigned-more,
+.dashboard-file-unassigned {
+    white-space: nowrap;
 }
 
 .common-content-card .task-pagination,

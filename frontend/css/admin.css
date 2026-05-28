@@ -1,3 +1,5 @@
+@import url("/static/css/design-system.css");
+
 :root {
     --sidebar-bg: #1d2537;
     --sidebar-bg-deep: #161e2d;
@@ -3390,17 +3392,90 @@ body {
 }
 
 .admin-task-table {
-    min-width: 1120px;
+    min-width: 1240px;
+    table-layout: fixed;
+}
+
+.admin-task-table th,
+.admin-task-table td {
+    border-bottom: 1px solid #e6edf5;
+    vertical-align: middle;
+}
+
+.admin-task-table tbody tr:last-child td {
+    border-bottom: 1px solid #e6edf5;
+}
+
+.admin-task-table th {
+    white-space: nowrap;
+}
+
+.admin-task-table th:nth-child(1),
+.admin-task-table td:nth-child(1) {
+    width: 48px;
+}
+
+.admin-task-table th:nth-child(2),
+.admin-task-table td:nth-child(2) {
+    width: 180px;
 }
 
 .admin-task-table th:nth-child(3),
 .admin-task-table td:nth-child(3) {
-    width: 140px;
+    width: 180px;
 }
 
 .admin-task-table th:nth-child(4),
 .admin-task-table td:nth-child(4) {
-    width: 360px;
+    width: 140px;
+}
+
+.admin-task-table th:nth-child(5),
+.admin-task-table td:nth-child(5) {
+    width: 320px;
+}
+
+.admin-task-table th:nth-child(6),
+.admin-task-table td:nth-child(6) {
+    width: 150px;
+}
+
+.admin-task-table th:nth-child(7),
+.admin-task-table td:nth-child(7) {
+    width: 140px;
+}
+
+.admin-task-table th:nth-child(8),
+.admin-task-table td:nth-child(8) {
+    width: 110px;
+}
+
+.admin-task-table td:nth-child(2),
+.admin-task-table td:nth-child(3),
+.admin-task-table td:nth-child(7) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-task-table .admin-task-assignee-card {
+    width: 100%;
+}
+
+.admin-task-table .admin-task-assignee-row {
+    grid-template-columns: 28px minmax(80px, 1fr) max-content;
+}
+
+.admin-task-table .admin-task-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-task-table .status-pill,
+.admin-task-table .task-priority-pill,
+.admin-task-table .delete-btn {
+    white-space: nowrap;
 }
 
 .admin-task-assignee-card {
@@ -4654,7 +4729,8 @@ body {
 }
 
 .admin-module-page .admin-task-table {
-    min-width: 1120px;
+    min-width: 1240px;
+    table-layout: fixed;
 }
 
 .admin-module-page .admin-table thead th,
@@ -4704,7 +4780,91 @@ body {
 }
 
 .admin-files-page .admin-files-table {
-    min-width: 1100px;
+    min-width: 1120px;
+    table-layout: fixed;
+}
+
+.admin-files-page .admin-files-table th,
+.admin-files-page .admin-files-table td {
+    border-bottom: 1px solid #e6edf5;
+    vertical-align: middle;
+}
+
+.admin-files-page .admin-files-table tbody tr:last-child td {
+    border-bottom: 1px solid #e6edf5;
+}
+
+.admin-files-page .admin-files-table th {
+    white-space: nowrap;
+}
+
+.admin-files-page .admin-files-table td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.admin-files-page .admin-files-table th:nth-child(1),
+.admin-files-page .admin-files-table td:nth-child(1) {
+    width: 48px;
+}
+
+.admin-files-page .admin-files-table th:nth-child(2),
+.admin-files-page .admin-files-table td:nth-child(2) {
+    width: 260px;
+}
+
+.admin-files-page .admin-files-table th:nth-child(3),
+.admin-files-page .admin-files-table td:nth-child(3) {
+    width: 180px;
+}
+
+.admin-files-page .admin-files-table th:nth-child(4),
+.admin-files-page .admin-files-table td:nth-child(4) {
+    width: 320px;
+}
+
+.admin-files-page .admin-files-table th:nth-child(5),
+.admin-files-page .admin-files-table td:nth-child(5) {
+    width: 130px;
+}
+
+.admin-files-page .admin-files-table th:nth-child(6),
+.admin-files-page .admin-files-table td:nth-child(6) {
+    width: 110px;
+}
+
+.admin-files-page .admin-files-table th:nth-child(7),
+.admin-files-page .admin-files-table td:nth-child(7) {
+    width: 140px;
+}
+
+.admin-files-page .admin-files-table th:nth-child(8),
+.admin-files-page .admin-files-table td:nth-child(8) {
+    width: 170px;
+}
+
+.admin-files-page .admin-files-table td:nth-child(2),
+.admin-files-page .admin-files-table td:nth-child(3),
+.admin-files-page .admin-files-table td:nth-child(5),
+.admin-files-page .admin-files-table td:nth-child(6),
+.admin-files-page .admin-files-table td:nth-child(7),
+.admin-files-page .admin-files-table td:nth-child(8) {
+    white-space: nowrap;
+}
+
+.admin-files-page .admin-file-assigned-list {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 100%;
+    overflow: visible;
+}
+
+.admin-files-page .admin-file-assigned-pill,
+.admin-files-page .admin-file-assigned-more,
+.admin-files-page .admin-file-unassigned {
+    white-space: nowrap;
 }
 
 .common-content-card.admin-activity-log-panel .admin-activity-log-meta {
@@ -4996,10 +5156,14 @@ body {
 
 .admin-files-table td:last-child {
     white-space: nowrap;
+    overflow: visible !important;
+
 }
 
 .admin-files-table td:last-child .action-btn + .action-btn {
     margin-left: 8px;
+    display: inline-flex;
+
 }
 
 .admin-file-assigned-list {
@@ -5025,6 +5189,13 @@ body {
 
 .admin-file-assigned-pill::first-letter {
     text-transform: uppercase;
+}
+
+
+.admin-files-page .admin-file-assigned-pill,
+.admin-files-page .admin-file-assigned-more,
+.admin-files-page .admin-file-unassigned {
+    white-space: nowrap;
 }
 
 .admin-file-assigned-pill small {

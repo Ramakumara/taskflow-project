@@ -4223,31 +4223,6 @@ function renderDeadlines(tasks, projectMap) {
     }).join("");
 }
 
-function renderProjectCard(project) {
-    const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
-    const managerName = project.assigned_manager ? getAdminUserDisplayName(project.assigned_manager) : "Unassigned";
-    const statusLabel = capitalize(String(project.status || "Planning").trim().toLowerCase()).replace("On hold", "On Hold");
-    const statusClass = String(project.status || "Planning").trim().toLowerCase().replace(/\s+/g, "-");
-
-    return `
-        <article class="admin-project-card manager-project-card" onclick="openAdminProjectWorkspace('${escapeHtml(project.id)}')">
-            <div class="manager-project-card-header"></div>
-            <div class="manager-project-card-body">
-                <div class="admin-project-card-copy">
-                    <h4>${escapeHtml(project.name || "Untitled Project")}</h4>
-                    <p>${projectTasks.length} ${projectTasks.length === 1 ? "Task" : "Tasks"} · Manager: ${escapeHtml(managerName)}</p>
-                    <span>${completionRate}% Complete · ${escapeHtml(project.status || "Planning")}</span>
-                </div>
-                <div class="admin-project-card-actions" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-                    <button class="action-btn delete-btn" type="button" onclick="event.stopPropagation(); adminDeleteProject('${escapeHtml(project.id)}')">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </article>
-    `;
-}
-
 async function assignAdminProjectManager(event, projectId, managerEmail) {
     if (event) event.stopPropagation();
     const token = sessionStorage.getItem("token");
@@ -5597,3 +5572,4 @@ window.updateAddUserField = updateAddUserField;
 window.submitAddUser = submitAddUser;
 window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;
+
