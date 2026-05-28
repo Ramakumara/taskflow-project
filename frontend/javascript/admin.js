@@ -3390,6 +3390,7 @@ function triggerAdminFileUpload() {
 
     resetAdminFileUploadModal();
     populateAdminFileProjectOptions();
+    renderAdminFileTaskOptions();
     renderAdminFileAssigneeChips();
     renderAdminFileAssigneeOptions();
     bindAdminFileDropZone();
@@ -3449,11 +3450,16 @@ function resetAdminFileUploadModal() {
     const selectedName = document.getElementById("adminSelectedFileName");
     const dropTitle = document.getElementById("adminFileDropTitle");
     const dropSubtitle = document.getElementById("adminFileDropSubtitle");
+    const taskSelect = document.getElementById("admin-file-task-select");
     const search = document.getElementById("admin-file-assignee-search");
     const submit = document.getElementById("admin-send-file-btn");
 
     if (input) input.value = "";
     if (message) message.value = "";
+    if (taskSelect) {
+        taskSelect.innerHTML = `<option value="">Select a project first</option>`;
+        taskSelect.disabled = true;
+    }
     if (search) search.value = "";
     if (selectedName) selectedName.textContent = "Max file size: 100 MB";
     if (dropTitle) dropTitle.textContent = "Drag & drop your file here";
@@ -3478,12 +3484,67 @@ function populateAdminFileProjectOptions() {
     }
 
     select.disabled = false;
-    select.innerHTML = projects.map(project => `
-        <option value="${escapeHtml(project.id)}">${escapeHtml(project.name || project.project_name || "Untitled Project")}</option>
-    `).join("");
+    select.innerHTML = `
+        <option value="">Select project</option>
+        ${projects.map(project => `
+            <option value="${escapeHtml(project.id)}">${escapeHtml(project.name || project.project_name || "Untitled Project")}</option>
+        `).join("")}
+    `;
+}
+
+function getSelectedAdminFileProjectId() {
+    return document.getElementById("admin-file-project-select")?.value || "";
+}
+
+function getSelectedAdminFileTaskId() {
+    return document.getElementById("admin-file-task-select")?.value || "";
+}
+
+function getAdminFileProjectTasks() {
+    const projectId = getSelectedAdminFileProjectId();
+    if (!projectId) return [];
+    return (Array.isArray(adminState.tasks) ? adminState.tasks : [])
+        .filter(task => String(task.project_id) === String(projectId));
+}
+
+function renderAdminFileTaskOptions() {
+    const select = document.getElementById("admin-file-task-select");
+    if (!select) return;
+
+    const projectId = getSelectedAdminFileProjectId();
+    if (!projectId) {
+        select.innerHTML = `<option value="">Select a project first</option>`;
+        select.disabled = true;
+        return;
+    }
+
+    const tasks = getAdminFileProjectTasks();
+    if (!tasks.length) {
+        select.innerHTML = `<option value="">No tasks in this project</option>`;
+        select.disabled = true;
+        return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = `
+        <option value="">Select task</option>
+        ${tasks.map(task => `
+            <option value="${escapeHtml(task.id)}">${escapeHtml(task.title || task.task_title || "Untitled Task")}</option>
+        `).join("")}
+    `;
 }
 
 function handleAdminFileProjectChange() {
+    const taskSelect = document.getElementById("admin-file-task-select");
+    if (taskSelect) taskSelect.value = "";
+    renderAdminFileTaskOptions();
+    const allowedEmails = new Set(getAdminFileAssignableUsers().map(user => user.email));
+    adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(email => allowedEmails.has(email));
+    renderAdminFileAssigneeChips();
+    renderAdminFileAssigneeOptions();
+}
+
+function handleAdminFileTaskChange() {
     const allowedEmails = new Set(getAdminFileAssignableUsers().map(user => user.email));
     adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(email => allowedEmails.has(email));
     renderAdminFileAssigneeChips();
@@ -3542,9 +3603,11 @@ function bindAdminFileDropZone() {
 }
 
 function getAdminFileAssignableUsers() {
-    const projectId = document.getElementById("admin-file-project-select")?.value || "";
+    const projectId = getSelectedAdminFileProjectId();
+    const taskId = getSelectedAdminFileTaskId();
     const project = (Array.isArray(adminState.projects) ? adminState.projects : [])
         .find(item => String(item.id) === String(projectId));
+    const managerEmails = new Set();
     const relatedEmails = new Set();
 
     if (project) {
@@ -3554,90 +3617,39 @@ function getAdminFileAssignableUsers() {
             project.manager_email
         ].forEach(email => {
             const normalized = String(email || "").trim().toLowerCase();
-            if (normalized) relatedEmails.add(normalized);
+            if (normalized) {
+                managerEmails.add(normalized);
+                relatedEmails.add(normalized);
+            }
         });
 
-        (Array.isArray(adminState.tasks) ? adminState.tasks : [])
-            .filter(task => String(task.project_id) === String(projectId))
-            .forEach(task => {
+        if (taskId) {
+            const task = (Array.isArray(adminState.tasks) ? adminState.tasks : [])
+                .find(item => String(item.id) === String(taskId));
+            if (task) {
                 getTaskAssignments(task).forEach(assignment => {
                     const normalized = String(assignment.user_id || "").trim().toLowerCase();
                     if (normalized) relatedEmails.add(normalized);
                 });
-            });
+            }
+        }
     }
 
     return (Array.isArray(adminState.users) ? adminState.users : [])
         .map(user => ({
             ...user,
-            email: String(user.email || "").trim(),
+            email: String(user.email || "").trim().toLowerCase(),
             username: String(user.username || user.name || user.email || "").trim(),
             role: String(user.role || "").toLowerCase()
         }))
         .filter(user => {
-            if (!user.email) return false;
-            if (!project) return user.role === "user" || user.role === "manager";
-            return relatedEmails.has(user.email.toLowerCase()) && (user.role === "user" || user.role === "manager");
+            if (!user.email || !project) return false;
+            if (!taskId) {
+                return user.role === "manager" && managerEmails.has(user.email);
+            }
+            return relatedEmails.has(user.email) && (user.role === "user" || user.role === "manager");
         })
         .sort((a, b) => a.email.localeCompare(b.email));
-}
-
-function toggleAdminFileAssigneeMenu(event) {
-    event.stopPropagation();
-    const menu = document.getElementById("admin-file-assignee-menu");
-    if (menu) menu.classList.toggle("hidden");
-}
-
-function closeAdminFileAssigneeMenu() {
-    const menu = document.getElementById("admin-file-assignee-menu");
-    if (menu) menu.classList.add("hidden");
-}
-
-function toggleAdminFileUploadAssignee(email) {
-    const normalized = String(email || "").trim();
-    if (!normalized) return;
-
-    if (adminFileUploadSelectedAssignees.includes(normalized)) {
-        adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(item => item !== normalized);
-    } else {
-        adminFileUploadSelectedAssignees.push(normalized);
-    }
-
-    renderAdminFileAssigneeChips();
-    renderAdminFileAssigneeOptions();
-}
-
-function removeAdminFileUploadAssignee(email, event) {
-    if (event) event.stopPropagation();
-    adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(item => item !== email);
-    renderAdminFileAssigneeChips();
-    renderAdminFileAssigneeOptions();
-}
-
-function renderAdminFileAssigneeChips() {
-    const chips = document.getElementById("admin-file-assignee-chips");
-    if (!chips) return;
-
-    if (!adminFileUploadSelectedAssignees.length) {
-        chips.textContent = "Select team members";
-        chips.classList.add("empty");
-        return;
-    }
-
-    chips.classList.remove("empty");
-    chips.innerHTML = adminFileUploadSelectedAssignees.map(email => {
-        const user = getAdminFileAssignableUsers().find(item => item.email === email);
-        const label = user?.username || email;
-        return `
-            <span class="admin-file-assignee-chip">
-                <strong>${escapeHtml(getInitial(label))}</strong>
-                ${escapeHtml(label)}
-                <button type="button" onclick="removeAdminFileUploadAssignee('${escapeHtml(email)}', event)" aria-label="Remove ${escapeHtml(label)}">
-                    <i class="fas fa-xmark"></i>
-                </button>
-            </span>
-        `;
-    }).join("");
 }
 
 function renderAdminFileAssigneeOptions() {
@@ -3652,7 +3664,14 @@ function renderAdminFileAssigneeOptions() {
     });
 
     if (!users.length) {
-        list.innerHTML = `<p class="admin-file-assignee-empty">No users found</p>`;
+        const taskId = getSelectedAdminFileTaskId();
+        const projectId = getSelectedAdminFileProjectId();
+        const emptyText = taskId
+            ? "No related users found for this task"
+            : projectId
+                ? "No project manager found for this project"
+                : "Select a project first";
+        list.innerHTML = `<p class="admin-file-assignee-empty">${emptyText}</p>`;
         return;
     }
 
@@ -3672,10 +3691,51 @@ function renderAdminFileAssigneeOptions() {
     }).join("");
 }
 
-function updateAdminFileUploadMessageCount() {
-    const message = document.getElementById("admin-file-upload-message");
-    const count = document.getElementById("admin-file-upload-message-count");
-    if (count) count.textContent = `${String(message?.value || "").length}/200`;
+function toggleAdminFileUploadAssignee(email) {
+    const normalized = String(email || "").trim().toLowerCase();
+    if (!normalized) return;
+
+    if (adminFileUploadSelectedAssignees.includes(normalized)) {
+        adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(item => item !== normalized);
+    } else {
+        adminFileUploadSelectedAssignees.push(normalized);
+    }
+
+    renderAdminFileAssigneeChips();
+    renderAdminFileAssigneeOptions();
+}
+
+function renderAdminFileAssigneeChips() {
+    const chips = document.getElementById("admin-file-assignee-chips");
+    if (!chips) return;
+
+    if (!adminFileUploadSelectedAssignees.length) {
+        chips.textContent = "Select team members";
+        chips.classList.add("empty");
+        return;
+    }
+
+    chips.classList.remove("empty");
+    const userDirectory = Array.isArray(adminState.users)
+        ? adminState.users.map(item => ({
+            email: String(item.email || "").trim().toLowerCase(),
+            username: String(item.username || item.name || item.email || "").trim()
+        }))
+        : [];
+
+    chips.innerHTML = adminFileUploadSelectedAssignees.map(email => {
+        const user = userDirectory.find(item => item.email === String(email || "").trim().toLowerCase());
+        const label = user?.username || email;
+        return `
+            <span class="admin-file-assignee-chip">
+                <strong>${escapeHtml(getInitial(label))}</strong>
+                ${escapeHtml(label)}
+                <button type="button" onclick="removeAdminFileUploadAssignee('${escapeHtml(email)}', event)" aria-label="Remove ${escapeHtml(label)}">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </span>
+        `;
+    }).join("");
 }
 
 async function submitAdminAssignedFile() {
@@ -3693,8 +3753,15 @@ async function submitAdminAssignedFile() {
     const projectSelect = document.getElementById("admin-file-project-select");
     const projectId = projectSelect?.value || "";
     const project = adminState.projects.find(item => String(item.id) === String(projectId));
+    const taskId = getSelectedAdminFileTaskId();
+    const task = (Array.isArray(adminState.tasks) ? adminState.tasks : []).find(item => String(item.id) === String(taskId));
     const message = document.getElementById("admin-file-upload-message")?.value || "";
     const submit = document.getElementById("admin-send-file-btn");
+
+    if (!taskId) {
+        showNotification("Please select a task before assigning the file.", "error");
+        return;
+    }
 
     try {
         if (submit) {
@@ -3706,6 +3773,8 @@ async function submitAdminAssignedFile() {
         formData.append("file", adminFileUploadSelectedFile);
         formData.append("project_id", projectId);
         formData.append("project_name", project?.name || project?.project_name || "");
+        formData.append("task_id", taskId);
+        formData.append("task_title", task?.title || task?.task_title || "");
         formData.append("message", message.trim());
         formData.append("shared_with", JSON.stringify(adminFileUploadSelectedAssignees));
 
@@ -3735,6 +3804,31 @@ async function submitAdminAssignedFile() {
         }
     }
 }
+function toggleAdminFileAssigneeMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById("admin-file-assignee-menu");
+    if (menu) menu.classList.toggle("hidden");
+}
+
+function closeAdminFileAssigneeMenu() {
+    const menu = document.getElementById("admin-file-assignee-menu");
+    if (menu) menu.classList.add("hidden");
+}
+
+function removeAdminFileUploadAssignee(email, event) {
+    if (event) event.stopPropagation();
+    adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(item => item !== email);
+    renderAdminFileAssigneeChips();
+    renderAdminFileAssigneeOptions();
+}
+
+
+function updateAdminFileUploadMessageCount() {
+    const message = document.getElementById("admin-file-upload-message");
+    const count = document.getElementById("admin-file-upload-message-count");
+    if (count) count.textContent = `${String(message?.value || "").length}/200`;
+}
+
 
 function renderSettingsView() {
     document.getElementById("mainContent").innerHTML = `

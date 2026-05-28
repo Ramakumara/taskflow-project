@@ -4684,6 +4684,15 @@ body {
     border-radius: 0;
 }
 
+.admin-files-page .common-content-card .common-table-wrapper {
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.admin-files-page .admin-files-table {
+    min-width: 1100px;
+}
+
 .common-content-card.admin-activity-log-panel .admin-activity-log-meta {
     padding: 22px 24px 0;
 }
@@ -5167,12 +5176,12 @@ body.admin-theme-dark .admin-file-unassigned {
 }
 
 .admin-file-upload-card {
-    width: min(860px, 100%);
-    max-height: min(720px, calc(100vh - 40px));
+    width: min(700px, 100%);
+    max-height: min(600px, calc(100vh - 28px));
     overflow-y: auto;
-    padding: 34px;
+    padding: 20px;
     border: 1px solid rgba(219, 227, 240, 0.9);
-    border-radius: 22px;
+    border-radius: 18px;
     background:
         radial-gradient(circle at 22% 70%, rgba(22, 163, 74, 0.08), transparent 30%),
         linear-gradient(145deg, #ffffff 0%, #fbfdff 100%);
@@ -5190,37 +5199,37 @@ body.admin-theme-dark .admin-file-unassigned {
 .admin-file-upload-head {
     align-items: flex-start;
     justify-content: space-between;
-    gap: 20px;
-    margin-bottom: 28px;
+    gap: 16px;
+    margin-bottom: 18px;
 }
 
 .admin-file-upload-title-group {
     align-items: center;
-    gap: 18px;
+    gap: 14px;
 }
 
 .admin-file-upload-head-icon {
-    width: 62px;
-    height: 62px;
+    width: 52px;
+    height: 52px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     background: #dcfce7;
     color: #16a34a;
-    font-size: 28px;
+    font-size: 22px;
 }
 
 .admin-file-upload-title-group h2 {
-    margin: 0 0 8px;
+    margin: 0 0 5px;
     color: #111827;
-    font-size: 25px;
+    font-size: 20px;
 }
 
 .admin-file-upload-title-group p {
     margin: 0;
     color: #536179;
-    font-size: 16px;
+    font-size: 14px;
 }
 
 .admin-file-upload-close {
@@ -5239,14 +5248,14 @@ body.admin-theme-dark .admin-file-unassigned {
 }
 
 .admin-file-upload-body {
-    gap: 34px;
+    gap: 16px;
     align-items: stretch;
 }
 
 .admin-file-drop-zone {
-    width: 330px;
-    min-height: 420px;
-    padding: 34px 28px;
+    width: 260px;
+    min-height: 300px;
+    padding: 18px 14px;
     border: 1.8px dashed #16a34a;
     border-radius: 16px;
     background: linear-gradient(160deg, #f8fffb 0%, #ffffff 100%);
@@ -5258,7 +5267,7 @@ body.admin-theme-dark .admin-file-unassigned {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 18px;
+    gap: 14px;
     transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
@@ -5270,29 +5279,29 @@ body.admin-theme-dark .admin-file-unassigned {
 }
 
 .admin-file-drop-icon {
-    width: 92px;
-    height: 92px;
+    width: 64px;
+    height: 64px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
     background: #dcfce7;
     color: #16a34a;
-    font-size: 46px;
+    font-size: 28px;
 }
 
 .admin-file-drop-zone strong {
-    font-size: 17px;
+    font-size: 16px;
 }
 
 .admin-file-drop-zone small {
     color: #475569;
-    font-size: 15px;
+    font-size: 14px;
 }
 
 .admin-file-choose-btn {
-    min-width: 170px;
-    min-height: 50px;
+    min-width: 136px;
+    min-height: 40px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -5301,7 +5310,8 @@ body.admin-theme-dark .admin-file-unassigned {
     border-radius: 9px;
     color: #16a34a;
     background: #ffffff;
-    font-weight: 800;
+    font-weight: 700;
+    font-size: 14px;
 }
 
 .admin-file-drop-zone em {
@@ -5316,7 +5326,7 @@ body.admin-theme-dark .admin-file-unassigned {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 24px;
+    gap: 12px;
     min-width: 0;
 }
 
@@ -5348,14 +5358,14 @@ body.admin-theme-dark .admin-file-unassigned {
 }
 
 .admin-file-upload-field select {
-    min-height: 58px;
+    min-height: 46px;
     margin: 0;
     padding: 0 16px;
 }
 
 .admin-file-assignee-trigger {
-    min-height: 60px;
-    padding: 8px 14px;
+    min-height: 48px;
+    padding: 6px 10px;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -5429,7 +5439,7 @@ body.admin-theme-dark .admin-file-unassigned {
 }
 
 .admin-file-assignee-options {
-    max-height: 190px;
+    max-height: 132px;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
@@ -5475,7 +5485,7 @@ body.admin-theme-dark .admin-file-unassigned {
 }
 
 .admin-file-upload-field textarea {
-    min-height: 145px;
+    min-height: 86px;
     margin: 0;
     padding: 16px 18px 34px;
     resize: vertical;
@@ -5493,17 +5503,26 @@ body.admin-theme-dark .admin-file-unassigned {
 .admin-file-upload-actions {
     justify-content: flex-end;
     gap: 16px;
-    margin-top: 32px;
+    margin-top: 12px;
 }
 
 .admin-file-upload-cancel,
 .admin-file-upload-submit {
-    min-width: 120px;
-    min-height: 54px;
+    min-width: 96px;
+    min-height: 40px;
     border-radius: 10px;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
     cursor: pointer;
+}
+
+.admin-file-drop-zone input[type="file"],
+#admin-modal-file-input.hidden {
+    display: none !important;
+}
+
+.admin-file-assignee-menu.hidden {
+    display: none !important;
 }
 
 .admin-file-upload-cancel {
