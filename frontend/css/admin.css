@@ -5027,6 +5027,11 @@ body {
     font-weight: 800;
 }
 
+.admin-file-assigned-toggle {
+    border: none;
+    cursor: pointer;
+}
+
 body.admin-theme-dark .admin-file-assigned-pill {
     background: rgba(34, 197, 94, 0.16);
     color: #86efac;
@@ -5336,7 +5341,7 @@ body.admin-theme-dark .admin-file-unassigned {
     flex-direction: column;
     gap: 10px;
     color: #111827;
-    font-weight: 800;
+    font-weight: 500;
 }
 
 .admin-file-upload-field span small {

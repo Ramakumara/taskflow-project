@@ -82,6 +82,7 @@ const adminFileFilters = {
 const ADMIN_NOTIFICATION_FILTERS = ["all", "unread", "projects", "tasks", "users", "files", "system"];
 let expandedAdminTaskAssigneeCards = {};
 let expandedAdminTeamProjects = {};
+const expandedAdminFileAssigneeRows = new Set();
 
 function getManagerUsers() {
     return adminState.users.filter((user) => String(user.role || "").toLowerCase() === "manager");
@@ -120,7 +121,7 @@ function toggleAdminTaskAssigneeCard(taskId) {
 function renderAdminMemberStatuses(task) {
     const assignments = getTaskAssignments(task);
     if (!assignments.length) return `<span class="muted-text">Unassigned</span>`;
-    const baseVisibleCount = 3;
+    const baseVisibleCount = 1;
     const isExpanded = isAdminTaskAssigneeCardExpanded(task?.id);
     const visibleAssignments = assignments.slice(0, isExpanded ? assignments.length : baseVisibleCount);
     const hiddenAssignments = assignments.slice(visibleAssignments.length);
@@ -1061,6 +1062,7 @@ function renderTasksView() {
                         <table class="admin-table admin-task-table">
                             <thead>
                                 <tr>
+                                    <th></th>
                                     <th>Task</th>
                                     <th>Project</th>
                                     <th>Priority</th>
@@ -1168,7 +1170,6 @@ function renderAdminTaskModal(projects) {
                         <label class="admin-form-field">
                             <span>Attachments</span>
                             <input type="file" multiple onchange="updateAdminTaskAttachments(this.files)">
-                            <small>${adminState.newTaskForm.attachments.length ? `${adminState.newTaskForm.attachments.length} file(s) selected` : "Upload files after task creation automatically."}</small>
                         </label>
                     </div>
                     <div class="admin-modal-actions">
@@ -3205,6 +3206,7 @@ async function renderFilesView() {
                         <table class="admin-table admin-files-table">
                         <thead>
                             <tr>
+                                <th></th>
                                 <th>File</th>
                                 <th>Owner</th>
                                 <th>Assigned To</th>
@@ -3217,6 +3219,7 @@ async function renderFilesView() {
                         <tbody>
                             ${pageFiles.length ? pageFiles.map(file => `
                                 <tr>
+                                    <td><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
                                     <td>${escapeHtml(file.name || "Untitled file")}</td>
                                     <td>${escapeHtml(file.owner_name || file.owner_email || "Unknown")}</td>
                                     <td>${renderAdminFileAssignedTo(file)}</td>
@@ -3260,14 +3263,18 @@ function renderAdminFileAssignedTo(file) {
     const assigned = Array.isArray(file?.shared_with)
         ? file.shared_with.map(email => String(email || "").trim()).filter(Boolean)
         : [];
+    const fileKey = encodeURIComponent(getAdminFileKey(file));
+    const isExpanded = expandedAdminFileAssigneeRows.has(fileKey);
 
     if (!assigned.length) {
         return `<span class="admin-file-unassigned">Unassigned</span>`;
     }
+    const visibleAssignees = isExpanded ? assigned : assigned.slice(0, 3);
+    const hiddenCount = Math.max(0, assigned.length - 3);
 
     return `
         <div class="admin-file-assigned-list">
-            ${assigned.slice(0, 3).map(email => {
+            ${visibleAssignees.map(email => {
                 const name = getAdminUserDisplayName(email);
                 return `
                     <span class="admin-file-assigned-pill" title="${escapeHtml(email)}">
@@ -3276,9 +3283,30 @@ function renderAdminFileAssignedTo(file) {
                     </span>
                 `;
             }).join("")}
-            ${assigned.length > 3 ? `<span class="admin-file-assigned-more">+${assigned.length - 3}</span>` : ""}
+            ${hiddenCount > 0 && !isExpanded
+                ? `<button type="button" class="admin-file-assigned-more admin-file-assigned-toggle" onclick="toggleAdminFileAssigneeRow('${fileKey}')">+${hiddenCount}</button>`
+                : ""}
+            ${assigned.length > 3 && isExpanded
+                ? `<button type="button" class="admin-file-assigned-more admin-file-assigned-toggle" onclick="toggleAdminFileAssigneeRow('${fileKey}')">Show less</button>`
+                : ""}
         </div>
     `;
+}
+
+function getAdminFileKey(file) {
+    const base = String(file?.id || file?.file_id || file?.filename || file?.stored_name || file?.name || "").trim();
+    const uploaded = String(file?.uploaded_at || file?.created_at || "").trim();
+    return `${base}::${uploaded}`;
+}
+
+function toggleAdminFileAssigneeRow(fileKey) {
+    if (!fileKey) return;
+    if (expandedAdminFileAssigneeRows.has(fileKey)) {
+        expandedAdminFileAssigneeRows.delete(fileKey);
+    } else {
+        expandedAdminFileAssigneeRows.add(fileKey);
+    }
+    renderFilesView();
 }
 
 async function adminDownloadFile(name) {
@@ -4152,6 +4180,7 @@ function renderTaskRow(task, projectMap, options = {}) {
 
     return `
         <tr>
+            <td><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
             <td>${escapeHtml(task.title || "Untitled Task")}</td>
             <td>${escapeHtml(project?.name || "Unknown Project")}</td>
             <td><span class="task-priority-pill ${priorityClass}">${escapeHtml(priority)}</span></td>

@@ -31,6 +31,10 @@
                     <i class="fas fa-users"></i>
                     <span>My Team</span>
                 </button>
+                <button class="nav-item" data-section="files" onclick="goToFiles()">
+                    <i class="fas fa-file"></i>
+                    <span>Files</span>
+                </button>
                 <button class="nav-item" data-section="users" onclick="goToUsers()">
                     <i class="fas fa-user"></i>
                     <span>Users</span>
@@ -42,10 +46,6 @@
                 <button class="nav-item" data-section="activity" onclick="goToActivityLog()">
                     <i class="fas fa-clock-rotate-left"></i>
                     <span>Activity Log</span>
-                </button>
-                <button class="nav-item" data-section="files" onclick="goToFiles()">
-                    <i class="fas fa-file"></i>
-                    <span>Files</span>
                 </button>
                 <button class="nav-item" data-section="settings" onclick="goToSettings()">
                     <i class="fas fa-gear"></i>
@@ -170,12 +170,6 @@
                             <div id="admin-file-assignee-options" class="admin-file-assignee-options"></div>
                         </div>
                     </div>
-
-                    <label class="admin-file-upload-field" for="admin-file-upload-message">
-                        <span>Add Message <small>(optional)</small></span>
-                        <textarea id="admin-file-upload-message" maxlength="200" placeholder="Type your message..." oninput="updateAdminFileUploadMessageCount()"></textarea>
-                        <small id="admin-file-upload-message-count" class="admin-file-message-count">0/200</small>
-                    </label>
                 </div>
             </div>
 

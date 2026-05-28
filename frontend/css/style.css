@@ -3834,6 +3834,11 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     font-weight: 800;
 }
 
+.dashboard-file-assigned-toggle {
+    border: none;
+    cursor: pointer;
+}
+
 body.dashboard-theme-dark .dashboard-file-assigned-pill {
     background: rgba(34, 197, 94, 0.16);
     color: #86efac;

@@ -419,6 +419,8 @@ let filesSort = "name-asc";
 let filesLayout = "grid";
 let filesPage = 1;
 const filesPageSize = 10;
+const expandedFileAssigneeRows = new Set();
+let fileAssigneeToggleBound = false;
 let assignableUsers = [];
 let fileUploadProjects = [];
 let fileUploadTasks = [];
@@ -666,6 +668,7 @@ function renderDashboardTaskBoard() {
             : renderTaskAssigneeStatusList(task, users);
 
         row.innerHTML = `
+            <td><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
             <td >
                 <div >
                     <span>${escapeTeamHtml(task.title || "Untitled Task")}</span>
@@ -3060,6 +3063,17 @@ function renderFiles() {
     const tbody = document.getElementById("files-table-body");
     const footer = document.getElementById("files-footer-copy");
     if (!tbody) return;
+    if (!fileAssigneeToggleBound) {
+        tbody.addEventListener("click", (event) => {
+            const toggle = event.target.closest(".dashboard-file-assigned-toggle");
+            if (!toggle) return;
+            const fileKey = String(toggle.dataset.fileKey || "").trim();
+            if (!fileKey) return;
+            event.preventDefault();
+            toggleDashboardFileAssigneeRow(fileKey);
+        });
+        fileAssigneeToggleBound = true;
+    }
 
     let items = [...filesCache];
 
@@ -3180,14 +3194,18 @@ function renderDashboardFileAssignedTo(file) {
     const assigned = Array.isArray(file?.shared_with)
         ? file.shared_with.map(email => String(email || "").trim()).filter(Boolean)
         : [];
+    const fileKey = encodeURIComponent(getDashboardFileKey(file));
+    const isExpanded = expandedFileAssigneeRows.has(fileKey);
 
     if (!assigned.length) {
         return `<span class="dashboard-file-unassigned">Unassigned</span>`;
     }
+    const visibleAssignees = isExpanded ? assigned : assigned.slice(0, 3);
+    const hiddenCount = Math.max(0, assigned.length - 3);
 
     return `
         <div class="dashboard-file-assigned-list">
-            ${assigned.slice(0, 3).map(email => {
+            ${visibleAssignees.map(email => {
                 const name = getUserDisplayName(email, assignableUsers);
                 return `
                     <span class="dashboard-file-assigned-pill" title="${escapeTeamHtml(email)}">
@@ -3196,9 +3214,30 @@ function renderDashboardFileAssignedTo(file) {
                     </span>
                 `;
             }).join("")}
-            ${assigned.length > 3 ? `<span class="dashboard-file-assigned-more">+${assigned.length - 3}</span>` : ""}
+            ${hiddenCount > 0 && !isExpanded
+                ? `<button type="button" class="dashboard-file-assigned-more dashboard-file-assigned-toggle" data-file-key="${fileKey}">+${hiddenCount}</button>`
+                : ""}
+            ${assigned.length > 3 && isExpanded
+                ? `<button type="button" class="dashboard-file-assigned-more dashboard-file-assigned-toggle" data-file-key="${fileKey}">Show less</button>`
+                : ""}
         </div>
     `;
+}
+
+function getDashboardFileKey(file) {
+    const base = String(file?.id || file?.file_id || file?.filename || file?.stored_name || file?.file_name || "").trim();
+    const uploaded = String(file?.uploaded_at || file?.created_at || "").trim();
+    return `${base}::${uploaded}`;
+}
+
+function toggleDashboardFileAssigneeRow(fileKey) {
+    if (!fileKey) return;
+    if (expandedFileAssigneeRows.has(fileKey)) {
+        expandedFileAssigneeRows.delete(fileKey);
+    } else {
+        expandedFileAssigneeRows.add(fileKey);
+    }
+    renderFiles();
 }
 
 function getFilesTableColumnCount(role = sessionStorage.getItem("role")) {
