@@ -120,18 +120,217 @@ async def forgot_password(data: dict):
     )
 
     message = MessageSchema(
-        subject="TaskFlow Password Reset OTP",
-        recipients=[email],
-        body=f"""
-    Your OTP is:
+    subject="Your OTP for TaskFlow Verification",
+    recipients=[email],
+    body=f"""
+    <html>
+    <body style="
+        margin:0;
+        padding:20px;
+        background:#f6f8fb;
+        font-family:'Segoe UI', Arial, sans-serif;
+    ">
 
-    {otp}
+    <div style="
+        max-width:380px;
+        margin:auto;
+        background:#ffffff;
+        border:1px solid #e8ecef;
+        border-radius:14px;
+        padding:22px;
+        box-shadow:0 3px 10px rgba(0,0,0,0.05);
+        text-align:left ;
+    ">
 
-    This OTP expires in 5 minutes.
-        """,
-        subtype="plain"
-    )
+        <!-- Top Icon -->
+        <div style="
+            width:48px;
+            height:48px;
+            background:#eaf8ef;
+            border-radius:50%;
+            margin:0 auto 14px;
+            line-height:48px;
+            font-size:24px;
+        ">
+            ✅
+        </div>
 
+        <!-- Heading -->
+        <h2 style="
+            margin:0;
+            color:#111827;
+            font-size:22px;
+            font-weight:600;
+        ">
+            Your One-Time Password (OTP)
+        </h2>
+
+        <p style="
+            color:#6b7280;
+            font-size:13px;
+            margin:10px 0 20px;
+            line-height:1.5;
+        ">
+            Use the OTP below to verify your email and continue.
+        </p>
+
+        <!-- OTP BOXES -->
+        <div style="
+            background:#f5fbf7;
+            border:1px solid #d8efe0;
+            border-radius:10px;
+            padding:12px;
+            display:inline-block;
+        ">
+
+            <span style="
+                display:inline-block;
+                width:38px;
+                height:42px;
+                line-height:42px;
+                margin:2px;
+                border:1px solid #cfe8d8;
+                border-radius:8px;
+                background:#fff;
+                color:#0f7a3b;
+                font-size:26px;
+                font-weight:700;
+            ">{otp[0]}</span>
+
+            <span style="
+                display:inline-block;
+                width:38px;
+                height:42px;
+                line-height:42px;
+                margin:2px;
+                border:1px solid #cfe8d8;
+                border-radius:8px;
+                background:#fff;
+                color:#0f7a3b;
+                font-size:26px;
+                font-weight:700;
+            ">{otp[1]}</span>
+
+            <span style="
+                display:inline-block;
+                width:38px;
+                height:42px;
+                line-height:42px;
+                margin:2px;
+                border:1px solid #cfe8d8;
+                border-radius:8px;
+                background:#fff;
+                color:#0f7a3b;
+                font-size:26px;
+                font-weight:700;
+            ">{otp[2]}</span>
+
+            <span style="
+                display:inline-block;
+                width:38px;
+                height:42px;
+                line-height:42px;
+                margin:2px;
+                border:1px solid #cfe8d8;
+                border-radius:8px;
+                background:#fff;
+                color:#0f7a3b;
+                font-size:26px;
+                font-weight:700;
+            ">{otp[3]}</span>
+
+            <span style="
+                display:inline-block;
+                width:38px;
+                height:42px;
+                line-height:42px;
+                margin:2px;
+                border:1px solid #cfe8d8;
+                border-radius:8px;
+                background:#fff;
+                color:#0f7a3b;
+                font-size:26px;
+                font-weight:700;
+            ">{otp[4]}</span>
+
+            <span style="
+                display:inline-block;
+                width:38px;
+                height:42px;
+                line-height:42px;
+                margin:2px;
+                border:1px solid #cfe8d8;
+                border-radius:8px;
+                background:#fff;
+                color:#0f7a3b;
+                font-size:26px;
+                font-weight:700;
+            ">{otp[5]}</span>
+
+        </div>
+
+        <p style="
+            color:#6b7280;
+            font-size:13px;
+            margin:18px 0 14px;
+        ">
+            This OTP is valid for
+            <span style="color:#16a34a;font-weight:600;">
+                5 minutes
+            </span>
+        </p>
+
+        <hr style="
+            border:none;
+            border-top:1px solid #edf1f4;
+            margin:16px 0;
+        ">
+
+        <div style="
+            display:flex;
+            align-items:flex-start;
+            text-align:left;
+            gap:10px;
+        ">
+            <div style="
+                width:34px;
+                height:34px;
+                background:#eaf8ef;
+                border-radius:50%;
+                text-align:center;
+                line-height:34px;
+                font-size:16px;
+            ">
+                🔒
+            </div>
+
+            <p style="
+                margin:0;
+                color:#6b7280;
+                font-size:12px;
+                line-height:1.5;
+            ">
+                If you didn’t request this OTP, please ignore this email.
+            </p>
+        </div>
+
+        <div style="
+            margin-top:20px;
+            text-align:left;
+            color:#374151;
+            font-size:13px;
+        ">
+            Thanks,<br>
+            <strong>TaskFlow Team</strong>
+        </div>
+
+    </div>
+    </body>
+    </html>
+    """,
+    subtype="html"
+)
+    
     fm = FastMail(conf)
     await fm.send_message(message)
 

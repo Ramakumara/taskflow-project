@@ -38,7 +38,6 @@
     const NAV_ITEMS = [
         { href: "/about-us", key: "navAbout" },
         { href: "/features", key: "navFeatures" },
-        { href: "/pricing", key: "navPricing" },
         { href: "/contact", key: "navContact" }
     ];
 

@@ -533,7 +533,7 @@ body.page-leaving {
     color: var(--tf-text);
 }
 
-.card,
+
 .feature-card,
 .timeline-card,
 .pricing-card,
@@ -550,6 +550,22 @@ body.page-leaving {
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
     transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.card-btn {
+    position: relative;
+    padding: 26px;
+    color: #ffffff;
+    border-radius: var(--tf-radius-lg);
+    border: 1px solid rgba(31, 157, 85, 0.08);
+    background: linear-gradient(135deg, rgba(31, 157, 85, 0.12), rgba(77, 207, 135, 0.22));
+    box-shadow: 0 18px 38px rgba(15, 23, 42, 0.08);
+    transition: transform 220ms ease, box-shadow 220ms ease, border-color 220ms ease;
+
+}
+
+.card-btn p {
+    color: rgba(255, 255, 255, 0.92);
 }
 
 .stat-card {
@@ -651,6 +667,14 @@ body.page-leaving {
     justify-content: center;
     padding: 34px;
     color: #ffffff;
+}
+
+.map-content p {
+    color: rgba(255, 255, 255, 0.92);
+}
+
+.illustration-content p {
+    color: rgba(255, 255, 255, 0.92);
 }
 
 .visual-stack {

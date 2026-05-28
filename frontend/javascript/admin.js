@@ -616,10 +616,10 @@ function renderProjectsView() {
     document.getElementById("mainContent").innerHTML = `
         <div class="list-view project-admin-view">
             ${renderCommonPageLayout({
-                pageClass: "admin-module-page admin-projects-page",
+                pageClass: "admin-module-page admin-dashboard-page",
                 header: renderCommonPageHeader(
-                    "Projects",
-                    "Manage active workspaces, track completion, and assign project ownership consistently.",
+                    "Dashboard",
+                    "Track delivery health, open work, and project momentum from one consistent workspace.",
                     `
                         <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminProjectModal()">
                             <i class="fas fa-plus"></i>
@@ -627,17 +627,7 @@ function renderProjectsView() {
                         </button>
                     `
                 ),
-                toolbar: `
-                    <div class="common-toolbar">
-                        ${renderCommonSearchBox({
-                            id: "adminProjectsPageSearch",
-                            placeholder: "Search projects, managers, or descriptions...",
-                            value: adminState.searchTerm,
-                            oninput: "handleAdminSearch(event)",
-                            ariaLabel: "Search projects"
-                        })}
-                    </div>
-                `,
+                
                 content: `
                     <section class="project-summary-grid">
                         ${renderAdminProjectStatCard("fa-folder", "Total Projects", projectStats.totalProjects, "green")}
@@ -646,9 +636,8 @@ function renderProjectsView() {
                     </section>
                     ${renderCommonContentCard(`
                         <div class="project-board-head common-section-head">
-                            <div>
-                                <h3>Project Directory</h3>
-                                <p>Keep every admin workspace aligned with the same card system and action controls.</p>
+                            <div class="common-page-title">
+                                <h1>Projects</h1>
                             </div>
                         </div>
                         <div class="admin-project-grid">

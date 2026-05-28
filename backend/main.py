@@ -86,11 +86,6 @@ def features_page():
         os.path.join(BASE_DIR, "..", "frontend", "html", "features.html")
     )
 
-@app.get("/pricing")
-def pricing_page():
-    return FileResponse(
-        os.path.join(BASE_DIR, "..", "frontend", "html", "pricing.html")
-    )
 
 @app.get("/contact")
 def contact_page():
