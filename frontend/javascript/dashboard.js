@@ -420,8 +420,10 @@ let filesLayout = "grid";
 let filesPage = 1;
 const filesPageSize = 10;
 let assignableUsers = [];
-let inlineAssignState = {};
-let inlineAssignTarget = "";
+let fileUploadProjects = [];
+let fileUploadTasks = [];
+let fileUploadSelectedFile = null;
+let fileUploadSelectedAssignees = [];
 let teamMemberCache = [];
 let expandedTeamProjects = {};
 let allUsersCache = [];
@@ -2595,11 +2597,15 @@ async function loadFiles() {
 
     if (!tbody) return;
 
-    tbody.innerHTML = `<tr><td colspan="7" class="empty-table">Loading files...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="${getFilesTableColumnCount(role)}" class="empty-table">Loading files...</td></tr>`;
 
     try {
         if (!Array.isArray(assignableUsers) || !assignableUsers.length) {
             await loadAssignableUsers();
+        }
+
+        if ((role === "user" || role === "manager") && (!fileUploadProjects.length || !fileUploadTasks.length)) {
+            await loadFileUploadWorkspaceData();
         }
 
         const res = await fetch(`${BASE_URL}/files`, {
@@ -2616,7 +2622,437 @@ async function loadFiles() {
         renderFiles();
     } catch (error) {
         console.error(error);
-        tbody.innerHTML = `<tr><td colspan="7" class="empty-table">Unable to load files</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${getFilesTableColumnCount(role)}" class="empty-table">Unable to load files</td></tr>`;
+    }
+}
+
+async function openFileUploadModal() {
+    const role = sessionStorage.getItem("role");
+    if (role === "user") {
+        alert("Only admins and managers can upload and assign files.");
+        return;
+    }
+
+    const modal = document.getElementById("file-upload-modal");
+    if (!modal) return;
+
+    resetFileUploadModal();
+    modal.classList.remove("hidden");
+    document.body.classList.add("file-upload-modal-open");
+
+    await Promise.all([
+        loadFileUploadWorkspaceData(),
+        loadAssignableUsers()
+    ]);
+
+    renderFileProjectOptions();
+    renderFileTaskOptions();
+    renderFileAssigneeChips();
+    renderFileAssigneeOptions();
+    bindFileDropZone();
+}
+
+function closeFileUploadModal() {
+    const modal = document.getElementById("file-upload-modal");
+    if (modal) modal.classList.add("hidden");
+    document.body.classList.remove("file-upload-modal-open");
+    closeFileAssigneeMenu();
+}
+
+function resetFileUploadModal() {
+    fileUploadSelectedFile = null;
+    fileUploadSelectedAssignees = [];
+
+    const input = document.getElementById("modal-file-input");
+    const message = document.getElementById("file-upload-message");
+    const selectedName = document.getElementById("selectedFileName");
+    const dropTitle = document.getElementById("fileDropTitle");
+    const dropSubtitle = document.getElementById("fileDropSubtitle");
+    const taskSelect = document.getElementById("file-task-select");
+    const assigneeSearch = document.getElementById("file-assignee-search");
+    const submit = document.getElementById("send-file-btn");
+
+    if (input) input.value = "";
+    if (message) message.value = "";
+    if (taskSelect) taskSelect.innerHTML = `<option value="">Select a project first</option>`;
+    if (assigneeSearch) assigneeSearch.value = "";
+    if (selectedName) selectedName.textContent = "Max file size: 100 MB";
+    if (dropTitle) dropTitle.textContent = "Drag & drop your file here";
+    if (dropSubtitle) dropSubtitle.textContent = "or";
+    if (submit) submit.disabled = false;
+    updateFileUploadProgress(0, false);
+
+    updateFileUploadMessageCount();
+}
+
+function updateFileUploadProgress(percent = 0, visible = false) {
+    const progressWrap = document.getElementById("file-upload-progress-wrap");
+    const progressFill = document.getElementById("file-upload-progress-fill");
+    const progressText = document.getElementById("file-upload-progress-text");
+
+    const normalized = Math.max(0, Math.min(100, Math.round(Number(percent) || 0)));
+    if (progressWrap) progressWrap.classList.toggle("hidden", !visible);
+    if (progressFill) progressFill.style.width = `${normalized}%`;
+    if (progressText) progressText.textContent = `${normalized}%`;
+}
+
+function uploadAssignedFileWithProgress(url, token, formData, onProgress) {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", url, true);
+        xhr.setRequestHeader("Authorization", "Bearer " + token);
+
+        xhr.upload.onprogress = event => {
+            if (!event.lengthComputable) return;
+            const percent = (event.loaded / event.total) * 100;
+            if (typeof onProgress === "function") onProgress(percent);
+        };
+
+        xhr.onerror = () => reject(new Error("Network error during upload"));
+        xhr.onload = () => {
+            let body = {};
+            if (xhr.responseText) {
+                try {
+                    body = JSON.parse(xhr.responseText || "{}");
+                } catch (error) {
+                    body = {};
+                }
+            }
+            if (xhr.status >= 200 && xhr.status < 300) {
+                resolve(body);
+                return;
+            }
+
+            reject(new Error(body.detail || body.message || "Upload failed"));
+        };
+
+        xhr.send(formData);
+    });
+}
+
+async function loadFileUploadWorkspaceData() {
+    const token = sessionStorage.getItem("token");
+    try {
+        const [projectsRes, tasksRes] = await Promise.all([
+            fetch(`${BASE_URL}/projects`, {
+                headers: { "Authorization": "Bearer " + token }
+            }),
+            fetch(`${BASE_URL}/tasks`, {
+                headers: { "Authorization": "Bearer " + token }
+            })
+        ]);
+        const projects = await projectsRes.json().catch(() => []);
+        const tasks = await tasksRes.json().catch(() => []);
+        fileUploadProjects = Array.isArray(projects) ? projects : [];
+        fileUploadTasks = Array.isArray(tasks) ? tasks : [];
+    } catch (error) {
+        console.error("Failed to load workspace data for file upload", error);
+        fileUploadProjects = [];
+        fileUploadTasks = [];
+    }
+}
+
+function renderFileProjectOptions() {
+    const select = document.getElementById("file-project-select");
+    if (!select) return;
+
+    if (!fileUploadProjects.length) {
+        select.innerHTML = `<option value="">No projects available</option>`;
+        select.disabled = true;
+        return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = fileUploadProjects.map(project => `
+        <option value="${escapeTeamHtml(project.id)}">${escapeTeamHtml(project.name || project.project_name || "Untitled Project")}</option>
+    `).join("");
+}
+
+function getSelectedFileUploadProjectId() {
+    return document.getElementById("file-project-select")?.value || "";
+}
+
+function getSelectedFileUploadTaskId() {
+    return document.getElementById("file-task-select")?.value || "";
+}
+
+function getFileUploadProjectTasks() {
+    const projectId = getSelectedFileUploadProjectId();
+    if (!projectId) return [];
+    return fileUploadTasks.filter(task => String(task.project_id) === String(projectId));
+}
+
+function renderFileTaskOptions() {
+    const select = document.getElementById("file-task-select");
+    if (!select) return;
+
+    const tasks = getFileUploadProjectTasks();
+    if (!getSelectedFileUploadProjectId()) {
+        select.innerHTML = `<option value="">Select a project first</option>`;
+        select.disabled = true;
+        return;
+    }
+
+    if (!tasks.length) {
+        select.innerHTML = `<option value="">No tasks in this project</option>`;
+        select.disabled = true;
+        return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = `
+        <option value="">Select task</option>
+        ${tasks.map(task => `
+            <option value="${escapeTeamHtml(task.id)}">${escapeTeamHtml(task.title || task.task_title || "Untitled Task")}</option>
+        `).join("")}
+    `;
+}
+
+function handleFileUploadProjectChange() {
+    fileUploadSelectedAssignees = [];
+    closeFileAssigneeMenu();
+    renderFileTaskOptions();
+    renderFileAssigneeChips();
+    renderFileAssigneeOptions();
+}
+
+function handleFileUploadTaskChange() {
+    const allowedEmails = new Set(getFileUploadAssignableUsers().map(user => user.email));
+    fileUploadSelectedAssignees = fileUploadSelectedAssignees.filter(email => allowedEmails.has(email));
+    closeFileAssigneeMenu();
+    renderFileAssigneeChips();
+    renderFileAssigneeOptions();
+}
+
+function handleModalFileSelection(event) {
+    const file = event.target.files?.[0];
+    setFileUploadSelectedFile(file);
+}
+
+function setFileUploadSelectedFile(file) {
+    if (!file) return;
+
+    const maxBytes = 100 * 1024 * 1024;
+    if (file.size > maxBytes) {
+        alert("File is too large. Maximum size is 100 MB.");
+        return;
+    }
+
+    fileUploadSelectedFile = file;
+
+    const selectedName = document.getElementById("selectedFileName");
+    const dropTitle = document.getElementById("fileDropTitle");
+    const dropSubtitle = document.getElementById("fileDropSubtitle");
+
+    if (selectedName) selectedName.textContent = `${file.name} - ${formatSize(file.size)}`;
+    if (dropTitle) dropTitle.textContent = "File ready to send";
+    if (dropSubtitle) dropSubtitle.textContent = "Choose another file if needed";
+}
+
+function bindFileDropZone() {
+    const zone = document.getElementById("fileDropZone");
+    if (!zone || zone.dataset.bound === "true") return;
+
+    zone.dataset.bound = "true";
+
+    ["dragenter", "dragover"].forEach(eventName => {
+        zone.addEventListener(eventName, event => {
+            event.preventDefault();
+            zone.classList.add("drag-over");
+        });
+    });
+
+    ["dragleave", "drop"].forEach(eventName => {
+        zone.addEventListener(eventName, event => {
+            event.preventDefault();
+            zone.classList.remove("drag-over");
+        });
+    });
+
+    zone.addEventListener("drop", event => {
+        const file = event.dataTransfer?.files?.[0];
+        setFileUploadSelectedFile(file);
+    });
+}
+
+function toggleFileAssigneeMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById("file-assignee-menu");
+    if (menu) menu.classList.toggle("hidden");
+}
+
+function closeFileAssigneeMenu() {
+    const menu = document.getElementById("file-assignee-menu");
+    if (menu) menu.classList.add("hidden");
+}
+
+function toggleFileUploadAssignee(email) {
+    const normalized = String(email || "").trim();
+    if (!normalized) return;
+
+    if (fileUploadSelectedAssignees.includes(normalized)) {
+        fileUploadSelectedAssignees = fileUploadSelectedAssignees.filter(item => item !== normalized);
+    } else {
+        fileUploadSelectedAssignees.push(normalized);
+    }
+
+    renderFileAssigneeChips();
+    renderFileAssigneeOptions();
+}
+
+function removeFileUploadAssignee(email, event) {
+    if (event) event.stopPropagation();
+    fileUploadSelectedAssignees = fileUploadSelectedAssignees.filter(item => item !== email);
+    renderFileAssigneeChips();
+    renderFileAssigneeOptions();
+}
+
+function getFileUploadAssignableUsers() {
+    const taskId = getSelectedFileUploadTaskId();
+    if (!taskId) return [];
+
+    const task = fileUploadTasks.find(item => String(item.id) === String(taskId));
+    if (!task) return [];
+
+    const taskEmails = new Set(
+        getTaskAssignments(task)
+            .map(assignment => String(assignment.user_id || "").trim().toLowerCase())
+            .filter(Boolean)
+    );
+
+    return assignableUsers.filter(user =>
+        taskEmails.has(String(user.email || "").trim().toLowerCase())
+    );
+}
+
+function renderFileAssigneeChips() {
+    const chips = document.getElementById("file-assignee-chips");
+    if (!chips) return;
+
+    if (!fileUploadSelectedAssignees.length) {
+        chips.textContent = "Select team members";
+        chips.classList.add("empty");
+        return;
+    }
+
+    chips.classList.remove("empty");
+    chips.innerHTML = fileUploadSelectedAssignees.map(email => {
+        const user = assignableUsers.find(item => item.email === email);
+        const label = user?.username || email;
+        return `
+            <span class="file-assignee-chip">
+                <strong>${escapeTeamHtml(getAvatarInitial(label))}</strong>
+                ${escapeTeamHtml(label)}
+                <button type="button" onclick="removeFileUploadAssignee('${escapeTeamHtml(email)}', event)" aria-label="Remove ${escapeTeamHtml(label)}">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </span>
+        `;
+    }).join("");
+}
+
+function renderFileAssigneeOptions() {
+    const list = document.getElementById("file-assignee-options");
+    const search = document.getElementById("file-assignee-search");
+    if (!list) return;
+
+    const query = String(search?.value || "").trim().toLowerCase();
+    const users = getFileUploadAssignableUsers().filter(user => {
+        const text = `${user.username || ""} ${user.email || ""}`.toLowerCase();
+        return !query || text.includes(query);
+    });
+
+    if (!users.length) {
+        const emptyText = getSelectedFileUploadTaskId()
+            ? "No assigned users found for this task"
+            : "Select a task to view assigned users";
+        list.innerHTML = `<p class="assign-empty">${emptyText}</p>`;
+        return;
+    }
+
+    list.innerHTML = users.map(user => {
+        const checked = fileUploadSelectedAssignees.includes(user.email);
+        const label = user.username || user.email;
+        return `
+            <label class="file-assignee-option">
+                <input type="checkbox" value="${escapeTeamHtml(user.email)}" ${checked ? "checked" : ""} onchange="toggleFileUploadAssignee('${escapeTeamHtml(user.email)}')">
+                <span class="file-option-avatar">${escapeTeamHtml(getAvatarInitial(label))}</span>
+                <span>
+                    <strong>${escapeTeamHtml(label)}</strong>
+                    <small>${escapeTeamHtml(user.email)}</small>
+                </span>
+            </label>
+        `;
+    }).join("");
+}
+
+function updateFileUploadMessageCount() {
+    const message = document.getElementById("file-upload-message");
+    const count = document.getElementById("file-upload-message-count");
+    if (count) count.textContent = `${String(message?.value || "").length}/200`;
+}
+
+async function submitAssignedFile() {
+    const role = sessionStorage.getItem("role");
+    if (role === "user") {
+        alert("Only admins and managers can upload and assign files.");
+        return;
+    }
+
+    if (!fileUploadSelectedFile) {
+        alert("Please choose a file first.");
+        return;
+    }
+
+    const token = sessionStorage.getItem("token");
+    const projectSelect = document.getElementById("file-project-select");
+    const projectId = projectSelect?.value || "";
+    const project = fileUploadProjects.find(item => String(item.id) === String(projectId));
+    const taskId = getSelectedFileUploadTaskId();
+    const task = fileUploadTasks.find(item => String(item.id) === String(taskId));
+    const message = document.getElementById("file-upload-message")?.value || "";
+    const submit = document.getElementById("send-file-btn");
+
+    if (!taskId) {
+        alert("Please select a task before assigning the file.");
+        return;
+    }
+
+    try {
+        if (submit) {
+            submit.disabled = true;
+            submit.querySelector("span").textContent = "Sending...";
+        }
+        updateFileUploadProgress(0, true);
+
+        const formData = new FormData();
+        formData.append("file", fileUploadSelectedFile);
+        formData.append("project_id", projectId);
+        formData.append("project_name", project?.name || project?.project_name || "");
+        formData.append("task_id", taskId);
+        formData.append("task_title", task?.title || task?.task_title || "");
+        formData.append("message", message.trim());
+        formData.append("shared_with", JSON.stringify(fileUploadSelectedAssignees));
+
+        await uploadAssignedFileWithProgress(
+            `${BASE_URL}/files/upload`,
+            token,
+            formData,
+            percent => updateFileUploadProgress(percent, true)
+        );
+        updateFileUploadProgress(100, true);
+
+        closeFileUploadModal();
+        await loadFiles();
+    } catch (error) {
+        console.error(error);
+        alert(error.message || "Upload failed");
+    } finally {
+        if (submit) {
+            submit.disabled = false;
+            submit.querySelector("span").textContent = "Send File";
+        }
+        setTimeout(() => updateFileUploadProgress(0, false), 500);
     }
 }
 
@@ -2667,7 +3103,7 @@ function renderFiles() {
     }
 
     if (!pageItems.length) {
-        tbody.innerHTML = `<tr><td colspan="7" class="empty-table">No files uploaded yet</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${getFilesTableColumnCount(role)}" class="empty-table">No files uploaded yet</td></tr>`;
         return;
     }
 
@@ -2677,6 +3113,14 @@ function renderFiles() {
     const header = document.getElementById("assigned-header");
     if (header) {
         header.style.display = role === "user" ? "none" : "";
+    }
+    const projectHeader = document.getElementById("file-project-header");
+    const taskHeader = document.getElementById("file-task-header");
+    if (projectHeader) {
+        projectHeader.style.display = role === "user" || role === "manager" ? "" : "none";
+    }
+    if (taskHeader) {
+        taskHeader.style.display = role === "user" ? "" : "none";
     }
     const currentEmail = (sessionStorage.getItem("email") || "").trim().toLowerCase();
     pageItems.forEach(file => {
@@ -2710,8 +3154,16 @@ function renderFiles() {
 
             ${role !== "user" ? `
             <td>
-                 ${renderAssignedControl(file)}
+                 ${renderDashboardFileAssignedTo(file)}
             </td>
+            ` : ""}
+
+            ${role === "user" || role === "manager" ? `
+            <td>${escapeTeamHtml(file.project_name || getDashboardFileProjectName(file) || "No project")}</td>
+            ` : ""}
+
+            ${role === "user" ? `
+            <td>${escapeTeamHtml(file.task_title || getDashboardFileTaskTitle(file) || "No task")}</td>
             ` : ""}
            
             <td>${file.size_label || formatSize(file.size)}</td>
@@ -2722,6 +3174,59 @@ function renderFiles() {
     });
 
     updatePagination(totalPages);
+}
+
+function renderDashboardFileAssignedTo(file) {
+    const assigned = Array.isArray(file?.shared_with)
+        ? file.shared_with.map(email => String(email || "").trim()).filter(Boolean)
+        : [];
+
+    if (!assigned.length) {
+        return `<span class="dashboard-file-unassigned">Unassigned</span>`;
+    }
+
+    return `
+        <div class="dashboard-file-assigned-list">
+            ${assigned.slice(0, 3).map(email => {
+                const name = getUserDisplayName(email, assignableUsers);
+                return `
+                    <span class="dashboard-file-assigned-pill" title="${escapeTeamHtml(email)}">
+                        ${escapeTeamHtml(getAvatarInitial(name || email))}
+                        <small>${escapeTeamHtml(name)}</small>
+                    </span>
+                `;
+            }).join("")}
+            ${assigned.length > 3 ? `<span class="dashboard-file-assigned-more">+${assigned.length - 3}</span>` : ""}
+        </div>
+    `;
+}
+
+function getFilesTableColumnCount(role = sessionStorage.getItem("role")) {
+    if (role === "user") return 8;
+    if (role === "manager") return 8;
+    return 7;
+}
+
+function getDashboardFileProjectName(file) {
+    const projectId = String(file?.project_id || "").trim();
+    if (!projectId) return "";
+    const project = [
+        ...fileUploadProjects,
+        ...(dashboardTaskCache.projects || []),
+        ...(teamWorkspaceCache.projects || [])
+    ].find(item => String(item.id) === projectId);
+    return project?.name || project?.project_name || "";
+}
+
+function getDashboardFileTaskTitle(file) {
+    const taskId = String(file?.task_id || "").trim();
+    if (!taskId) return "";
+    const task = [
+        ...fileUploadTasks,
+        ...(dashboardTaskCache.tasks || []),
+        ...(teamWorkspaceCache.tasks || [])
+    ].find(item => String(item.id) === taskId);
+    return task?.title || task?.task_title || "";
 }
 
 function shortenFileName(name) {
@@ -2851,14 +3356,12 @@ window.addEventListener("click", function(event) {
         storageMenu.classList.add("hidden");
     }
 
-    const assignMenus = document.querySelectorAll(".inline-assign-menu");
-    assignMenus.forEach(menu => {
-        const key = menu.id?.replace(/^assign-menu-/, "");
-        const button = key ? document.querySelector(`[data-assign-key="${key}"]`) : null;
-        if (menu && !menu.classList.contains("hidden") && !menu.contains(target) && !button?.contains(target)) {
-            menu.classList.add("hidden");
-        }
-    });
+    const fileAssigneeMenu = document.getElementById("file-assignee-menu");
+    const fileAssigneeTrigger = document.getElementById("file-assignee-trigger");
+    if (fileAssigneeMenu && fileAssigneeTrigger && !fileAssigneeMenu.classList.contains("hidden") && !fileAssigneeMenu.contains(target) && !fileAssigneeTrigger.contains(target)) {
+        fileAssigneeMenu.classList.add("hidden");
+    }
+
 });
 
 function toggleFilesSort() {
@@ -2908,69 +3411,6 @@ function createFolder() {
     alert("Folder creation is not connected yet.");
 }
 
-async function assignFileToUser(filename, email) {
-    const target = email === "__unassigned__" ? [] : [email];
-    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(filename)}/share`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + sessionStorage.getItem("token")
-        },
-        body: JSON.stringify({ shared_with: target })
-    });
-
-    if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        alert(data.detail || data.message || "Could not assign file");
-        return;
-    }
-
-    await loadFiles();
-}
-
-function renderAssignedControl(file) {
-    const key = encodeURIComponent(file.storage_name || file.name);
-    const selected = Array.isArray(file.shared_with) ? file.shared_with : [];
-
-    const assignedLabel = selected.length
-        ? `${selected.length} user${selected.length === 1 ? "" : "s"}`
-        : "Unassigned";
-
-    return `
-        <div class="inline-assign">
-            <button class="assign-btn"
-                data-assign-key="${key}"
-                onclick="toggleInlineAssign('${key}', event)">
-                ${assignedLabel}
-                <i class="fas fa-chevron-down"></i>
-            </button>
-
-            <div id="assign-menu-${key}" class="inline-assign-menu hidden">
-                
-                <input class="inline-assign-search-input" type="text" placeholder="Search user..."
-                    oninput="filterInlineAssign('${key}', this.value)">
-
-                <div class="assign-list">
-                    ${assignableUsers.map(user => `
-                        <label class="assign-option">
-                            <input type="checkbox"
-                                value="${user.email}"
-                                ${selected.includes(user.email) ? "checked" : ""}>
-                            ${user.email}
-                        </label>
-                    `).join("")}
-                </div>
-
-                <div class="inline-assign-actions">
-                    <button class="btn-blue" onclick="closeInlineAssign('${key}')">Cancel</button>
-                    <button class="btn-blue" onclick="saveInlineAssign('${key}')">Save</button>
-                </div>
-
-            </div>
-        </div>
-    `;
-}
-
 async function loadAssignableUsers() {
     const token = sessionStorage.getItem("token");
     try {
@@ -3002,111 +3442,6 @@ async function loadAssignableUsers() {
         assignableUsers = Array.isArray(allUsersCache) ? allUsersCache.slice() : [];
     }
     assignableUsersLoaded = true;
-}
-
-function positionInlineAssignMenu(button, menu) {
-    const rect = button.getBoundingClientRect();
-    const menuWidth = Math.max(rect.width, 260);
-    const spaceBelow = window.innerHeight - rect.bottom - 12;
-    const spaceAbove = rect.top - 12;
-    const openUp = spaceBelow < 260 && spaceAbove > spaceBelow;
-
-    menu.style.position = "fixed";
-    menu.style.left = Math.min(rect.left, window.innerWidth - menuWidth - 12) + "px";
-    menu.style.width = menuWidth + "px";
-    menu.style.maxHeight = Math.max(220, Math.min(320, openUp ? spaceAbove : spaceBelow)) + "px";
-    menu.style.top = openUp ? "" : (rect.bottom + 8) + "px";
-    menu.style.bottom = openUp ? (window.innerHeight - rect.top + 8) + "px" : "";
-}
-
-function toggleInlineAssign(key) {
-    const menu = document.getElementById(`assign-menu-${key}`);
-    if (!menu) return;
-    const button = document.querySelector(`[data-assign-key="${key}"]`);
-    if (!button) return;
-
-    const isOpen = !menu.classList.contains("hidden");
-
-    document.querySelectorAll(".inline-assign-menu").forEach(m => {
-        closeInlineAssign(m.id?.replace(/^assign-menu-/, ""));
-    });
-
-    if (!isOpen) {
-        if (!menu.__originalParent) {
-            menu.__originalParent = menu.parentNode;
-            menu.__originalNextSibling = menu.nextSibling;
-        }
-        document.body.appendChild(menu);
-        positionInlineAssignMenu(button, menu);
-        menu.classList.remove("hidden");
-        button.classList.add("open");
-    }
-}
-
-function closeInlineAssign(key) {
-    const menu = document.getElementById(`assign-menu-${key}`);
-    if (!menu) return;
-
-    menu.classList.add("hidden");
-    menu.removeAttribute("style");
-
-    const button = document.querySelector(`[data-assign-key="${key}"]`);
-    if (button) button.classList.remove("open");
-
-    if (menu.__originalParent) {
-        const parent = menu.__originalParent;
-        const nextSibling = menu.__originalNextSibling;
-        if (parent && parent.insertBefore) {
-            parent.insertBefore(menu, nextSibling);
-        }
-    }
-
-    if (inlineAssignTarget === key) inlineAssignTarget = "";
-}
-
-function filterInlineAssign(key, value) {
-    const menu = document.getElementById(`assign-menu-${key}`);
-    if (!menu) return;
-    const query = (value || "").trim().toLowerCase();
-    menu.querySelectorAll(".assign-option").forEach(row => {
-        row.style.display = !query || row.textContent.toLowerCase().includes(query) ? "" : "none";
-    });
-}
-
-function syncInlineAssign(key) {
-    const menu = document.getElementById(`assign-menu-${key}`);
-    if (!menu) return;
-    const selectedValues = Array.from(menu.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
-    inlineAssignState[key] = selectedValues;
-}
-
-async function saveInlineAssign(key) {
-    const menu = document.getElementById(`assign-menu-${key}`);
-    if (!menu) return;
-
-    const selectedValues = Array.from(
-        menu.querySelectorAll('input[type="checkbox"]:checked')
-    ).map(cb => cb.value);
-
-    const filename = decodeURIComponent(key);
-
-    const res = await fetch(`${BASE_URL}/files/${encodeURIComponent(filename)}/share`, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + sessionStorage.getItem("token")
-        },
-        body: JSON.stringify({
-            shared_with: selectedValues   // 🔥 MULTIPLE USERS
-        })
-    });
-
-    if (res.ok) {
-        closeInlineAssign(key);
-        loadFiles();
-    } else {
-        alert("Error assigning users");
-    }
 }
 
 function getFileCategory(file) {

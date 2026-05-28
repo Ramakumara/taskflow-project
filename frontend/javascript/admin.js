@@ -45,6 +45,8 @@ let adminReportProjectChart = null;
 let adminNotificationClock = null;
 let adminThemeMediaQuery = null;
 let adminThemeMediaQueryHandlerBound = false;
+let adminFileUploadSelectedFile = null;
+let adminFileUploadSelectedAssignees = [];
 
 const adminReportState = {
     startDate: "",
@@ -430,6 +432,17 @@ function attachAdminMenuCloseHandler() {
         const notificationWrap = document.getElementById("adminNotificationWrap");
         if (notificationWrap && !notificationWrap.contains(event.target)) {
             closeAdminNotifications();
+        }
+
+        const fileAssigneeMenu = document.getElementById("admin-file-assignee-menu");
+        const fileAssigneeTrigger = document.getElementById("admin-file-assignee-trigger");
+        if (fileAssigneeMenu && fileAssigneeTrigger && !fileAssigneeMenu.classList.contains("hidden") && !fileAssigneeMenu.contains(event.target) && !fileAssigneeTrigger.contains(event.target)) {
+            fileAssigneeMenu.classList.add("hidden");
+        }
+
+        const fileModal = document.getElementById("admin-file-upload-modal");
+        if (fileModal && event.target === fileModal) {
+            closeAdminFileUploadModal();
         }
     });
 }
@@ -3156,7 +3169,6 @@ async function renderFilesView() {
                             <i class="fas fa-upload"></i>
                             Upload File
                         </button>
-                        <input id="adminFileUploadInput" type="file" multiple hidden onchange="handleAdminFileUpload(event)">
                     `
                 ),
                 toolbar: `
@@ -3195,6 +3207,7 @@ async function renderFilesView() {
                             <tr>
                                 <th>File</th>
                                 <th>Owner</th>
+                                <th>Assigned To</th>
                                 <th>Category</th>
                                 <th>Size</th>
                                 <th>Updated</th>
@@ -3206,6 +3219,7 @@ async function renderFilesView() {
                                 <tr>
                                     <td>${escapeHtml(file.name || "Untitled file")}</td>
                                     <td>${escapeHtml(file.owner_name || file.owner_email || "Unknown")}</td>
+                                    <td>${renderAdminFileAssignedTo(file)}</td>
                                     <td>${escapeHtml(capitalize(getAdminFileCategory(file)))}</td>
                                     <td>${escapeHtml(file.size_label || formatSize(file.size))}</td>
                                     <td>${escapeHtml(formatDate(file.uploaded_at))}</td>
@@ -3219,7 +3233,7 @@ async function renderFilesView() {
                                     </td>
                                 </tr>
                             `).join("") : `
-                                <tr><td colspan="6" class="empty-state">No files found</td></tr>
+                                <tr><td colspan="7" class="empty-state">No files found</td></tr>
                             `}
                         </tbody>
                         </table>
@@ -3238,6 +3252,31 @@ async function renderFilesView() {
                     </div>
                 `)
             })}
+        </div>
+    `;
+}
+
+function renderAdminFileAssignedTo(file) {
+    const assigned = Array.isArray(file?.shared_with)
+        ? file.shared_with.map(email => String(email || "").trim()).filter(Boolean)
+        : [];
+
+    if (!assigned.length) {
+        return `<span class="admin-file-unassigned">Unassigned</span>`;
+    }
+
+    return `
+        <div class="admin-file-assigned-list">
+            ${assigned.slice(0, 3).map(email => {
+                const name = getAdminUserDisplayName(email);
+                return `
+                    <span class="admin-file-assigned-pill" title="${escapeHtml(email)}">
+                        ${escapeHtml(getInitial(name || email))}
+                        <small>${escapeHtml(name)}</small>
+                    </span>
+                `;
+            }).join("")}
+            ${assigned.length > 3 ? `<span class="admin-file-assigned-more">+${assigned.length - 3}</span>` : ""}
         </div>
     `;
 }
@@ -3343,7 +3382,23 @@ function resetAdminFileFilters() {
 }
 
 function triggerAdminFileUpload() {
-    document.getElementById("adminFileUploadInput")?.click();
+    const role = sessionStorage.getItem("role");
+    if (role !== "admin") {
+        showNotification("Only admins can upload and assign files from the admin dashboard.", "error");
+        return;
+    }
+
+    resetAdminFileUploadModal();
+    populateAdminFileProjectOptions();
+    renderAdminFileAssigneeChips();
+    renderAdminFileAssigneeOptions();
+    bindAdminFileDropZone();
+
+    const modal = document.getElementById("admin-file-upload-modal");
+    if (modal) {
+        modal.classList.remove("hidden");
+        document.body.classList.add("admin-file-upload-modal-open");
+    }
 }
 
 async function handleAdminFileUpload(event) {
@@ -3375,6 +3430,309 @@ async function handleAdminFileUpload(event) {
     } catch (error) {
         console.error("Failed to upload admin files", error);
         showNotification(error.message || "Upload failed.", "error");
+    }
+}
+
+function closeAdminFileUploadModal() {
+    const modal = document.getElementById("admin-file-upload-modal");
+    if (modal) modal.classList.add("hidden");
+    document.body.classList.remove("admin-file-upload-modal-open");
+    closeAdminFileAssigneeMenu();
+}
+
+function resetAdminFileUploadModal() {
+    adminFileUploadSelectedFile = null;
+    adminFileUploadSelectedAssignees = [];
+
+    const input = document.getElementById("admin-modal-file-input");
+    const message = document.getElementById("admin-file-upload-message");
+    const selectedName = document.getElementById("adminSelectedFileName");
+    const dropTitle = document.getElementById("adminFileDropTitle");
+    const dropSubtitle = document.getElementById("adminFileDropSubtitle");
+    const search = document.getElementById("admin-file-assignee-search");
+    const submit = document.getElementById("admin-send-file-btn");
+
+    if (input) input.value = "";
+    if (message) message.value = "";
+    if (search) search.value = "";
+    if (selectedName) selectedName.textContent = "Max file size: 100 MB";
+    if (dropTitle) dropTitle.textContent = "Drag & drop your file here";
+    if (dropSubtitle) dropSubtitle.textContent = "or";
+    if (submit) {
+        submit.disabled = false;
+        submit.querySelector("span").textContent = "Send File";
+    }
+
+    updateAdminFileUploadMessageCount();
+}
+
+function populateAdminFileProjectOptions() {
+    const select = document.getElementById("admin-file-project-select");
+    if (!select) return;
+
+    const projects = Array.isArray(adminState.projects) ? adminState.projects : [];
+    if (!projects.length) {
+        select.innerHTML = `<option value="">No projects available</option>`;
+        select.disabled = true;
+        return;
+    }
+
+    select.disabled = false;
+    select.innerHTML = projects.map(project => `
+        <option value="${escapeHtml(project.id)}">${escapeHtml(project.name || project.project_name || "Untitled Project")}</option>
+    `).join("");
+}
+
+function handleAdminFileProjectChange() {
+    const allowedEmails = new Set(getAdminFileAssignableUsers().map(user => user.email));
+    adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(email => allowedEmails.has(email));
+    renderAdminFileAssigneeChips();
+    renderAdminFileAssigneeOptions();
+}
+
+function handleAdminModalFileSelection(event) {
+    const file = event.target.files?.[0];
+    setAdminFileUploadSelectedFile(file);
+}
+
+function setAdminFileUploadSelectedFile(file) {
+    if (!file) return;
+
+    const maxBytes = 100 * 1024 * 1024;
+    if (file.size > maxBytes) {
+        showNotification("File is too large. Maximum size is 100 MB.", "error");
+        return;
+    }
+
+    adminFileUploadSelectedFile = file;
+
+    const selectedName = document.getElementById("adminSelectedFileName");
+    const dropTitle = document.getElementById("adminFileDropTitle");
+    const dropSubtitle = document.getElementById("adminFileDropSubtitle");
+
+    if (selectedName) selectedName.textContent = `${file.name} - ${formatSize(file.size)}`;
+    if (dropTitle) dropTitle.textContent = "File ready to send";
+    if (dropSubtitle) dropSubtitle.textContent = "Choose another file if needed";
+}
+
+function bindAdminFileDropZone() {
+    const zone = document.getElementById("adminFileDropZone");
+    if (!zone || zone.dataset.bound === "true") return;
+
+    zone.dataset.bound = "true";
+
+    ["dragenter", "dragover"].forEach(eventName => {
+        zone.addEventListener(eventName, event => {
+            event.preventDefault();
+            zone.classList.add("drag-over");
+        });
+    });
+
+    ["dragleave", "drop"].forEach(eventName => {
+        zone.addEventListener(eventName, event => {
+            event.preventDefault();
+            zone.classList.remove("drag-over");
+        });
+    });
+
+    zone.addEventListener("drop", event => {
+        const file = event.dataTransfer?.files?.[0];
+        setAdminFileUploadSelectedFile(file);
+    });
+}
+
+function getAdminFileAssignableUsers() {
+    const projectId = document.getElementById("admin-file-project-select")?.value || "";
+    const project = (Array.isArray(adminState.projects) ? adminState.projects : [])
+        .find(item => String(item.id) === String(projectId));
+    const relatedEmails = new Set();
+
+    if (project) {
+        [
+            project.assigned_manager,
+            project.owner_email,
+            project.manager_email
+        ].forEach(email => {
+            const normalized = String(email || "").trim().toLowerCase();
+            if (normalized) relatedEmails.add(normalized);
+        });
+
+        (Array.isArray(adminState.tasks) ? adminState.tasks : [])
+            .filter(task => String(task.project_id) === String(projectId))
+            .forEach(task => {
+                getTaskAssignments(task).forEach(assignment => {
+                    const normalized = String(assignment.user_id || "").trim().toLowerCase();
+                    if (normalized) relatedEmails.add(normalized);
+                });
+            });
+    }
+
+    return (Array.isArray(adminState.users) ? adminState.users : [])
+        .map(user => ({
+            ...user,
+            email: String(user.email || "").trim(),
+            username: String(user.username || user.name || user.email || "").trim(),
+            role: String(user.role || "").toLowerCase()
+        }))
+        .filter(user => {
+            if (!user.email) return false;
+            if (!project) return user.role === "user" || user.role === "manager";
+            return relatedEmails.has(user.email.toLowerCase()) && (user.role === "user" || user.role === "manager");
+        })
+        .sort((a, b) => a.email.localeCompare(b.email));
+}
+
+function toggleAdminFileAssigneeMenu(event) {
+    event.stopPropagation();
+    const menu = document.getElementById("admin-file-assignee-menu");
+    if (menu) menu.classList.toggle("hidden");
+}
+
+function closeAdminFileAssigneeMenu() {
+    const menu = document.getElementById("admin-file-assignee-menu");
+    if (menu) menu.classList.add("hidden");
+}
+
+function toggleAdminFileUploadAssignee(email) {
+    const normalized = String(email || "").trim();
+    if (!normalized) return;
+
+    if (adminFileUploadSelectedAssignees.includes(normalized)) {
+        adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(item => item !== normalized);
+    } else {
+        adminFileUploadSelectedAssignees.push(normalized);
+    }
+
+    renderAdminFileAssigneeChips();
+    renderAdminFileAssigneeOptions();
+}
+
+function removeAdminFileUploadAssignee(email, event) {
+    if (event) event.stopPropagation();
+    adminFileUploadSelectedAssignees = adminFileUploadSelectedAssignees.filter(item => item !== email);
+    renderAdminFileAssigneeChips();
+    renderAdminFileAssigneeOptions();
+}
+
+function renderAdminFileAssigneeChips() {
+    const chips = document.getElementById("admin-file-assignee-chips");
+    if (!chips) return;
+
+    if (!adminFileUploadSelectedAssignees.length) {
+        chips.textContent = "Select team members";
+        chips.classList.add("empty");
+        return;
+    }
+
+    chips.classList.remove("empty");
+    chips.innerHTML = adminFileUploadSelectedAssignees.map(email => {
+        const user = getAdminFileAssignableUsers().find(item => item.email === email);
+        const label = user?.username || email;
+        return `
+            <span class="admin-file-assignee-chip">
+                <strong>${escapeHtml(getInitial(label))}</strong>
+                ${escapeHtml(label)}
+                <button type="button" onclick="removeAdminFileUploadAssignee('${escapeHtml(email)}', event)" aria-label="Remove ${escapeHtml(label)}">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </span>
+        `;
+    }).join("");
+}
+
+function renderAdminFileAssigneeOptions() {
+    const list = document.getElementById("admin-file-assignee-options");
+    const search = document.getElementById("admin-file-assignee-search");
+    if (!list) return;
+
+    const query = String(search?.value || "").trim().toLowerCase();
+    const users = getAdminFileAssignableUsers().filter(user => {
+        const text = `${user.username || ""} ${user.email || ""}`.toLowerCase();
+        return !query || text.includes(query);
+    });
+
+    if (!users.length) {
+        list.innerHTML = `<p class="admin-file-assignee-empty">No users found</p>`;
+        return;
+    }
+
+    list.innerHTML = users.map(user => {
+        const checked = adminFileUploadSelectedAssignees.includes(user.email);
+        const label = user.username || user.email;
+        return `
+            <label class="admin-file-assignee-option">
+                <input type="checkbox" value="${escapeHtml(user.email)}" ${checked ? "checked" : ""} onchange="toggleAdminFileUploadAssignee('${escapeHtml(user.email)}')">
+                <span class="admin-file-option-avatar">${escapeHtml(getInitial(label))}</span>
+                <span>
+                    <strong>${escapeHtml(label)}</strong>
+                    <small>${escapeHtml(user.email)}</small>
+                </span>
+            </label>
+        `;
+    }).join("");
+}
+
+function updateAdminFileUploadMessageCount() {
+    const message = document.getElementById("admin-file-upload-message");
+    const count = document.getElementById("admin-file-upload-message-count");
+    if (count) count.textContent = `${String(message?.value || "").length}/200`;
+}
+
+async function submitAdminAssignedFile() {
+    if (sessionStorage.getItem("role") !== "admin") {
+        showNotification("Only admins can upload and assign files from the admin dashboard.", "error");
+        return;
+    }
+
+    if (!adminFileUploadSelectedFile) {
+        showNotification("Please choose a file first.", "error");
+        return;
+    }
+
+    const token = sessionStorage.getItem("token");
+    const projectSelect = document.getElementById("admin-file-project-select");
+    const projectId = projectSelect?.value || "";
+    const project = adminState.projects.find(item => String(item.id) === String(projectId));
+    const message = document.getElementById("admin-file-upload-message")?.value || "";
+    const submit = document.getElementById("admin-send-file-btn");
+
+    try {
+        if (submit) {
+            submit.disabled = true;
+            submit.querySelector("span").textContent = "Sending...";
+        }
+
+        const formData = new FormData();
+        formData.append("file", adminFileUploadSelectedFile);
+        formData.append("project_id", projectId);
+        formData.append("project_name", project?.name || project?.project_name || "");
+        formData.append("message", message.trim());
+        formData.append("shared_with", JSON.stringify(adminFileUploadSelectedAssignees));
+
+        const response = await fetch(`${BASE_URL}/files/upload`, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token
+            },
+            body: formData
+        });
+
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.detail || data.message || "Upload failed.");
+        }
+
+        closeAdminFileUploadModal();
+        showNotification("File uploaded and assigned successfully.");
+        renderFilesView();
+    } catch (error) {
+        console.error("Failed to upload assigned admin file", error);
+        showNotification(error.message || "Upload failed.", "error");
+    } finally {
+        if (submit) {
+            submit.disabled = false;
+            submit.querySelector("span").textContent = "Send File";
+        }
     }
 }
 
@@ -5067,6 +5425,15 @@ window.setAdminFilePage = setAdminFilePage;
 window.resetAdminFileFilters = resetAdminFileFilters;
 window.triggerAdminFileUpload = triggerAdminFileUpload;
 window.handleAdminFileUpload = handleAdminFileUpload;
+window.closeAdminFileUploadModal = closeAdminFileUploadModal;
+window.handleAdminModalFileSelection = handleAdminModalFileSelection;
+window.handleAdminFileProjectChange = handleAdminFileProjectChange;
+window.toggleAdminFileAssigneeMenu = toggleAdminFileAssigneeMenu;
+window.renderAdminFileAssigneeOptions = renderAdminFileAssigneeOptions;
+window.removeAdminFileUploadAssignee = removeAdminFileUploadAssignee;
+window.toggleAdminFileUploadAssignee = toggleAdminFileUploadAssignee;
+window.updateAdminFileUploadMessageCount = updateAdminFileUploadMessageCount;
+window.submitAdminAssignedFile = submitAdminAssignedFile;
 window.adminDownloadFile = adminDownloadFile;
 window.adminDeleteFile = adminDeleteFile;
 window.adminDeleteTask = adminDeleteTask;

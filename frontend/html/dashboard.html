@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230c974a'/%3E%3Cpath d='M18 34h12v12H18zm16-16h12v28H34z' fill='white'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=20260528-file-upload-modal">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet"
     href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -747,7 +747,7 @@
                             <p>Upload, organize, and review shared workspace files.</p>
                         </div>
                         <div class="files-actions">
-                            <button id="uploadBtn" class="files-action-btn primary common-page-action" type="button" onclick="document.getElementById('file-input').click()">
+                            <button id="uploadBtn" class="files-action-btn primary common-page-action" type="button" onclick="openFileUploadModal()">
                                 <i class="fas fa-upload"></i>
                                 <span>Upload File</span>
                             </button>
@@ -811,22 +811,26 @@
                     </div>
 
                     <section class="common-content-card files-table-card">
-                        <table class="files-table">
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <th>Name </th>
-                                    <th>Owner</th>
-                                    <th id="assigned-header">Assigned To</th>
-                                    <th>Size</th>
-                                    <th>Last Modified</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="files-table-body">
-                                <tr><td colspan="7" class="empty-table">Loading files...</td></tr>
-                            </tbody>
-                        </table>
+                        <div class="files-table-scroll">
+                            <table class="files-table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Name </th>
+                                        <th>Owner</th>
+                                        <th id="assigned-header">Assigned To</th>
+                                        <th id="file-project-header">Project</th>
+                                        <th id="file-task-header">Task</th>
+                                        <th>Size</th>
+                                        <th>Last Modified</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="files-table-body">
+                                    <tr><td colspan="9" class="empty-table">Loading files...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
 
                         <div class="files-table-footer">
                             <p id="files-footer-copy">Showing 0 files</p>
@@ -834,6 +838,78 @@
                         </div>
                     </section>
                 </section>
+            </div>
+
+            <div id="file-upload-modal" class="file-upload-modal hidden" role="dialog" aria-modal="true" aria-labelledby="fileUploadModalTitle">
+                <div class="file-upload-card">
+                    <div class="file-upload-head">
+                        <div class="file-upload-title-group">
+                            <span class="file-upload-head-icon"><i class="fas fa-cloud-arrow-up"></i></span>
+                            <div>
+                                <h2 id="fileUploadModalTitle">Upload &amp; Assign File</h2>
+                                <p>Upload a file and assign it to team members.</p>
+                            </div>
+                        </div>
+                        <button class="file-upload-close" type="button" onclick="closeFileUploadModal()" aria-label="Close upload modal">
+                            <i class="fas fa-xmark"></i>
+                        </button>
+                    </div>
+
+                    <div class="file-upload-body">
+                        <div id="file-upload-progress-wrap" class="file-upload-progress hidden" aria-live="polite">
+                            <div class="file-upload-progress-track">
+                                <span id="file-upload-progress-fill" class="file-upload-progress-fill"></span>
+                            </div>
+                            <small id="file-upload-progress-text">0%</small>
+                        </div>
+                        <label id="fileDropZone" class="file-drop-zone" for="modal-file-input">
+                            <input id="modal-file-input" type="file" class="hidden" onchange="handleModalFileSelection(event)">
+                            <span class="file-drop-icon"><i class="fas fa-cloud-arrow-up"></i></span>
+                            <strong id="fileDropTitle">Drag &amp; drop your file here</strong>
+                            <small id="fileDropSubtitle">or</small>
+                            <span class="file-choose-btn"><i class="fas fa-folder"></i>Choose File</span>
+                            <em id="selectedFileName">Max file size: 100 MB</em>
+                        </label>
+
+                        <div class="file-upload-fields">
+                            <label class="file-upload-field" for="file-project-select">
+                                <span>Select Project</span>
+                                <select id="file-project-select" onchange="handleFileUploadProjectChange()"></select>
+                            </label>
+
+                            <label class="file-upload-field" for="file-task-select">
+                                <span>Select Task</span>
+                                <select id="file-task-select" onchange="handleFileUploadTaskChange()"></select>
+                            </label>
+
+                            <div class="file-upload-field">
+                                <span>Assign To</span>
+                                <button id="file-assignee-trigger" class="file-assignee-trigger" type="button" onclick="toggleFileAssigneeMenu(event)">
+                                    <span id="file-assignee-chips" class="file-assignee-chips">Select team members</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div id="file-assignee-menu" class="file-assignee-menu hidden">
+                                    <input id="file-assignee-search" type="text" placeholder="Search users..." oninput="renderFileAssigneeOptions()">
+                                    <div id="file-assignee-options" class="file-assignee-options"></div>
+                                </div>
+                            </div>
+
+                            <label class="file-upload-field" for="file-upload-message">
+                                <span>Add Message <small>(optional)</small></span>
+                                <textarea id="file-upload-message" maxlength="200" placeholder="Type your message..." oninput="updateFileUploadMessageCount()"></textarea>
+                                <small id="file-upload-message-count" class="file-message-count">0/200</small>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="file-upload-actions">
+                        <button class="file-upload-cancel" type="button" onclick="closeFileUploadModal()">Cancel</button>
+                        <button id="send-file-btn" class="file-upload-submit" type="button" onclick="submitAssignedFile()">
+                            <i class="fas fa-paper-plane"></i>
+                            <span>Send File</span>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div id="profile-view" class="hidden">
@@ -1028,7 +1104,7 @@
 </div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/static/javascript/api.js?v=20260521-assign-fix"></script>
-<script src="/static/javascript/dashboard.js?v=20260521-assign-fix"></script>
+<script src="/static/javascript/dashboard.js?v=20260528-file-upload-modal"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select/dist/js/tom-select.complete.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>

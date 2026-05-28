@@ -1,8 +1,9 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException, Depends
 from fastapi.responses import FileResponse
 from bson import ObjectId
 import os
 import shutil
+import json
 from datetime import datetime
 
 from auth_utils import get_current_user
@@ -106,6 +107,9 @@ def _serialize_file(doc):
         "owner_name": doc.get("owner_name"),
         "owner_role": doc.get("owner_role"),
         "shared_with": doc.get("shared_with", []),
+        "project_id": doc.get("project_id"),
+        "project_name": doc.get("project_name"),
+        "message": doc.get("message", ""),
         "source": doc.get("source", "upload"),
         "task_id": doc.get("task_id"),
         "task_title": doc.get("task_title"),
@@ -183,7 +187,34 @@ def _ensure_task_attachment_files(current_user: dict):
 
 
 @router.post("/upload")
-async def upload_file(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+async def upload_file(
+    file: UploadFile = File(...),
+    project_id: str = Form(None),
+    project_name: str = Form(None),
+    task_id: str = Form(None),
+    task_title: str = Form(None),
+    message: str = Form(""),
+    shared_with: str = Form(None),
+    current_user: dict = Depends(get_current_user),
+):
+    if current_user.get("role") not in ("admin", "manager"):
+        raise HTTPException(status_code=403, detail="Only admins and managers can upload files")
+
+    assigned_users = []
+    if shared_with:
+        try:
+            parsed = json.loads(shared_with)
+        except json.JSONDecodeError:
+            parsed = [shared_with]
+
+        if isinstance(parsed, str):
+            assigned_users = [parsed]
+        elif isinstance(parsed, list):
+            assigned_users = parsed
+        else:
+            raise HTTPException(status_code=400, detail="shared_with must be a list")
+
+    assigned_users = [str(item).strip() for item in assigned_users if str(item).strip()]
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
     with open(file_path, "wb") as buffer:
@@ -200,7 +231,12 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
             "owner_email": current_user.get("email"),
             "owner_name": current_user.get("username") or current_user.get("email"),
             "owner_role": current_user.get("role"),
-            "shared_with": [],
+            "shared_with": assigned_users,
+            "project_id": project_id,
+            "project_name": project_name,
+            "task_id": task_id,
+            "task_title": task_title,
+            "message": str(message or "").strip()[:200],
         }
     )
     record_activity(
@@ -211,6 +247,11 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
     )
     for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
         add_notification(admin_email, f"File '{file.filename}' was uploaded.", "File Uploaded")
+    for recipient in assigned_users:
+        detail = f"File '{file.filename}' was shared with you."
+        if project_name:
+            detail = f"File '{file.filename}' was shared with you for project '{project_name}'."
+        add_notification(recipient, detail, "File Shared")
     emit_realtime_event(
         {
             "type": "file.uploaded",
@@ -218,9 +259,14 @@ async def upload_file(file: UploadFile = File(...), current_user: dict = Depends
             "data": {
                 "name": file.filename,
                 "owner_email": current_user.get("email"),
+                "project_id": project_id,
+                "project_name": project_name,
+                "task_id": task_id,
+                "task_title": task_title,
+                "shared_with": assigned_users,
             },
         },
-        recipients=[current_user.get("email"), *(db.users.distinct("email", {"role": "admin"}) or [])],
+        recipients=[current_user.get("email"), *(db.users.distinct("email", {"role": "admin"}) or []), *assigned_users],
     )
     return {"message": "File uploaded successfully"}
 

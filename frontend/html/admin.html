@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230c974a'/%3E%3Cpath d='M18 34h12v12H18zm16-16h12v28H34z' fill='white'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="/static/css/admin.css">
+    <link rel="stylesheet" href="/static/css/admin.css?v=20260528-file-upload-modal">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -123,12 +123,73 @@
         </main>
     </div>
 
+    <div id="admin-file-upload-modal" class="admin-file-upload-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminFileUploadModalTitle">
+        <div class="admin-file-upload-card">
+            <div class="admin-file-upload-head">
+                <div class="admin-file-upload-title-group">
+                    <span class="admin-file-upload-head-icon"><i class="fas fa-cloud-arrow-up"></i></span>
+                    <div>
+                        <h2 id="adminFileUploadModalTitle">Upload &amp; Assign File</h2>
+                        <p>Upload a file and assign it to team members.</p>
+                    </div>
+                </div>
+                <button class="admin-file-upload-close" type="button" onclick="closeAdminFileUploadModal()" aria-label="Close upload modal">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="admin-file-upload-body">
+                <label id="adminFileDropZone" class="admin-file-drop-zone" for="admin-modal-file-input">
+                    <input id="admin-modal-file-input" type="file" class="hidden" onchange="handleAdminModalFileSelection(event)">
+                    <span class="admin-file-drop-icon"><i class="fas fa-cloud-arrow-up"></i></span>
+                    <strong id="adminFileDropTitle">Drag &amp; drop your file here</strong>
+                    <small id="adminFileDropSubtitle">or</small>
+                    <span class="admin-file-choose-btn"><i class="fas fa-folder"></i>Choose File</span>
+                    <em id="adminSelectedFileName">Max file size: 100 MB</em>
+                </label>
+
+                <div class="admin-file-upload-fields">
+                    <label class="admin-file-upload-field" for="admin-file-project-select">
+                        <span>Select Project</span>
+                        <select id="admin-file-project-select" onchange="handleAdminFileProjectChange()"></select>
+                    </label>
+
+                    <div class="admin-file-upload-field">
+                        <span>Assign To</span>
+                        <button id="admin-file-assignee-trigger" class="admin-file-assignee-trigger" type="button" onclick="toggleAdminFileAssigneeMenu(event)">
+                            <span id="admin-file-assignee-chips" class="admin-file-assignee-chips">Select team members</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div id="admin-file-assignee-menu" class="admin-file-assignee-menu hidden">
+                            <input id="admin-file-assignee-search" type="text" placeholder="Search users..." oninput="renderAdminFileAssigneeOptions()">
+                            <div id="admin-file-assignee-options" class="admin-file-assignee-options"></div>
+                        </div>
+                    </div>
+
+                    <label class="admin-file-upload-field" for="admin-file-upload-message">
+                        <span>Add Message <small>(optional)</small></span>
+                        <textarea id="admin-file-upload-message" maxlength="200" placeholder="Type your message..." oninput="updateAdminFileUploadMessageCount()"></textarea>
+                        <small id="admin-file-upload-message-count" class="admin-file-message-count">0/200</small>
+                    </label>
+                </div>
+            </div>
+
+            <div class="admin-file-upload-actions">
+                <button class="admin-file-upload-cancel" type="button" onclick="closeAdminFileUploadModal()">Cancel</button>
+                <button id="admin-send-file-btn" class="admin-file-upload-submit" type="button" onclick="submitAdminAssignedFile()">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Send File</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/static/javascript/api.js?v=20260521-assign-fix"></script>
-    <script src="/static/javascript/admin.js?v=20260521-assign-fix"></script>
+    <script src="/static/javascript/admin.js?v=20260528-file-upload-modal"></script>
     <script>
         const role = sessionStorage.getItem("role");
 
