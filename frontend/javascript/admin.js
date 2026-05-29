@@ -83,6 +83,8 @@ const ADMIN_NOTIFICATION_FILTERS = ["all", "unread", "projects", "tasks", "users
 let expandedAdminTaskAssigneeCards = {};
 let expandedAdminTeamProjects = {};
 const expandedAdminFileAssigneeRows = new Set();
+let adminFileAssigneePopoverBound = false;
+let activeAdminFileAssigneePreview = null;
 
 function getManagerUsers() {
     return adminState.users.filter((user) => String(user.role || "").toLowerCase() === "manager");
@@ -3128,6 +3130,7 @@ function renderActivityLogView() {
 }
 
 async function renderFilesView() {
+    bindAdminFileAssigneePopoverPositioning();
     const token = sessionStorage.getItem("token");
 
     const res = await fetch(`${BASE_URL}/files`, {
@@ -3222,7 +3225,7 @@ async function renderFilesView() {
                                     <td><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
                                     <td>${escapeHtml(file.name || "Untitled file")}</td>
                                     <td>${escapeHtml(file.owner_name || file.owner_email || "Unknown")}</td>
-                                    <td>${renderAdminFileAssignedTo(file)}</td>
+                                    <td class="admin-file-assigned-to">${renderAdminFileAssignedTo(file)}</td>
                                     <td>${escapeHtml(capitalize(getAdminFileCategory(file)))}</td>
                                     <td>${escapeHtml(file.size_label || formatSize(file.size))}</td>
                                     <td>${escapeHtml(formatDate(file.uploaded_at))}</td>
@@ -3236,7 +3239,7 @@ async function renderFilesView() {
                                     </td>
                                 </tr>
                             `).join("") : `
-                                <tr><td colspan="7" class="empty-state">No files found</td></tr>
+                                <tr><td colspan="8" class="empty-state">No files found</td></tr>
                             `}
                         </tbody>
                         </table>
@@ -3263,34 +3266,108 @@ function renderAdminFileAssignedTo(file) {
     const assigned = Array.isArray(file?.shared_with)
         ? file.shared_with.map(email => String(email || "").trim()).filter(Boolean)
         : [];
-    const fileKey = encodeURIComponent(getAdminFileKey(file));
-    const isExpanded = expandedAdminFileAssigneeRows.has(fileKey);
 
     if (!assigned.length) {
         return `<span class="admin-file-unassigned">Unassigned</span>`;
     }
-    const visibleAssignees = isExpanded ? assigned : assigned.slice(0, 3);
+    const visibleAssignees = assigned.slice(0, 3);
     const hiddenCount = Math.max(0, assigned.length - 3);
+    const assigneeRows = assigned.map(email => {
+        const name = getAdminUserDisplayName(email);
+        return `
+            <li class="file-assignee-popover-person">
+                <span class="file-assignee-popover-avatar">${escapeHtml(getInitial(name || email))}</span>
+                <span>
+                    <strong>${escapeHtml(name)}</strong>
+                    <small>${escapeHtml(email)}</small>
+                </span>
+            </li>
+        `;
+    }).join("");
 
     return `
-        <div class="admin-file-assigned-list">
+        <div class="admin-file-assigned-list file-assignee-preview" tabindex="0" aria-label="Assigned to ${assigned.length} people">
+            <div class="file-assignee-avatar-stack">
             ${visibleAssignees.map(email => {
                 const name = getAdminUserDisplayName(email);
                 return `
-                    <span class="admin-file-assigned-pill" title="${escapeHtml(email)}">
+                    <span class="admin-file-assigned-pill file-assignee-avatar" title="${escapeHtml(name)} (${escapeHtml(email)})">
                         ${escapeHtml(getInitial(name || email))}
-                        <small>${escapeHtml(name)}</small>
                     </span>
                 `;
             }).join("")}
-            ${hiddenCount > 0 && !isExpanded
-                ? `<button type="button" class="admin-file-assigned-more admin-file-assigned-toggle" onclick="toggleAdminFileAssigneeRow('${fileKey}')">+${hiddenCount}</button>`
+            ${hiddenCount > 0
+                ? `<span class="admin-file-assigned-more file-assignee-more">+${hiddenCount}</span>`
                 : ""}
-            ${assigned.length > 3 && isExpanded
-                ? `<button type="button" class="admin-file-assigned-more admin-file-assigned-toggle" onclick="toggleAdminFileAssigneeRow('${fileKey}')">Show less</button>`
-                : ""}
+            </div>
+            <div class="file-assignee-popover" role="tooltip">
+                <div class="file-assignee-popover-head">
+                    <strong>Assigned to</strong>
+                    <span>People who have access to this file</span>
+                </div>
+                <ul>${assigneeRows}</ul>
+                <p>Total ${assigned.length} ${assigned.length === 1 ? "person" : "people"}</p>
+            </div>
         </div>
     `;
+}
+
+function bindAdminFileAssigneePopoverPositioning() {
+    if (adminFileAssigneePopoverBound) return;
+
+    const setActivePreview = (target) => {
+        const preview = target?.closest?.(".file-assignee-preview");
+        if (!preview) return;
+        activeAdminFileAssigneePreview = preview;
+        positionAdminFileAssigneePopover(preview);
+    };
+
+    document.addEventListener("pointerover", event => setActivePreview(event.target), true);
+    document.addEventListener("focusin", event => setActivePreview(event.target), true);
+    document.addEventListener("pointerout", event => {
+        if (!activeAdminFileAssigneePreview) return;
+        if (activeAdminFileAssigneePreview.contains(event.relatedTarget)) return;
+        activeAdminFileAssigneePreview = null;
+    }, true);
+
+    const repositionActivePopover = () => {
+        if (activeAdminFileAssigneePreview) {
+            positionAdminFileAssigneePopover(activeAdminFileAssigneePreview);
+        }
+    };
+
+    window.addEventListener("scroll", repositionActivePopover, true);
+    window.addEventListener("resize", repositionActivePopover);
+    adminFileAssigneePopoverBound = true;
+}
+
+function positionAdminFileAssigneePopover(preview) {
+    const popover = preview?.querySelector?.(".file-assignee-popover");
+    if (!popover) return;
+
+    const margin = 12;
+    const rect = preview.getBoundingClientRect();
+    const popoverWidth = popover.offsetWidth || 250;
+    const popoverHeight = Math.min(popover.scrollHeight || popover.offsetHeight || 220, window.innerHeight - (margin * 2));
+    let left = rect.left + Math.min(28, rect.width / 2);
+    let top = rect.bottom + 8;
+
+    if (left + popoverWidth > window.innerWidth - margin) {
+        left = window.innerWidth - margin - popoverWidth;
+    }
+    if (left < margin) {
+        left = margin;
+    }
+
+    if (top + popoverHeight > window.innerHeight - margin && rect.top > popoverHeight + margin) {
+        top = rect.top - popoverHeight - 8;
+    }
+    if (top + popoverHeight > window.innerHeight - margin) {
+        top = Math.max(margin, window.innerHeight - margin - popoverHeight);
+    }
+
+    popover.style.setProperty("--file-assignee-popover-left", `${Math.round(left)}px`);
+    popover.style.setProperty("--file-assignee-popover-top", `${Math.round(top)}px`);
 }
 
 function getAdminFileKey(file) {

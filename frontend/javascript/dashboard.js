@@ -424,6 +424,8 @@ let filesPage = 1;
 const filesPageSize = 10;
 const expandedFileAssigneeRows = new Set();
 let fileAssigneeToggleBound = false;
+let fileAssigneePopoverBound = false;
+let activeFileAssigneePreview = null;
 let assignableUsers = [];
 let fileUploadProjects = [];
 let fileUploadTasks = [];
@@ -3066,6 +3068,7 @@ function renderFiles() {
     const tbody = document.getElementById("files-table-body");
     const footer = document.getElementById("files-footer-copy");
     if (!tbody) return;
+    bindFileAssigneePopoverPositioning();
     const role = sessionStorage.getItem("role");
     const table = document.querySelector(".files-table");
     if (table) {
@@ -3135,7 +3138,7 @@ function renderFiles() {
 
     const header = document.getElementById("assigned-header");
     if (header) {
-        header.style.display = role === "user" ? "none" : "";
+        header.style.display = "";
     }
     const projectHeader = document.getElementById("file-project-header");
     const taskHeader = document.getElementById("file-task-header");
@@ -3153,9 +3156,6 @@ function renderFiles() {
         const sharedWith = Array.isArray(file.shared_with) ? file.shared_with : [];
         const canDelete = role === "admin" || role === "manager" || fileOwnerEmail === currentEmail;
         const canDownload = role === "admin" || role === "manager" || fileOwnerEmail === currentEmail || sharedWith.some(value => String(value || "").trim().toLowerCase() === currentEmail);
-        const canAssign = role === "admin" || role === "manager";
-        const assignedTo = sharedWith;
-        const assignedLabel = assignedTo.length ? `${assignedTo.length} user${assignedTo.length === 1 ? "" : "s"}` : "Unassigned";
         const actionButtons = [];
 
         if (canDownload) {
@@ -3175,11 +3175,9 @@ function renderFiles() {
             </td>            
             <td>${file.owner_name || file.owner_email || sessionStorage.getItem("username") || "Unknown"}</td>
 
-            ${role !== "user" ? `
             <td>
                  ${renderDashboardFileAssignedTo(file)}
             </td>
-            ` : ""}
 
             ${role === "user" || role === "manager" ? `
             <td>${escapeTeamHtml(file.project_name || getDashboardFileProjectName(file) || "No project")}</td>
@@ -3199,38 +3197,131 @@ function renderFiles() {
     updatePagination(totalPages);
 }
 
+function bindFileAssigneePopoverPositioning() {
+    if (fileAssigneePopoverBound) return;
+
+    const setActivePreview = (target) => {
+        const preview = target?.closest?.(".file-assignee-preview");
+        if (!preview) return;
+        activeFileAssigneePreview = preview;
+        positionFileAssigneePopover(preview);
+    };
+
+    document.addEventListener("pointerover", event => setActivePreview(event.target), true);
+    document.addEventListener("focusin", event => setActivePreview(event.target), true);
+    document.addEventListener("pointerout", event => {
+        if (!activeFileAssigneePreview) return;
+        if (activeFileAssigneePreview.contains(event.relatedTarget)) return;
+        activeFileAssigneePreview = null;
+    }, true);
+
+    const repositionActivePopover = () => {
+        if (activeFileAssigneePreview) {
+            positionFileAssigneePopover(activeFileAssigneePreview);
+        }
+    };
+
+    window.addEventListener("scroll", repositionActivePopover, true);
+    window.addEventListener("resize", repositionActivePopover);
+    fileAssigneePopoverBound = true;
+}
+
+function positionFileAssigneePopover(preview) {
+    const popover = preview?.querySelector?.(".file-assignee-popover");
+    if (!popover) return;
+
+    const margin = 12;
+    const rect = preview.getBoundingClientRect();
+    const popoverWidth = popover.offsetWidth || 250;
+    const popoverHeight = Math.min(popover.scrollHeight || popover.offsetHeight || 220, window.innerHeight - (margin * 2));
+    let left = rect.left + Math.min(28, rect.width / 2);
+    let top = rect.bottom + 8;
+
+    if (left + popoverWidth > window.innerWidth - margin) {
+        left = window.innerWidth - margin - popoverWidth;
+    }
+    if (left < margin) {
+        left = margin;
+    }
+
+    if (top + popoverHeight > window.innerHeight - margin && rect.top > popoverHeight + margin) {
+        top = rect.top - popoverHeight - 8;
+    }
+    if (top + popoverHeight > window.innerHeight - margin) {
+        top = Math.max(margin, window.innerHeight - margin - popoverHeight);
+    }
+
+    popover.style.setProperty("--file-assignee-popover-left", `${Math.round(left)}px`);
+    popover.style.setProperty("--file-assignee-popover-top", `${Math.round(top)}px`);
+}
+
 function renderDashboardFileAssignedTo(file) {
     const assigned = Array.isArray(file?.shared_with)
         ? file.shared_with.map(email => String(email || "").trim()).filter(Boolean)
         : [];
-    const fileKey = encodeURIComponent(getDashboardFileKey(file));
-    const isExpanded = expandedFileAssigneeRows.has(fileKey);
 
     if (!assigned.length) {
         return `<span class="dashboard-file-unassigned">Unassigned</span>`;
     }
-    const visibleAssignees = isExpanded ? assigned : assigned.slice(0, 3);
+    const visibleAssignees = assigned.slice(0, 3);
     const hiddenCount = Math.max(0, assigned.length - 3);
+    const assigneeRows = assigned.map(email => {
+        const user = getDashboardFileAssigneeUser(email);
+        const name = user?.username || getUserDisplayName(email, getDashboardFileAssigneeSource());
+        const initial = getAvatarInitial(name || email);
+        return `
+            <li class="file-assignee-popover-person">
+                <span class="file-assignee-popover-avatar">${escapeTeamHtml(initial)}</span>
+                <span>
+                    <strong>${escapeTeamHtml(name)}</strong>
+                    <small>${escapeTeamHtml(email)}</small>
+                </span>
+            </li>
+        `;
+    }).join("");
 
     return `
-        <div class="dashboard-file-assigned-list">
+        <div class="dashboard-file-assigned-list file-assignee-preview" tabindex="0" aria-label="Assigned to ${assigned.length} people">
+            <div class="file-assignee-avatar-stack">
             ${visibleAssignees.map(email => {
-                const name = getUserDisplayName(email, assignableUsers);
+                const user = getDashboardFileAssigneeUser(email);
+                const name = user?.username || getUserDisplayName(email, getDashboardFileAssigneeSource());
                 return `
-                    <span class="dashboard-file-assigned-pill" title="${escapeTeamHtml(email)}">
+                    <span class="dashboard-file-assigned-pill file-assignee-avatar" title="${escapeTeamHtml(name)} (${escapeTeamHtml(email)})">
                         ${escapeTeamHtml(getAvatarInitial(name || email))}
-                        <small>${escapeTeamHtml(name)}</small>
                     </span>
                 `;
             }).join("")}
-            ${hiddenCount > 0 && !isExpanded
-                ? `<button type="button" class="dashboard-file-assigned-more dashboard-file-assigned-toggle" data-file-key="${fileKey}">+${hiddenCount}</button>`
+            ${hiddenCount > 0
+                ? `<span class="dashboard-file-assigned-more file-assignee-more">+${hiddenCount}</span>`
                 : ""}
-            ${assigned.length > 3 && isExpanded
-                ? `<button type="button" class="dashboard-file-assigned-more dashboard-file-assigned-toggle" data-file-key="${fileKey}">Show less</button>`
-                : ""}
+            </div>
+            <div class="file-assignee-popover" role="tooltip">
+                <div class="file-assignee-popover-head">
+                    <strong>Assigned to</strong>
+                    <span>People who have access to this file</span>
+                </div>
+                <ul>${assigneeRows}</ul>
+                <p>Total ${assigned.length} ${assigned.length === 1 ? "person" : "people"}</p>
+            </div>
         </div>
     `;
+}
+
+function getDashboardFileAssigneeSource() {
+    const merged = [...(Array.isArray(assignableUsers) ? assignableUsers : [])];
+    (Array.isArray(allUsersCache) ? allUsersCache : []).forEach(user => {
+        const email = String(user?.email || "").trim().toLowerCase();
+        if (email && !merged.some(item => String(item?.email || "").trim().toLowerCase() === email)) {
+            merged.push(user);
+        }
+    });
+    return merged;
+}
+
+function getDashboardFileAssigneeUser(email) {
+    const lookup = String(email || "").trim().toLowerCase();
+    return getDashboardFileAssigneeSource().find(user => String(user?.email || "").trim().toLowerCase() === lookup);
 }
 
 function getDashboardFileKey(file) {
@@ -3250,8 +3341,9 @@ function toggleDashboardFileAssigneeRow(fileKey) {
 }
 
 function getFilesTableColumnCount(role = sessionStorage.getItem("role")) {
-    if (role === "user") return 8;
-    if (role === "manager") return 8;
+    const effectiveRole = role || "user";
+    if (effectiveRole === "user") return 9;
+    if (effectiveRole === "manager") return 8;
     return 7;
 }
 

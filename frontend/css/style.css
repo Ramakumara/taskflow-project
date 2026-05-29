@@ -3716,6 +3716,12 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     box-shadow: 0 18px 40px rgba(47, 92, 177, 0.08);
 }
 
+.files-table tbody tr:has(.file-assignee-preview:hover),
+.files-table tbody tr:has(.file-assignee-preview:focus),
+.files-table tbody tr:has(.file-assignee-preview:focus-within) {
+    transform: none;
+}
+
 .files-table tbody tr td:first-child {
     border-top-left-radius: 16px;
     border-bottom-left-radius: 16px;
@@ -3842,6 +3848,159 @@ body.dashboard-theme-dark button.settings-row:focus .settings-row-copy strong {
     cursor: pointer;
 }
 
+.dashboard-file-assigned-list.file-assignee-preview,
+.admin-file-assigned-list.file-assignee-preview {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: max-content;
+    min-width: 96px;
+    outline: none;
+}
+
+.file-assignee-avatar-stack {
+    display: inline-flex;
+    align-items: center;
+    min-height: 34px;
+}
+
+.dashboard-file-assigned-pill.file-assignee-avatar,
+.admin-file-assigned-pill.file-assignee-avatar,
+.file-assignee-popover-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    min-height: 30px;
+    margin-left: -8px;
+    padding: 0;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f4b46f, #d96363);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 800;
+    box-shadow: 0 4px 10px rgba(31, 41, 55, 0.12);
+}
+
+.dashboard-file-assigned-pill.file-assignee-avatar:nth-child(2),
+.admin-file-assigned-pill.file-assignee-avatar:nth-child(2) {
+    background: linear-gradient(135deg, #42b7a5, #2877c8);
+}
+
+.dashboard-file-assigned-pill.file-assignee-avatar:nth-child(3),
+.admin-file-assigned-pill.file-assignee-avatar:nth-child(3) {
+    background: linear-gradient(135deg, #8b7cf6, #d45f9f);
+}
+
+.dashboard-file-assigned-pill.file-assignee-avatar:first-child,
+.admin-file-assigned-pill.file-assignee-avatar:first-child {
+    margin-left: 0;
+}
+
+.dashboard-file-assigned-more.file-assignee-more,
+.admin-file-assigned-more.file-assignee-more {
+    justify-content: center;
+    width: 34px;
+    height: 30px;
+    min-height: 30px;
+    margin-left: 6px;
+    padding: 0;
+    border: 1px solid #9ee6b8;
+    border-radius: 9px;
+    background: #f0fff6;
+    color: #16834c;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.file-assignee-popover {
+    position: fixed;
+    top: var(--file-assignee-popover-top, -9999px);
+    left: var(--file-assignee-popover-left, -9999px);
+    z-index: 9999;
+    width: 250px;
+    max-width: calc(100vw - 24px);
+    max-height: min(320px, calc(100vh - 24px));
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid #e6edf5;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 18px 42px rgba(26, 38, 58, 0.16);
+    color: #172033;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-4px);
+    transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.file-assignee-preview:hover .file-assignee-popover,
+.file-assignee-preview:focus-within .file-assignee-popover,
+.file-assignee-preview:focus .file-assignee-popover {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+.file-assignee-popover-head {
+    padding-bottom: 10px;
+    border-bottom: 1px solid #edf1f7;
+}
+
+.file-assignee-popover-head strong {
+    display: block;
+    color: #172033;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.file-assignee-popover-head span,
+.file-assignee-popover-person small,
+.file-assignee-popover p {
+    color: #6b778d;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.file-assignee-popover ul {
+    display: grid;
+    gap: 10px;
+    margin: 12px 0 10px;
+    padding: 0;
+    list-style: none;
+}
+
+.file-assignee-popover-person {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr);
+    align-items: center;
+    gap: 9px;
+}
+
+.file-assignee-popover-person .file-assignee-popover-avatar {
+    margin: 0;
+}
+
+.file-assignee-popover-person strong,
+.file-assignee-popover-person small {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-assignee-popover-person strong {
+    color: #1f2937;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.file-assignee-popover p {
+    margin: 0;
+}
+
 body.dashboard-theme-dark .dashboard-file-assigned-pill {
     background: rgba(34, 197, 94, 0.16);
     color: #86efac;
@@ -3854,6 +4013,27 @@ body.dashboard-theme-dark .dashboard-file-assigned-pill small {
 body.dashboard-theme-dark .dashboard-file-assigned-more,
 body.dashboard-theme-dark .dashboard-file-unassigned {
     background: #111827;
+    color: #a8b3c7;
+}
+
+body.dashboard-theme-dark .file-assignee-popover {
+    background: #182235;
+    border-color: #2d3a50;
+    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
+}
+
+body.dashboard-theme-dark .file-assignee-popover-head {
+    border-color: #2d3a50;
+}
+
+body.dashboard-theme-dark .file-assignee-popover-head strong,
+body.dashboard-theme-dark .file-assignee-popover-person strong {
+    color: #f8fafc;
+}
+
+body.dashboard-theme-dark .file-assignee-popover-head span,
+body.dashboard-theme-dark .file-assignee-popover-person small,
+body.dashboard-theme-dark .file-assignee-popover p {
     color: #a8b3c7;
 }
 
@@ -10304,12 +10484,12 @@ workspace-table td,
 }
 
 .files-table.files-table-user {
-    min-width: 1080px;
+    min-width: 1260px;
 }
 
 .files-table.files-table-user td:nth-child(4),
 .files-table.files-table-user th:nth-child(4) {
-    width: 180px;
+    width: 220px;
 }
 
 .files-table.files-table-user td:nth-child(5),
@@ -10319,16 +10499,21 @@ workspace-table td,
 
 .files-table.files-table-user td:nth-child(6),
 .files-table.files-table-user th:nth-child(6) {
-    width: 110px;
+    width: 180px;
 }
 
 .files-table.files-table-user td:nth-child(7),
 .files-table.files-table-user th:nth-child(7) {
-    width: 150px;
+    width: 110px;
 }
 
 .files-table.files-table-user td:nth-child(8),
 .files-table.files-table-user th:nth-child(8) {
+    width: 170px;
+}
+
+.files-table.files-table-user td:nth-child(9),
+.files-table.files-table-user th:nth-child(9) {
     width: 130px;
 }
 
