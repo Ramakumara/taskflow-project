@@ -9173,8 +9173,7 @@ workspace-table td,
     white-space: nowrap;
 }
 
-.task-board-table td:nth-child(2) span,
-.task-board-table td:nth-child(3) {
+.task-board-table .task-title-text {
     display: block;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -9199,37 +9198,66 @@ workspace-table td,
 }
 
 .task-board-table.task-board-table-user {
-    min-width: 1040px;
+    min-width: 1010px;
 }
 
 .task-board-table.task-board-table-user th:nth-child(1),
 .task-board-table.task-board-table-user td:nth-child(1) {
-    width: 260px;
+    width: 48px;
 }
 
 .task-board-table.task-board-table-user th:nth-child(2),
 .task-board-table.task-board-table-user td:nth-child(2) {
-    width: 220px;
+    width: 230px;
 }
 
 .task-board-table.task-board-table-user th:nth-child(3),
 .task-board-table.task-board-table-user td:nth-child(3) {
-    width: 124px;
+    width: 160px;
 }
 
 .task-board-table.task-board-table-user th:nth-child(4),
 .task-board-table.task-board-table-user td:nth-child(4) {
-    width: 220px;
+    width: 118px;
 }
 
 .task-board-table.task-board-table-user th:nth-child(5),
 .task-board-table.task-board-table-user td:nth-child(5) {
-    width: 180px;
+    width: 190px;
 }
 
 .task-board-table.task-board-table-user th:nth-child(6),
 .task-board-table.task-board-table-user td:nth-child(6) {
+    width: 155px;
+}
+
+.task-board-table.task-board-table-user th:nth-child(7),
+.task-board-table.task-board-table-user td:nth-child(7) {
     width: 130px;
+}
+
+.task-board-table.task-board-table-user th:nth-child(8),
+.task-board-table.task-board-table-user td:nth-child(8) {
+    display: none;
+}
+
+.task-board-table .task-star-cell,
+.task-board-table .task-priority-cell,
+.task-board-table .task-status-cell,
+.task-board-table .task-due-cell,
+.task-board-table .task-action-cell {
+    text-align: center;
+}
+
+.task-board-table .task-project-cell,
+.task-board-table .task-assigned-cell,
+.task-board-table .task-due-cell {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.task-board-table .task-assigned-cell {
+    overflow-wrap: anywhere;
 }
 
 .task-title-cell {

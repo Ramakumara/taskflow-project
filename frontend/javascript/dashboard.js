@@ -479,7 +479,7 @@ function toggleTaskAssigneeCard(taskId) {
 
 function renderTaskAssigneeStatusList(task, users = [], options = {}) {
     const assignments = getTaskAssignments(task);
-    const baseVisibleCount = options.limit || 3;
+    const baseVisibleCount = options.limit || 1;
     const isExpanded = isTaskAssigneeCardExpanded(task?.id);
     const visibleCount = isExpanded ? assignments.length : baseVisibleCount;
     const visibleAssignments = assignments.slice(0, visibleCount);
@@ -655,7 +655,7 @@ function renderDashboardTaskBoard() {
     if (table) table.classList.toggle("task-board-table-user", role === "user");
 
     if (!tasks.length) {
-        list.innerHTML = `<tr><td colspan="${role === "manager" || role === "admin" ? 7 : 6}" class="empty-state">No tasks found.</td></tr>`;
+        list.innerHTML = `<tr><td colspan="${role === "manager" || role === "admin" ? 8 : 7}" class="empty-state">No tasks found.</td></tr>`;
         renderDashboardTaskPagination(0, 0, 0, 1, 1);
         return;
     }
@@ -673,25 +673,25 @@ function renderDashboardTaskBoard() {
             : renderTaskAssigneeStatusList(task, users);
 
         row.innerHTML = `
-            <td><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
-            <td >
-                <div >
-                    <span>${escapeTeamHtml(task.title || "Untitled Task")}</span>
+            <td class="task-star-cell"><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
+            <td class="task-title-cell">
+                <div class="task-title-block">
+                    <span class="task-title-text">${escapeTeamHtml(task.title || "Untitled Task")}</span>
                     ${renderTaskAttachments(task)}
                 </div>
             </td>
-            <td>${escapeTeamHtml(project?.name || "Unknown")}</td>
-            <td><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></td>
-            <td>${assignedDisplay || "Unknown"}</td>
-            <td>
+            <td class="task-project-cell">${escapeTeamHtml(project?.name || "Unknown")}</td>
+            <td class="task-priority-cell"><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></td>
+            <td class="task-assigned-cell">${assignedDisplay || "Unknown"}</td>
+            <td class="task-status-cell">
                 ${role === "user"
                     ? renderMyStatusControl(task)
                     : `<span class="status-pill ${statusClass}">${escapeTeamHtml(status)}</span>`
                 }
             </td>
-            <td>${escapeTeamHtml(formatDeadlineDate(task.deadline))}</td>
+            <td class="task-due-cell">${escapeTeamHtml(formatDeadlineDate(task.deadline))}</td>
             ${role === "admin" || role === "manager" ? `
-                <td>
+                <td class="task-action-cell">
                     <button class="delete-btn" type="button" onclick="deleteTask('${task.id}')">Delete</button>
                 </td>
             ` : ""}
