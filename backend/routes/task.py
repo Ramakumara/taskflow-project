@@ -1,4 +1,5 @@
-from datetime import datetime
+from ml.predict import predict_days
+from datetime import datetime, timedelta
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -106,6 +107,45 @@ async def create_task(
     if not title:
         raise HTTPException(status_code=400, detail="Task title is required")
 
+    priority_map = {
+        "low":1,
+        "medium":2,
+        "high":3
+    }
+
+    priority_value = priority_map.get(
+        str(task.priority or "").lower(),
+        2
+    )
+
+    task_title = str(
+        task.title or ""
+    ).strip()
+
+    description = str(
+        task.description or ""
+    ).strip()
+
+    number_of_users = len(
+        assignees
+    ) if assignees else 1
+
+    if task.due_date:
+        due_date = task.due_date
+        predicted_days = None
+    else:
+        predicted_days = predict_days(
+            priority_value,
+            task_title,
+            description,
+            number_of_users
+        )
+
+        due_date = (
+            datetime.utcnow()
+            + timedelta(days=predicted_days)
+        ).strftime("%Y-%m-%d")
+
     now = utc_now_iso()
     document = {
         "title": title,
@@ -113,7 +153,8 @@ async def create_task(
         "project_id": project["_id"],
         "description": str(task.description or "").strip(),
         "deadline": _task_due_date(task),
-        "due_date": _task_due_date(task),
+        "due_date": due_date,
+        "predicted_days": predicted_days,
         "priority": normalize_priority(task.priority),
         "assigned_to": assignees,
         "assigned_users": assignees,
