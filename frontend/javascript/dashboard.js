@@ -446,6 +446,11 @@ let dashboardTaskCache = {
 };
 let dashboardTaskPage = 1;
 const dashboardTaskPageSize = 5;
+let selectedDashboardTaskId = sessionStorage.getItem("taskflow.selectedTaskId") || null;
+let dashboardTaskDetailOpen = false;
+let dashboardTaskEditMode = false;
+let dashboardTaskInboxScrollTop = Number(sessionStorage.getItem("taskflow.taskInboxScrollTop") || 0);
+const dashboardSelectedTaskIds = new Set();
 let projectWorkspaceTaskPage = 1;
 const projectWorkspaceTaskPageSize = 5;
 let expandedTaskAssigneeCards = {};
@@ -607,22 +612,31 @@ function populateDashboardTaskFilters(projects) {
 function getFilteredDashboardTasks() {
     const query = (document.getElementById("taskSearchInput")?.value || "").trim().toLowerCase();
     const projectId = document.getElementById("taskProjectFilter")?.value || "all";
+    const priorityFilter = document.getElementById("taskPriorityFilter")?.value || "all";
     const status = document.getElementById("taskStatusFilter")?.value || "all";
+    const dueFilter = document.getElementById("taskDueFilter")?.value || "all";
+    const sortValue = document.getElementById("taskSortSelect")?.value || "newest";
     const { projects, tasks, users } = dashboardTaskCache;
 
-    return tasks.filter(task => {
+    const filtered = tasks.filter(task => {
         const project = projects.find(item => String(item.id) === String(task.project_id));
         const assignments = getTaskAssignments(task);
+        const priority = normalizeDashboardTaskPriority(task.priority);
+        const taskStatus = normalizeMemberStatus(task.status);
 
         if (projectId !== "all" && String(task.project_id) !== String(projectId)) return false;
-        if (status !== "all" && normalizeMemberStatus(task.status) !== status) return false;
+        if (priorityFilter !== "all" && priority !== priorityFilter) return false;
+        if (status !== "all" && taskStatus !== status) return false;
+        if (!dashboardTaskMatchesDueFilter(task, dueFilter)) return false;
 
         if (!query) return true;
 
         const searchValues = [
             task.title,
+            task.description,
             project?.name,
-            normalizeMemberStatus(task.status),
+            priority,
+            taskStatus,
             task.deadline,
             ...assignments.flatMap(assignment => [
                 assignment.user_id,
@@ -633,6 +647,8 @@ function getFilteredDashboardTasks() {
 
         return searchValues.some(value => String(value || "").toLowerCase().includes(query));
     });
+
+    return filtered.sort((a, b) => compareDashboardTasks(a, b, sortValue));
 }
 
 function renderDashboardTaskBoard() {
@@ -640,65 +656,570 @@ function renderDashboardTaskBoard() {
     if (!list) return;
 
     const role = sessionStorage.getItem("role");
-    const table = document.querySelector(".task-board-table");
-    const { projects, users } = dashboardTaskCache;
     const tasks = getFilteredDashboardTasks();
     const totalPages = Math.max(Math.ceil(tasks.length / dashboardTaskPageSize), 1);
     dashboardTaskPage = Math.min(Math.max(dashboardTaskPage, 1), totalPages);
     const startIndex = (dashboardTaskPage - 1) * dashboardTaskPageSize;
     const pageTasks = tasks.slice(startIndex, startIndex + dashboardTaskPageSize);
-    const taskActionHeader = document.getElementById("task-action-header");
     const taskAddButton = document.getElementById("taskAddButton");
+    document.querySelector(".task-inbox-shell")?.classList.toggle("showing-detail", Boolean(dashboardTaskDetailOpen));
 
-    if (taskActionHeader) taskActionHeader.style.display = role === "manager" || role === "admin" ? "" : "none";
     if (taskAddButton) taskAddButton.style.display = role === "manager" ? "" : "none";
-    if (table) table.classList.toggle("task-board-table-user", role === "user");
 
     if (!tasks.length) {
-        list.innerHTML = `<tr><td colspan="${role === "manager" || role === "admin" ? 8 : 7}" class="empty-state">No tasks found.</td></tr>`;
+        list.innerHTML = `
+            <div class="task-inbox-empty-list">
+                <i class="fas fa-magnifying-glass"></i>
+                <strong>No tasks found</strong>
+                <span>Adjust the search or filters to see more tasks.</span>
+            </div>
+        `;
         renderDashboardTaskPagination(0, 0, 0, 1, 1);
+        if (dashboardTaskDetailOpen && !selectedDashboardTaskId) renderTaskEmptyState();
         return;
     }
 
-    list.innerHTML = "";
-    pageTasks.forEach(task => {
-        const project = projects.find(item => String(item.id) === String(task.project_id));
-        const row = document.createElement("tr");
-        const status = normalizeMemberStatus(task.status);
-        const statusClass = memberStatusClass(status);
-        const priority = normalizeDashboardTaskPriority(task.priority);
-        const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
-        const assignedDisplay = role === "user"
-            ? getTaskAssignedBy(task, project)
-            : renderTaskAssigneeStatusList(task, users);
+    if (selectedDashboardTaskId && !dashboardTaskCache.tasks.some(task => String(task.id) === String(selectedDashboardTaskId))) {
+        selectedDashboardTaskId = null;
+        dashboardTaskDetailOpen = false;
+        sessionStorage.removeItem("taskflow.selectedTaskId");
+    }
 
-        row.innerHTML = `
-            <td class="task-star-cell"><i class="far fa-star star-icon" onclick="toggleStar(this)"></i></td>
-            <td class="task-title-cell">
-                <div class="task-title-block">
-                    <span class="task-title-text">${escapeTeamHtml(task.title || "Untitled Task")}</span>
-                    ${renderTaskAttachments(task)}
-                </div>
-            </td>
-            <td class="task-project-cell">${escapeTeamHtml(project?.name || "Unknown")}</td>
-            <td class="task-priority-cell"><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></td>
-            <td class="task-assigned-cell">${assignedDisplay || "Unknown"}</td>
-            <td class="task-status-cell">
-                ${role === "user"
-                    ? renderMyStatusControl(task)
-                    : `<span class="status-pill ${statusClass}">${escapeTeamHtml(status)}</span>`
-                }
-            </td>
-            <td class="task-due-cell">${escapeTeamHtml(formatDeadlineDate(task.deadline))}</td>
-            ${role === "admin" || role === "manager" ? `
-                <td class="task-action-cell">
-                    <button class="delete-btn" type="button" onclick="deleteTask('${task.id}')">Delete</button>
-                </td>
-            ` : ""}
-        `;
-        list.appendChild(row);
-    });
+    list.innerHTML = pageTasks.map(task => renderTaskListItem(task)).join("");
+    if (dashboardTaskDetailOpen) {
+        renderDashboardTaskDetail();
+    }
+    restoreDashboardTaskInboxScroll();
+    updateTaskBulkState();
     renderDashboardTaskPagination(startIndex + 1, startIndex + pageTasks.length, tasks.length, dashboardTaskPage, totalPages);
+}
+
+function renderDashboardTaskSkeleton() {
+    const list = document.getElementById("all-tasks-list");
+    const detail = document.getElementById("task-detail-content");
+    if (list) {
+        list.innerHTML = Array.from({ length: 7 }).map(() => `
+            <div class="task-list-item task-list-skeleton">
+                <span></span><div></div><div></div>
+            </div>
+        `).join("");
+    }
+    if (detail) {
+        detail.innerHTML = `
+            <div class="task-detail-skeleton">
+                <span></span><span></span><span></span><span></span>
+            </div>
+        `;
+    }
+}
+
+function renderTaskListItem(task) {
+    const { projects, users } = dashboardTaskCache;
+    const project = projects.find(item => String(item.id) === String(task.project_id));
+    const status = normalizeMemberStatus(task.status);
+    const statusClass = memberStatusClass(status);
+    const priority = normalizeDashboardTaskPriority(task.priority);
+    const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
+    const attachments = getTaskAttachmentItems(task);
+    const assignments = getTaskAssignments(task);
+    const checked = dashboardSelectedTaskIds.has(String(task.id)) ? "checked" : "";
+    const selected = String(task.id) === String(selectedDashboardTaskId) ? "selected" : "";
+    const description = getTaskPreview(task.description || "No description added.");
+
+    return `
+        <article class="task-list-item ${selected}" role="button" tabindex="0" data-task-id="${escapeTeamHtml(task.id)}" onclick="selectDashboardTask('${escapeTeamHtml(task.id)}')" onkeydown="handleTaskListItemKeydown(event, '${escapeTeamHtml(task.id)}')">
+            <div class="task-list-controls" onclick="event.stopPropagation()">
+                <button class="task-star-btn" type="button" onclick="toggleTaskStar(event, '${escapeTeamHtml(task.id)}')" aria-label="Mark important">
+                    <i class="${isDashboardTaskStarred(task.id) ? "fas" : "far"} fa-star"></i>
+                </button>
+            </div>
+            <div class="task-list-main">
+                <div class="task-list-title-row">
+                    <strong>${escapeTeamHtml(task.title || "Untitled Task")}</strong>
+                    <span class="task-list-date">
+                        ${escapeTeamHtml(formatCreatedDate(task.created_at || task.updated_at))}
+                    </span>
+                </div>
+                <p>${escapeTeamHtml(description)}</p>
+                <div class="task-list-meta">
+                    <span class="task-project-name">${escapeTeamHtml(project?.name || "Unknown Project")}</span>
+                    <span class="task-assignee-avatars" title="${escapeTeamHtml(assignments.map(item => item.user_id).join(", ") || "Unassigned")}">
+                        ${renderTaskAvatarStack(assignments, users)}
+                    </span>
+                    <span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span>
+                    <span class="status-pill ${statusClass}">${escapeTeamHtml(status)}</span>
+                    ${attachments.length ? `<span class="task-attachment-indicator"><i class="fas fa-paperclip"></i>${attachments.length}</span>` : ""}
+                </div>
+            </div>
+        </article>
+    `;
+}
+
+function formatCreatedDate(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    }).replace(",", "");
+}
+
+function renderDashboardTaskDetail() {
+    const task = getSelectedDashboardTask();
+    if (!task) {
+        renderTaskEmptyState();
+        return;
+    }
+
+    const detail = document.getElementById("task-detail-content");
+    if (!detail) return;
+
+    const role = sessionStorage.getItem("role");
+    const project = dashboardTaskCache.projects.find(item => String(item.id) === String(task.project_id));
+
+    detail.innerHTML = dashboardTaskEditMode
+        ? renderTaskEditPanel(task, project)
+        : renderTaskReadPanel(task, project, role);
+}
+
+function renderTaskReadPanel(task, project, role) {
+    const status = normalizeMemberStatus(task.status);
+    const statusClass = memberStatusClass(status);
+    const priority = normalizeDashboardTaskPriority(task.priority);
+    const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
+    const canManage = role === "manager" || role === "admin";
+
+    return `
+        <div class="task-detail-header">
+            
+            <div>
+                <h2>${escapeTeamHtml(task.title || "Untitled Task")}</h2>
+                <p>${escapeTeamHtml(project?.name || "Unknown Project")}</p>
+            </div>
+
+        <div class="task-detail-actions">
+            <button class="task-detail-back" type="button" onclick="clearDashboardTaskSelection()" aria-label="Back to task list">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to Tasks</span>
+            </button>
+            ${canManage ? `<button type="button" onclick="enterDashboardTaskEditMode()"><i class="fas fa-pen"></i>Edit</button>` : ""}
+            ${canManage ? `<button class="danger" type="button" onclick="deleteTask('${escapeTeamHtml(task.id)}')"><i class="fas fa-trash"></i>Delete</button>` : ""}
+        </div>
+        </div>
+
+        <section class="task-detail-section">
+            <h3>Description</h3>
+            <p class="task-detail-description">${escapeTeamHtml(task.description || "No description added.")}</p>
+        </section>
+
+        <section class="task-detail-grid">
+            <div><span>Project</span><strong>${escapeTeamHtml(project?.name || "Unknown")}</strong></div>
+            <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></strong></div>
+            <div><span>Status</span><strong>${renderDashboardStatusControl(task, role, statusClass)}</strong></div>
+            <div><span>Due date</span><strong>${escapeTeamHtml(formatDeadlineDate(task.deadline))}</strong></div>
+        </section>
+
+        <section class="task-detail-section">
+            <h3>Assigned Members</h3>
+            ${renderTaskDetailAssignees(task)}
+        </section>
+
+        <section class="task-detail-section">
+            <h3>Attachments</h3>
+            ${renderTaskAttachments(task) || `<p class="task-muted">No attachments.</p>`}
+        </section>
+
+        ${renderTaskTimeline(task)}
+        ${renderTaskComments(task)}
+        ${renderTaskHistory(task)}
+    `;
+}
+
+function renderTaskEditPanel(task, project) {
+    const priority = normalizeDashboardTaskPriority(task.priority);
+    const status = normalizeMemberStatus(task.status);
+    return `
+        <form class="task-edit-panel" onsubmit="saveDashboardTaskEdit(event, '${escapeTeamHtml(task.id)}')">
+            <div class="task-detail-header">
+                <button class="task-detail-back" type="button" onclick="exitDashboardTaskEditMode()" aria-label="Cancel edit">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <div>
+                    <h2>Edit Task</h2>
+                    <p>${escapeTeamHtml(project?.name || "Unknown Project")}</p>
+                </div>
+            </div>
+            <label>Title<input id="taskEditTitle" value="${escapeTeamHtml(task.title || "")}" required></label>
+            <label>Description<textarea id="taskEditDescription" rows="5">${escapeTeamHtml(task.description || "")}</textarea></label>
+            <div class="task-edit-grid">
+                <label>Priority
+                    <select id="taskEditPriority">
+                        ${["Low", "Medium", "High", "Urgent"].map(item => `<option value="${item}" ${priority === item ? "selected" : ""}>${item}</option>`).join("")}
+                    </select>
+                </label>
+                <label>Status
+                    <select id="taskEditStatus">
+                        ${["Pending", "In Progress", "Completed"].map(item => `<option value="${item}" ${status === item ? "selected" : ""}>${item}</option>`).join("")}
+                    </select>
+                </label>
+                <label>Due date<input id="taskEditDeadline" type="date" value="${escapeTeamHtml(task.deadline || task.due_date || "")}"></label>
+            </div>
+            <div class="task-edit-actions">
+                <button class="secondary" type="button" onclick="exitDashboardTaskEditMode()">Cancel</button>
+                <button type="submit"><i class="fas fa-floppy-disk"></i>Save Changes</button>
+            </div>
+        </form>
+    `;
+}
+
+function renderTaskEmptyState() {
+    const detail = document.getElementById("task-detail-content");
+    if (!detail) return;
+
+    detail.innerHTML = `
+        <div class="task-empty-state">
+            <div class="task-empty-illustration" aria-hidden="true">
+                <span></span><span></span><span></span>
+            </div>
+            <h2>Select a task to view details</h2>
+            <p>Open a task from the inbox to see comments, attachments, history, and status controls.</p>
+        </div>
+    `;
+}
+
+function getSelectedDashboardTask() {
+    if (!selectedDashboardTaskId) return null;
+    return dashboardTaskCache.tasks.find(task => String(task.id) === String(selectedDashboardTaskId)) || null;
+}
+
+function selectDashboardTask(taskId) {
+    const list = document.getElementById("all-tasks-list");
+    if (list) {
+        dashboardTaskInboxScrollTop = list.scrollTop;
+        sessionStorage.setItem("taskflow.taskInboxScrollTop", String(dashboardTaskInboxScrollTop));
+    }
+    selectedDashboardTaskId = String(taskId || "");
+    activeTaskId = selectedDashboardTaskId;
+    dashboardTaskDetailOpen = true;
+    dashboardTaskEditMode = false;
+    sessionStorage.setItem("taskflow.selectedTaskId", selectedDashboardTaskId);
+    renderDashboardTaskBoard();
+}
+
+function clearDashboardTaskSelection() {
+    activeTaskId = null;
+    dashboardTaskDetailOpen = false;
+    dashboardTaskEditMode = false;
+    renderDashboardTaskBoard();
+    restoreDashboardTaskInboxScroll();
+}
+
+function restoreDashboardTaskInboxScroll() {
+    if (dashboardTaskDetailOpen) return;
+    const list = document.getElementById("all-tasks-list");
+    if (!list || !dashboardTaskInboxScrollTop) return;
+    requestAnimationFrame(() => {
+        list.scrollTop = dashboardTaskInboxScrollTop;
+    });
+}
+
+function handleTaskListItemKeydown(event, taskId) {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectDashboardTask(taskId);
+        return;
+    }
+
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+
+    event.preventDefault();
+    const items = Array.from(document.querySelectorAll(".task-list-item[data-task-id]"));
+    const index = items.findIndex(item => String(item.dataset.taskId) === String(taskId));
+    const nextIndex = event.key === "ArrowDown"
+        ? Math.min(items.length - 1, index + 1)
+        : Math.max(0, index - 1);
+    items[nextIndex]?.focus();
+}
+
+function toggleDashboardTaskSelection(taskId, checked) {
+    const key = String(taskId || "");
+    if (!key) return;
+    if (checked) {
+        dashboardSelectedTaskIds.add(key);
+    } else {
+        dashboardSelectedTaskIds.delete(key);
+    }
+    updateTaskBulkState();
+}
+
+function updateTaskBulkState() {
+    const count = document.getElementById("taskBulkCount");
+    if (count) {
+        const total = dashboardSelectedTaskIds.size;
+        count.textContent = `${total} selected`;
+    }
+}
+
+async function bulkCompleteSelectedTasks() {
+    const ids = Array.from(dashboardSelectedTaskIds);
+    if (!ids.length) {
+        alert("Select tasks first");
+        return;
+    }
+
+    for (const id of ids) {
+        await updateDashboardTask(id, { status: "Completed" }, { silent: true });
+    }
+
+    dashboardSelectedTaskIds.clear();
+    await loadAllTasks();
+}
+
+function isDashboardTaskStarred(taskId) {
+    const starred = JSON.parse(localStorage.getItem("taskflow.starredTasks") || "[]");
+    return starred.includes(String(taskId));
+}
+
+function toggleTaskStar(event, taskId) {
+    event.stopPropagation();
+    const key = String(taskId || "");
+    const starred = new Set(JSON.parse(localStorage.getItem("taskflow.starredTasks") || "[]"));
+    if (starred.has(key)) {
+        starred.delete(key);
+    } else {
+        starred.add(key);
+    }
+    localStorage.setItem("taskflow.starredTasks", JSON.stringify(Array.from(starred)));
+    renderDashboardTaskBoard();
+}
+
+function handleDashboardTaskFiltersChange() {
+    dashboardTaskPage = 1;
+    renderDashboardTaskBoard();
+}
+
+function dashboardTaskMatchesDueFilter(task, filter) {
+    if (filter === "all") return true;
+    const due = task.deadline || task.due_date;
+    if (filter === "none") return !due;
+    if (!due) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(String(due).length === 10 ? `${due}T00:00:00` : due);
+    dueDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((dueDate - today) / 86400000);
+
+    if (filter === "overdue") return diffDays < 0;
+    if (filter === "today") return diffDays === 0;
+    if (filter === "week") return diffDays >= 0 && diffDays <= 7;
+    return true;
+}
+
+function compareDashboardTasks(a, b, sortValue) {
+    if (sortValue === "title-asc") {
+        return String(a.title || "").localeCompare(String(b.title || ""));
+    }
+
+    if (sortValue === "priority-desc") {
+        const weight = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
+        return (weight[normalizeDashboardTaskPriority(b.priority)] || 0) - (weight[normalizeDashboardTaskPriority(a.priority)] || 0);
+    }
+
+    if (sortValue === "due-asc") {
+        return getDashboardTaskDueTime(a) - getDashboardTaskDueTime(b);
+    }
+
+    return new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0);
+}
+
+function getDashboardTaskDueTime(task) {
+    const due = task.deadline || task.due_date;
+    if (!due) return Number.MAX_SAFE_INTEGER;
+    const date = new Date(String(due).length === 10 ? `${due}T00:00:00` : due);
+    return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+function getTaskPreview(value) {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    return text.length > 88 ? `${text.slice(0, 88)}...` : text;
+}
+
+function renderTaskAvatarStack(assignments, users) {
+    if (!assignments.length) return `<span class="task-avatar-empty">Unassigned</span>`;
+    const visible = assignments.slice(0, 3);
+    const extra = assignments.length - visible.length;
+    return `
+        ${visible.map(assignment => {
+            const email = String(assignment.user_id || "Unassigned");
+            const name = getUserDisplayName(email, users);
+            return `<span class="task-avatar-mini" title="${escapeTeamHtml(email)}">${escapeTeamHtml(getAvatarInitial(name || email))}</span>`;
+        }).join("")}
+        ${extra > 0 ? `<span class="task-avatar-extra">+${extra}</span>` : ""}
+    `;
+}
+
+function renderDashboardStatusControl(task, role, statusClass) {
+    const status = normalizeMemberStatus(task.status);
+    if (role === "user") {
+        return renderMyStatusControl(task);
+    }
+
+    return `
+        
+        <span class="status-pill ${statusClass} task-detail-status-label">${escapeTeamHtml(status)}</span>
+    `;
+}
+
+function renderTaskDetailAssignees(task) {
+    const assignments = getTaskAssignments(task);
+    if (!assignments.length) return `<p class="task-muted">Unassigned.</p>`;
+    return `
+        <div class="task-detail-assignees">
+            ${assignments.map(assignment => {
+                const email = String(assignment.user_id || "Unassigned");
+                const name = getUserDisplayName(email, dashboardTaskCache.users);
+                const status = normalizeMemberStatus(assignment.status);
+                return `
+                    <div class="task-detail-assignee">
+                        <span class="task-avatar-mini">${escapeTeamHtml(getAvatarInitial(name || email))}</span>
+                        <div>
+                            <strong>${escapeTeamHtml(name)}</strong>
+                            <small>${escapeTeamHtml(email)}</small>
+                        </div>
+                        <span class="member-status-badge ${memberStatusClass(status)}"><span class="member-status-dot"></span>${escapeTeamHtml(status)}</span>
+                    </div>
+                `;
+            }).join("")}
+        </div>
+    `;
+}
+
+function renderTaskTimeline(task) {
+    const items = [
+        task.created_at ? { label: "Task created", time: task.created_at } : null,
+        task.updated_at ? { label: "Last updated", time: task.updated_at } : null,
+        normalizeMemberStatus(task.status) === "Completed" ? { label: "Marked complete", time: task.updated_at || task.deadline } : null
+    ].filter(Boolean);
+
+    return `
+        <section class="task-detail-section">
+            <h3>Activity Timeline</h3>
+            <div class="task-timeline">
+                ${items.length ? items.map(item => `
+                    <div class="task-timeline-item">
+                        <span></span>
+                        <div><strong>${escapeTeamHtml(item.label)}</strong><small>${escapeTeamHtml(formatDateTime(item.time))}</small></div>
+                    </div>
+                `).join("") : `<p class="task-muted">No activity timeline yet.</p>`}
+            </div>
+        </section>
+    `;
+}
+
+function renderTaskComments(task) {
+    const comments = Array.isArray(task.comments) ? task.comments : [];
+    return `
+        <section class="task-detail-section">
+            <h3>Comments</h3>
+            <div class="task-comments">
+                ${comments.length ? comments.map(comment => `
+                    <article class="task-comment">
+                        <span class="task-avatar-mini">${escapeTeamHtml(getAvatarInitial(comment.author_name || comment.author))}</span>
+                        <div>
+                            <strong>${escapeTeamHtml(comment.author_name || comment.author || "User")}</strong>
+                            <p>${escapeTeamHtml(comment.content || "")}</p>
+                            <small>${escapeTeamHtml(formatDateTime(comment.created_at))}</small>
+                        </div>
+                    </article>
+                `).join("") : `<p class="task-muted">No comments yet.</p>`}
+            </div>
+            <div class="task-comment-form">
+                <input id="task-comment-input" type="text" placeholder="Add a comment..." onkeydown="if(event.key === 'Enter') addTaskComment()">
+                <button type="button" onclick="addTaskComment()"><i class="fas fa-paper-plane"></i>Add Comment</button>
+            </div>
+        </section>
+    `;
+}
+
+function renderTaskHistory(task) {
+    const history = Array.isArray(task.history) ? task.history : [];
+    return `
+        <section class="task-detail-section">
+            <h3>Task History</h3>
+            ${history.length ? `
+                <div class="task-history-list">
+                    ${history.map(item => `<div>${escapeTeamHtml(item.message || item.action || "")}<small>${escapeTeamHtml(formatDateTime(item.created_at || item.timestamp))}</small></div>`).join("")}
+                </div>
+            ` : `<p class="task-muted">No detailed history available.</p>`}
+        </section>
+    `;
+}
+
+function enterDashboardTaskEditMode() {
+    dashboardTaskEditMode = true;
+    renderDashboardTaskDetail();
+}
+
+function exitDashboardTaskEditMode() {
+    dashboardTaskEditMode = false;
+    renderDashboardTaskDetail();
+}
+
+async function saveDashboardTaskEdit(event, taskId) {
+    event.preventDefault();
+    const payload = {
+        title: document.getElementById("taskEditTitle")?.value.trim(),
+        description: document.getElementById("taskEditDescription")?.value.trim(),
+        priority: document.getElementById("taskEditPriority")?.value,
+        status: document.getElementById("taskEditStatus")?.value,
+        deadline: document.getElementById("taskEditDeadline")?.value
+    };
+
+    if (!payload.title) {
+        alert("Task title is required");
+        return;
+    }
+
+    await updateDashboardTask(taskId, payload);
+    dashboardTaskEditMode = false;
+    await loadAllTasks();
+}
+
+async function markDashboardTaskComplete(taskId) {
+    await updateStatus(taskId, "Completed");
+}
+
+async function updateDashboardTask(taskId, payload, options = {}) {
+    const token = sessionStorage.getItem("token");
+    const res = await fetch(`${BASE_URL}/tasks/${encodeURIComponent(taskId)}`, {
+        method: "PUT",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+        alert(data.message || data.detail || "Unable to update task");
+        return null;
+    }
+
+    if (!options.silent) {
+        showNotification(data.message || "Task updated", "success", "Task Updated");
+    }
+    sendRealtimeMessage({ type: "client.task.updated", data: { task_id: taskId } });
+    return data.task || null;
 }
 
 function normalizeDashboardTaskPriority(priority) {
@@ -772,6 +1293,7 @@ async function loadAllTasks() {
     if (!role || !email || !token) return;
 
     try {
+        renderDashboardTaskSkeleton();
         const [projectsRes, tasksRes, usersRes] = await Promise.all([
             fetch(`${BASE_URL}/projects`, {
                 headers: { "Authorization": "Bearer " + token }
@@ -802,6 +1324,10 @@ async function loadAllTasks() {
         renderDashboardTaskBoard();
     } catch (error) {
         console.error("Failed to load tasks", error);
+        const list = document.getElementById("all-tasks-list");
+        if (list) {
+            list.innerHTML = `<div class="task-inbox-empty-list"><i class="fas fa-triangle-exclamation"></i><strong>Unable to load tasks</strong><span>Please refresh and try again.</span></div>`;
+        }
     }
 }
 
@@ -1419,7 +1945,30 @@ async function addTaskComment() {
     }
 
     input.value = "";
-    loadTaskComments(activeTaskId);
+    if (data.task) {
+        dashboardTaskCache.tasks = dashboardTaskCache.tasks.map(task =>
+            String(task.id) === String(activeTaskId) ? data.task : task
+        );
+        renderDashboardTaskBoard();
+    } else {
+        await loadTaskComments(activeTaskId);
+    }
+}
+
+async function loadTaskComments(taskId) {
+    const token = sessionStorage.getItem("token");
+    if (!token || !taskId) return;
+
+    const res = await fetch(`${BASE_URL}/tasks`, {
+        headers: { "Authorization": "Bearer " + token }
+    });
+    const tasks = await res.json().catch(() => []);
+    if (!Array.isArray(tasks)) return;
+
+    dashboardTaskCache.tasks = tasks;
+    selectedDashboardTaskId = String(taskId);
+    activeTaskId = String(taskId);
+    renderDashboardTaskBoard();
 }
 
 function showProjectWorkspace() {

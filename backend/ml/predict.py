@@ -4,16 +4,12 @@ import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 model_path = os.path.join(BASE_DIR, "model.pkl")
+
 model = pickle.load(
     open(model_path, "rb")
 )
 
-def predict_days(
-    priority,
-    task_title,
-    description,
-    number_of_users
-):
+def predict_days(priority,task_title,description,number_of_users):
 
     data = pd.DataFrame({
         "priority":[priority],

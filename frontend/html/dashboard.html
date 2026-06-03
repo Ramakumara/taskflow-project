@@ -267,7 +267,7 @@
             </div>
 
             <div id="tasks-view" class="hidden">
-                <section class="common-page-card tasks-page">
+                <section class="common-page-card tasks-page task-inbox-page">
                     <div class="common-page-header">
                         <div class="common-page-title">
                             <h1>My Tasks</h1>
@@ -278,40 +278,62 @@
                             <span>Add Task</span>
                         </button>
                     </div>
-                    <div class="common-toolbar">
-                        <label class="team-search" for="taskSearchInput">
-                            <i class="fas fa-search"></i>
-                            <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="setDashboardTaskPage(1)">
-                        </label>
-                        <select id="taskProjectFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by project">
-                            <option value="all">All Projects</option>
-                        </select>
-                        <select id="taskStatusFilter" class="task-board-filter" onchange="setDashboardTaskPage(1)" aria-label="Filter tasks by status">
-                            <option value="all">All Status</option>
-                            <option value="Pending">Pending</option>
-                            <option value="In Progress">In Progress</option>
-                            <option value="Completed">Completed</option>
-                        </select>
-                    </div>
-                    <div class="common-content-card">
-                        <div class="workspace-table-wrap">
-                            <table class="workspace-table task-board-table">
-                                <thead>
-                                    <tr>
-                                        <th></th>
-                                        <th>Task</th>
-                                        <th>Project</th>
-                                        <th>Priority</th>
-                                        <th id="all-tasks-assigned-header">Assigned Users &amp; Status</th>
-                                        <th>Overall Status</th>
-                                        <th>Due Date</th>
-                                        <th id="task-action-header">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="all-tasks-list"></tbody>
-                            </table>
+                    <div class="task-inbox-shell">
+                        <div class="task-inbox-left" id="taskInboxPanel">
+                            <div class="task-inbox-toolbar" id="taskToolbar">
+                                <div class="task-toolbar-primary">
+                                    <label class="team-search" for="taskSearchInput">
+                                        <i class="fas fa-search"></i>
+                                        <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="handleDashboardTaskFiltersChange()">
+                                    </label>
+                                    <button class="task-icon-btn" type="button" onclick="loadAllTasks()" aria-label="Refresh tasks" title="Refresh">
+                                        <i class="fas fa-rotate-right"></i>
+                                    </button>
+                                </div>
+                                <div class="task-toolbar-filters">
+                                    <button class="task-filter-toggle" type="button" aria-label="Task filters">
+                                        <i class="fas fa-filter"></i>
+                                        <span>Filter</span>
+                                    </button>
+                                    <select id="taskProjectFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by project">
+                                        <option value="all">All Projects</option>
+                                    </select>
+                                    <select id="taskPriorityFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by priority">
+                                        <option value="all">All Priority</option>
+                                        <option value="Urgent">Urgent</option>
+                                        <option value="High">High</option>
+                                        <option value="Medium">Medium</option>
+                                        <option value="Low">Low</option>
+                                    </select>
+                                    <select id="taskStatusFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by status">
+                                        <option value="all">All Status</option>
+                                        <option value="Pending">Pending</option>
+                                        <option value="In Progress">In Progress</option>
+                                        <option value="Completed">Completed</option>
+                                    </select>
+                                    <select id="taskDueFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by due date">
+                                        <option value="all">Any Due Date</option>
+                                        <option value="overdue">Overdue</option>
+                                        <option value="today">Due Today</option>
+                                        <option value="week">Due This Week</option>
+                                        <option value="none">No Due Date</option>
+                                    </select>
+                                    <select id="taskSortSelect" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Sort tasks">
+                                        <option value="newest">Newest</option>
+                                        <option value="due-asc">Due Date</option>
+                                        <option value="priority-desc">Priority</option>
+                                        <option value="title-asc">Title A-Z</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="all-tasks-list" class="task-inbox-list" tabindex="0" aria-label="Task inbox"></div>
+                            <div class="task-pagination" id="dashboardTaskPagination"></div>
                         </div>
-                        <div class="task-pagination" id="dashboardTaskPagination"></div>
+
+                        <aside class="task-detail-panel" id="taskDetailPanel" aria-live="polite">
+                            <div id="task-detail-content" class="task-detail-content"></div>
+                        </aside>
                     </div>
                 </section>
             </div>

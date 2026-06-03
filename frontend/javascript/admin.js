@@ -60,8 +60,16 @@ const adminTaskFilters = {
     projectId: "all",
     status: "all",
     page: 1,
-    pageSize: 5
+    pageSize: 5,
+    priority: "all",
+    due: "all",
+    sort: "newest"
 };
+let selectedAdminTaskId = sessionStorage.getItem("taskflow.adminSelectedTaskId") || null;
+let adminTaskDetailOpen = false;
+let adminTaskEditMode = false;
+let adminTaskInboxScrollTop = Number(sessionStorage.getItem("taskflow.adminTaskInboxScrollTop") || 0);
+const selectedAdminTaskIds = new Set();
 const adminUserFilters = {
     page: 1,
     pageSize: 5,
@@ -1003,21 +1011,16 @@ async function submitAdminProject(event) {
 
 function renderTasksView() {
     const stats = computeDashboardStats();
-    const searchedTasks = filterCollection(stats.filteredTasks, (task) => [
-        task.title,
-        getTaskMemberStatusSearchText(task),
-        normalizeStatusLabel(task.status),
-        stats.projectMap.get(String(task.project_id))?.name
-    ]);
-    const tasks = searchedTasks.filter((task) => {
-        if (adminTaskFilters.projectId !== "all" && String(task.project_id) !== String(adminTaskFilters.projectId)) return false;
-        if (adminTaskFilters.status !== "all" && normalizeStatusLabel(task.status) !== adminTaskFilters.status) return false;
-        return true;
-    });
+    const tasks = getFilteredAdminTasks(stats);
     const totalPages = Math.max(Math.ceil(tasks.length / adminTaskFilters.pageSize), 1);
     adminTaskFilters.page = Math.min(Math.max(adminTaskFilters.page, 1), totalPages);
     const startIndex = (adminTaskFilters.page - 1) * adminTaskFilters.pageSize;
     const pageTasks = tasks.slice(startIndex, startIndex + adminTaskFilters.pageSize);
+    if (selectedAdminTaskId && !adminState.tasks.some((task) => String(task.id) === String(selectedAdminTaskId))) {
+        selectedAdminTaskId = null;
+        adminTaskDetailOpen = false;
+        sessionStorage.removeItem("taskflow.adminSelectedTaskId");
+    }
     const projectOptions = stats.filteredProjects.map(project => `
         <option value="${escapeHtml(project.id)}" ${String(adminTaskFilters.projectId) === String(project.id) ? "selected" : ""}>
             ${escapeHtml(project.name || "Untitled Project")}
@@ -1038,7 +1041,7 @@ function renderTasksView() {
                         </button>
                     `
                 ),
-                toolbar: `
+                toolbar: adminTaskDetailOpen ? "" : `
                     <div class="common-toolbar">
                         ${renderCommonSearchBox({
                             id: "adminTasksPageSearch",
@@ -1047,9 +1050,18 @@ function renderTasksView() {
                             oninput: "handleAdminSearch(event)",
                             ariaLabel: "Search tasks"
                         })}
+                    </div>
+                    <div class="common-toolbar">
                         <select class="admin-task-filter common-filter-select" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
                             <option value="all">All Projects</option>
                             ${projectOptions}
+                        </select>
+                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskPriorityFilter(this.value)" aria-label="Filter tasks by priority">
+                            <option value="all" ${adminTaskFilters.priority === "all" ? "selected" : ""}>All Priority</option>
+                            <option value="Urgent" ${adminTaskFilters.priority === "Urgent" ? "selected" : ""}>Urgent</option>
+                            <option value="High" ${adminTaskFilters.priority === "High" ? "selected" : ""}>High</option>
+                            <option value="Medium" ${adminTaskFilters.priority === "Medium" ? "selected" : ""}>Medium</option>
+                            <option value="Low" ${adminTaskFilters.priority === "Low" ? "selected" : ""}>Low</option>
                         </select>
                         <select class="admin-task-filter common-filter-select" onchange="setAdminTaskStatusFilter(this.value)" aria-label="Filter tasks by status">
                             <option value="all" ${adminTaskFilters.status === "all" ? "selected" : ""}>All Status</option>
@@ -1057,45 +1069,602 @@ function renderTasksView() {
                             <option value="In Progress" ${adminTaskFilters.status === "In Progress" ? "selected" : ""}>In Progress</option>
                             <option value="Completed" ${adminTaskFilters.status === "Completed" ? "selected" : ""}>Completed</option>
                         </select>
+                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskDueFilter(this.value)" aria-label="Filter tasks by due date">
+                            <option value="all" ${adminTaskFilters.due === "all" ? "selected" : ""}>Any Due Date</option>
+                            <option value="overdue" ${adminTaskFilters.due === "overdue" ? "selected" : ""}>Overdue</option>
+                            <option value="today" ${adminTaskFilters.due === "today" ? "selected" : ""}>Due Today</option>
+                            <option value="week" ${adminTaskFilters.due === "week" ? "selected" : ""}>Due This Week</option>
+                            <option value="none" ${adminTaskFilters.due === "none" ? "selected" : ""}>No Due Date</option>
+                        </select>
+                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskSort(this.value)" aria-label="Sort tasks">
+                            <option value="newest" ${adminTaskFilters.sort === "newest" ? "selected" : ""}>Newest</option>
+                            <option value="due-asc" ${adminTaskFilters.sort === "due-asc" ? "selected" : ""}>Due Date</option>
+                            <option value="priority-desc" ${adminTaskFilters.sort === "priority-desc" ? "selected" : ""}>Priority</option>
+                            <option value="title-asc" ${adminTaskFilters.sort === "title-asc" ? "selected" : ""}>Title A-Z</option>
+                        </select>
                     </div>
                 `,
                 content: renderCommonContentCard(`
-                    <div class="data-table-wrap common-table-wrapper">
-                        <table class="admin-table admin-task-table">
-                            <thead>
-                                <tr>
-                                    <th></th>
-                                    <th>Task</th>
-                                    <th>Project</th>
-                                    <th>Priority</th>
-                                    <th>Assigned Users &amp; Status</th>
-                                    <th>Overall Status</th>
-                                    <th>Due Date</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${pageTasks.length ? pageTasks.map((task) => renderTaskRow(task, stats.projectMap, { showAction: true })).join("") : `<tr><td colspan="7" class="empty-state">No tasks found.</td></tr>`}
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="admin-task-footer">
-                        <span class="app-pagination-summary">${tasks.length ? `Showing ${startIndex + 1} to ${startIndex + pageTasks.length} of ${tasks.length} tasks` : "Showing 0 tasks"}</span>
-                        <div class="admin-task-pagination-controls app-pagination-controls">
-                            <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page - 1})" ${adminTaskFilters.page <= 1 ? "disabled" : ""} aria-label="Previous task page">
-                                <i class="fas fa-chevron-left"></i>
-                            </button>
-                            <span class="admin-task-page-current app-page-current">${adminTaskFilters.page}</span>
-                            <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page + 1})" ${adminTaskFilters.page >= totalPages ? "disabled" : ""} aria-label="Next task page">
-                                <i class="fas fa-chevron-right"></i>
-                            </button>
+                    <div class="admin-task-inbox-shell ${adminTaskDetailOpen ? "showing-detail" : ""}">
+                        <div class="admin-task-inbox-left">
+                            <div id="adminTasksInboxList" class="admin-task-inbox-list" tabindex="0" aria-label="Admin task inbox">
+                                ${pageTasks.length ? pageTasks.map((task) => renderAdminTaskCard(task, stats.projectMap)).join("") : renderAdminTaskEmptyList()}
+                            </div>
+                            <div class="admin-task-footer">
+                                <span class="app-pagination-summary">${tasks.length ? `Showing ${startIndex + 1} to ${startIndex + pageTasks.length} of ${tasks.length} tasks` : "Showing 0 tasks"}</span>
+                                <div class="admin-task-pagination-controls app-pagination-controls">
+                                    <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page - 1})" ${adminTaskFilters.page <= 1 ? "disabled" : ""} aria-label="Previous task page">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <span class="admin-task-page-current app-page-current">${adminTaskFilters.page}</span>
+                                    <button class="admin-task-page-btn app-page-btn" type="button" onclick="setAdminTaskPage(${adminTaskFilters.page + 1})" ${adminTaskFilters.page >= totalPages ? "disabled" : ""} aria-label="Next task page">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
+                        <aside class="admin-task-detail-panel" aria-live="polite">
+                            ${adminTaskDetailOpen ? renderAdminTaskDetail(stats.projectMap) : ""}
+                        </aside>
                     </div>
                 `, "task-table-panel")
             })}
             ${adminState.isTaskModalOpen ? renderAdminTaskModal(stats.filteredProjects) : ""}
         </div>
     `;
+    restoreAdminTaskInboxScroll();
+}
+
+function getFilteredAdminTasks(stats = computeDashboardStats()) {
+    const searchedTasks = filterCollection(stats.filteredTasks, (task) => [
+        task.title,
+        task.description,
+        getTaskMemberStatusSearchText(task),
+        normalizeStatusLabel(task.status),
+        normalizeTaskPriority(task.priority),
+        stats.projectMap.get(String(task.project_id))?.name
+    ]);
+
+    return searchedTasks
+        .filter((task) => {
+            if (adminTaskFilters.projectId !== "all" && String(task.project_id) !== String(adminTaskFilters.projectId)) return false;
+            if (adminTaskFilters.status !== "all" && normalizeStatusLabel(task.status) !== adminTaskFilters.status) return false;
+            if (adminTaskFilters.priority !== "all" && normalizeTaskPriority(task.priority) !== adminTaskFilters.priority) return false;
+            if (!adminTaskMatchesDueFilter(task, adminTaskFilters.due)) return false;
+            return true;
+        })
+        .sort((a, b) => compareAdminTasks(a, b, adminTaskFilters.sort));
+}
+
+function renderAdminTaskCard(task, projectMap) {
+    const project = projectMap.get(String(task.project_id));
+    const status = normalizeStatusLabel(task.status);
+    const statusClass = statusClassName(task.status);
+    const priority = normalizeTaskPriority(task.priority);
+    const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
+    const attachments = getAdminTaskAttachments(task);
+    const selected = String(task.id) === String(selectedAdminTaskId) ? "selected" : "";
+
+    return `
+        <article class="admin-task-card ${selected}" role="button" tabindex="0" data-task-id="${escapeHtml(task.id)}" onclick="openAdminTaskDetail('${escapeHtml(task.id)}')" onkeydown="handleAdminTaskCardKeydown(event, '${escapeHtml(task.id)}')">
+            <div class="admin-task-card-controls" onclick="event.stopPropagation()">
+                <button class="admin-task-card-star" type="button" onclick="toggleStar(this)" aria-label="Mark important">
+                    <i class="far fa-star"></i>
+                </button>
+            </div>
+            <div class="admin-task-card-main">
+                <div class="admin-task-card-title-row">
+                    <strong>${escapeHtml(task.title || "Untitled Task")}</strong>
+                    <span>${escapeHtml(formatCreatedDate(task.created_at || task.createdAt))}</span>
+                </div>
+                <p>${escapeHtml(getAdminTaskPreview(task.description || "No description added."))}</p>
+                <div class="admin-task-card-meta">
+                    <span class="admin-task-card-project">${escapeHtml(project?.name || "Unknown Project")}</span>
+                    <span class="admin-task-card-avatars">${renderAdminTaskAvatarStack(task)}</span>
+                    <span class="task-priority-pill ${priorityClass}">${escapeHtml(priority)}</span>
+                    <span class="status-pill ${statusClass}">${escapeHtml(status)}</span>
+                    ${attachments.length ? `<span class="admin-task-attachment-indicator"><i class="fas fa-paperclip"></i>${attachments.length}</span>` : ""}
+                </div>
+            </div>
+        </article>
+    `;
+}
+
+function formatCreatedDate(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) return "";
+
+    return date.toLocaleString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true
+    }).replace(",", "");
+}
+
+function renderAdminTaskEmptyList() {
+    return `
+        <div class="admin-task-empty-list">
+            <i class="fas fa-magnifying-glass"></i>
+            <strong>No tasks found</strong>
+            <span>Adjust search or filters to see more tasks.</span>
+        </div>
+    `;
+}
+
+function renderAdminTaskDetail(projectMap) {
+    const task = getSelectedAdminTask();
+    if (!task) return "";
+    const project = projectMap.get(String(task.project_id));
+    return adminTaskEditMode ? renderAdminTaskEditPanel(task, project) : renderAdminTaskReadPanel(task, project);
+}
+
+function renderAdminTaskReadPanel(task, project) {
+    const status = normalizeStatusLabel(task.status);
+    const statusClass = statusClassName(task.status);
+    const priority = normalizeTaskPriority(task.priority);
+    const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
+
+    return `
+        <div class="admin-task-detail-content">
+            <div class="admin-task-detail-header">
+                
+                <div>
+                    <h2>${escapeHtml(task.title || "Untitled Task")}</h2>
+                    <p>${escapeHtml(project?.name || "Unknown Project")}</p>
+                </div>
+                
+                <div class="admin-task-detail-actions">
+                    <button class="admin-task-detail-back" type="button" onclick="closeAdminTaskDetail()" aria-label="Back to task list">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back to Tasks</span>
+                    </button>
+                    <button type="button" onclick="enterAdminTaskEditMode()"><i class="fas fa-pen"></i>Edit</button>
+                    <button class="danger" type="button" onclick="adminDeleteTask('${escapeHtml(task.id)}')"><i class="fas fa-trash"></i>Delete</button>
+                </div>
+            </div>
+
+            
+
+            <section class="admin-task-detail-section">
+                <h3>Description</h3>
+                <p class="admin-task-detail-description">${escapeHtml(task.description || "No description added.")}</p>
+            </section>
+
+            <section class="admin-task-detail-grid">
+                <div><span>Project</span><strong>${escapeHtml(project?.name || "Unknown")}</strong></div>
+                <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeHtml(priority)}</span></strong></div>
+                <div><span>Status</span><strong>${renderAdminTaskStatusControl(task, statusClass)}</strong></div>
+                <div><span>Due date</span><strong>${escapeHtml(formatDate(task.deadline))}</strong></div>
+            </section>
+
+            <section class="admin-task-detail-section">
+                <h3>Assigned Members</h3>
+                ${renderAdminTaskDetailAssignees(task)}
+            </section>
+
+            <section class="admin-task-detail-section">
+                <h3>Attachments</h3>
+                ${renderAdminTaskAttachments(task) || `<p class="admin-task-muted">No attachments.</p>`}
+            </section>
+
+            ${renderAdminTaskTimeline(task)}
+            ${renderAdminTaskComments(task)}
+            ${renderAdminTaskHistory(task)}
+        </div>
+    `;
+}
+
+function renderAdminTaskEditPanel(task, project) {
+    const priority = normalizeTaskPriority(task.priority);
+    const status = normalizeStatusLabel(task.status);
+    return `
+        <form class="admin-task-detail-content admin-task-edit-panel" onsubmit="saveAdminTaskEdit(event, '${escapeHtml(task.id)}')">
+            <div class="admin-task-detail-header">
+                <button class="admin-task-detail-back" type="button" onclick="exitAdminTaskEditMode()" aria-label="Cancel edit">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back to Details</span>
+                </button>
+                <div>
+                    <h2>Edit Task</h2>
+                    <p>${escapeHtml(project?.name || "Unknown Project")}</p>
+                </div>
+            </div>
+            <label>Title<input id="adminTaskEditTitle" value="${escapeHtml(task.title || "")}" required></label>
+            <label>Description<textarea id="adminTaskEditDescription" rows="4">${escapeHtml(task.description || "")}</textarea></label>
+            <div class="admin-task-edit-grid">
+                <label>Priority
+                    <select id="adminTaskEditPriority">
+                        ${["Low", "Medium", "High", "Urgent"].map(item => `<option value="${item}" ${priority === item ? "selected" : ""}>${item}</option>`).join("")}
+                    </select>
+                </label>
+                <label>Status
+                    <select id="adminTaskEditStatus">
+                        ${["Pending", "In Progress", "Completed"].map(item => `<option value="${item}" ${status === item ? "selected" : ""}>${item}</option>`).join("")}
+                    </select>
+                </label>
+                <label>Due date<input id="adminTaskEditDeadline" type="date" value="${escapeHtml(task.deadline || task.due_date || "")}"></label>
+            </div>
+            <div class="admin-task-edit-actions">
+                <button class="secondary" type="button" onclick="exitAdminTaskEditMode()">Cancel</button>
+                <button type="submit"><i class="fas fa-floppy-disk"></i>Save Changes</button>
+            </div>
+        </form>
+    `;
+}
+
+function getSelectedAdminTask() {
+    if (!selectedAdminTaskId) return null;
+    return adminState.tasks.find((task) => String(task.id) === String(selectedAdminTaskId)) || null;
+}
+
+function openAdminTaskDetail(taskId) {
+    const list = document.getElementById("adminTasksInboxList");
+    if (list) {
+        adminTaskInboxScrollTop = list.scrollTop;
+        sessionStorage.setItem("taskflow.adminTaskInboxScrollTop", String(adminTaskInboxScrollTop));
+    }
+    selectedAdminTaskId = String(taskId || "");
+    adminTaskDetailOpen = true;
+    adminTaskEditMode = false;
+    sessionStorage.setItem("taskflow.adminSelectedTaskId", selectedAdminTaskId);
+    renderTasksView();
+}
+
+function closeAdminTaskDetail() {
+    adminTaskDetailOpen = false;
+    adminTaskEditMode = false;
+    renderTasksView();
+    restoreAdminTaskInboxScroll();
+}
+
+function restoreAdminTaskInboxScroll() {
+    if (adminTaskDetailOpen) return;
+    const list = document.getElementById("adminTasksInboxList");
+    if (!list || !adminTaskInboxScrollTop) return;
+    requestAnimationFrame(() => {
+        list.scrollTop = adminTaskInboxScrollTop;
+    });
+}
+
+function handleAdminTaskCardKeydown(event, taskId) {
+    if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openAdminTaskDetail(taskId);
+        return;
+    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    event.preventDefault();
+    const items = Array.from(document.querySelectorAll(".admin-task-card[data-task-id]"));
+    const index = items.findIndex((item) => String(item.dataset.taskId) === String(taskId));
+    const nextIndex = event.key === "ArrowDown" ? Math.min(items.length - 1, index + 1) : Math.max(0, index - 1);
+    items[nextIndex]?.focus();
+}
+
+function setAdminTaskPriorityFilter(value) {
+    adminTaskFilters.priority = value || "all";
+    adminTaskFilters.page = 1;
+    renderTasksView();
+}
+
+function setAdminTaskDueFilter(value) {
+    adminTaskFilters.due = value || "all";
+    adminTaskFilters.page = 1;
+    renderTasksView();
+}
+
+function setAdminTaskSort(value) {
+    adminTaskFilters.sort = value || "newest";
+    adminTaskFilters.page = 1;
+    renderTasksView();
+}
+
+function adminTaskMatchesDueFilter(task, filter) {
+    if (filter === "all") return true;
+    const due = task.deadline || task.due_date;
+    if (filter === "none") return !due;
+    if (!due) return false;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(String(due).length === 10 ? `${due}T00:00:00` : due);
+    dueDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((dueDate - today) / 86400000);
+
+    if (filter === "overdue") return diffDays < 0;
+    if (filter === "today") return diffDays === 0;
+    if (filter === "week") return diffDays >= 0 && diffDays <= 7;
+    return true;
+}
+
+function compareAdminTasks(a, b, sortValue) {
+    if (sortValue === "title-asc") return String(a.title || "").localeCompare(String(b.title || ""));
+    if (sortValue === "priority-desc") {
+        const weight = { Urgent: 4, High: 3, Medium: 2, Low: 1 };
+        return (weight[normalizeTaskPriority(b.priority)] || 0) - (weight[normalizeTaskPriority(a.priority)] || 0);
+    }
+    if (sortValue === "due-asc") return getAdminTaskDueTime(a) - getAdminTaskDueTime(b);
+    return new Date(b.created_at || b.updated_at || 0) - new Date(a.created_at || a.updated_at || 0);
+}
+
+function getAdminTaskDueTime(task) {
+    const due = task.deadline || task.due_date;
+    if (!due) return Number.MAX_SAFE_INTEGER;
+    const date = new Date(String(due).length === 10 ? `${due}T00:00:00` : due);
+    return Number.isNaN(date.getTime()) ? Number.MAX_SAFE_INTEGER : date.getTime();
+}
+
+function getAdminTaskPreview(value) {
+    const text = String(value || "").replace(/\s+/g, " ").trim();
+    return text.length > 88 ? `${text.slice(0, 88)}...` : text;
+}
+
+function getAdminTaskAttachments(task) {
+    return Array.isArray(task?.attachments) ? task.attachments.filter(Boolean) : [];
+}
+
+function renderAdminTaskAvatarStack(task) {
+    const assignments = getTaskAssignments(task);
+    if (!assignments.length) return `<span class="admin-task-avatar-empty">Unassigned</span>`;
+    const visible = assignments.slice(0, 3);
+    const extra = assignments.length - visible.length;
+    return `
+        ${visible.map((assignment) => {
+            const email = String(assignment.user_id || "Unassigned");
+            const name = getAdminUserDisplayName(email);
+            return `<span class="admin-task-avatar-mini" title="${escapeHtml(email)}">${escapeHtml(getInitial(name || email))}</span>`;
+        }).join("")}
+        ${extra > 0 ? `<span class="admin-task-avatar-extra">+${extra}</span>` : ""}
+    `;
+}
+
+function renderAdminTaskStatusControl(task, statusClass) {
+    const status = normalizeStatusLabel(task.status);
+    return `
+       
+        <span class="status-pill ${statusClass} admin-task-detail-status-label">${escapeHtml(status)}</span>
+    `;
+}
+
+function renderAdminTaskDetailAssignees(task) {
+    const assignments = getTaskAssignments(task);
+    if (!assignments.length) return `<p class="admin-task-muted">Unassigned.</p>`;
+    return `
+        <div class="admin-task-detail-assignees">
+            ${assignments.map((assignment) => {
+                const email = String(assignment.user_id || "Unassigned");
+                const name = getAdminUserDisplayName(email);
+                const status = normalizeStatusLabel(assignment.status);
+                return `
+                    <div class="admin-task-detail-assignee">
+                        <span class="admin-task-avatar-mini">${escapeHtml(getInitial(name || email))}</span>
+                        <div>
+                            <strong>${escapeHtml(name)}</strong>
+                            <small>${escapeHtml(email)}</small>
+                        </div>
+                        <span class="admin-member-status ${statusClassName(status)}">${escapeHtml(status)}</span>
+                    </div>
+                `;
+            }).join("")}
+        </div>
+    `;
+}
+
+function renderAdminTaskAttachments(task) {
+    const attachments = getAdminTaskAttachments(task);
+    if (!attachments.length) return "";
+    return `
+        <div class="admin-task-attachment-list">
+            ${attachments.map((attachment, index) => {
+                const name = typeof attachment === "string" ? attachment : (attachment?.name || attachment?.stored_name || `Attachment ${index + 1}`);
+                const storedName = typeof attachment === "string" ? attachment : (attachment?.stored_name || attachment?.name || "");
+                if (!storedName) return "";
+                return `
+                    <button class="admin-task-attachment-chip" type="button" onclick="downloadAdminTaskAttachment('${escapeHtml(task.id)}', '${escapeHtml(encodeURIComponent(storedName))}', '${escapeHtml(encodeURIComponent(name))}')">
+                        <i class="fas fa-paperclip"></i>
+                        <span>${escapeHtml(name)}</span>
+                    </button>
+                `;
+            }).join("")}
+        </div>
+    `;
+}
+
+function renderAdminTaskTimeline(task) {
+    const items = [
+        task.created_at ? { label: "Task created", time: task.created_at } : null,
+        task.updated_at ? { label: "Last updated", time: task.updated_at } : null,
+        normalizeStatusLabel(task.status) === "Completed" ? { label: "Marked complete", time: task.updated_at || task.deadline } : null
+    ].filter(Boolean);
+    return `
+        <section class="admin-task-detail-section">
+            <h3>Activity Timeline</h3>
+            <div class="admin-task-timeline">
+                ${items.length ? items.map((item) => `
+                    <div class="admin-task-timeline-item">
+                        <span></span>
+                        <div><strong>${escapeHtml(item.label)}</strong><small>${escapeHtml(formatDateTime(item.time))}</small></div>
+                    </div>
+                `).join("") : `<p class="admin-task-muted">No activity timeline yet.</p>`}
+            </div>
+        </section>
+    `;
+}
+
+function renderAdminTaskComments(task) {
+    const comments = Array.isArray(task.comments) ? task.comments : [];
+    return `
+        <section class="admin-task-detail-section">
+            <h3>Comments</h3>
+            <div class="admin-task-comments">
+                ${comments.length ? comments.map((comment) => `
+                    <article class="admin-task-comment">
+                        <span class="admin-task-avatar-mini">${escapeHtml(getInitial(comment.author_name || comment.author))}</span>
+                        <div>
+                            <strong>${escapeHtml(comment.author_name || comment.author || "User")}</strong>
+                            <p>${escapeHtml(comment.content || "")}</p>
+                            <small>${escapeHtml(formatDateTime(comment.created_at))}</small>
+                        </div>
+                    </article>
+                `).join("") : `<p class="admin-task-muted">No comments yet.</p>`}
+            </div>
+            <div class="admin-task-comment-form">
+                <input id="admin-task-comment-input" type="text" placeholder="Add a comment..." onkeydown="if(event.key === 'Enter') addAdminTaskComment()">
+                <button type="button" onclick="addAdminTaskComment()"><i class="fas fa-paper-plane"></i>Add Comment</button>
+            </div>
+        </section>
+    `;
+}
+
+function renderAdminTaskHistory(task) {
+    const history = Array.isArray(task.history) ? task.history : [];
+    return `
+        <section class="admin-task-detail-section">
+            <h3>Task History</h3>
+            ${history.length ? `<div class="admin-task-history-list">${history.map((item) => `<div>${escapeHtml(item.message || item.action || "")}<small>${escapeHtml(formatDateTime(item.created_at || item.timestamp))}</small></div>`).join("")}</div>` : `<p class="admin-task-muted">No detailed history available.</p>`}
+        </section>
+    `;
+}
+
+function enterAdminTaskEditMode() {
+    adminTaskEditMode = true;
+    renderTasksView();
+}
+
+function exitAdminTaskEditMode() {
+    adminTaskEditMode = false;
+    renderTasksView();
+}
+
+async function saveAdminTaskEdit(event, taskId) {
+    event.preventDefault();
+    const payload = {
+        title: document.getElementById("adminTaskEditTitle")?.value.trim(),
+        description: document.getElementById("adminTaskEditDescription")?.value.trim(),
+        priority: document.getElementById("adminTaskEditPriority")?.value,
+        status: document.getElementById("adminTaskEditStatus")?.value,
+        deadline: document.getElementById("adminTaskEditDeadline")?.value
+    };
+
+    if (!payload.title) {
+        showNotification("Task title is required.", "warning");
+        return;
+    }
+
+    await adminUpdateTask(taskId, payload);
+    adminTaskEditMode = false;
+    await refreshAdminData();
+    renderTasksView();
+}
+
+async function adminMarkTaskComplete(taskId) {
+    await adminUpdateTaskStatus(taskId, "Completed");
+}
+
+async function adminUpdateTaskStatus(taskId, status) {
+    await adminUpdateTask(taskId, { status });
+    await refreshAdminData();
+    renderTasksView();
+}
+
+async function adminUpdateTask(taskId, payload, options = {}) {
+    const token = sessionStorage.getItem("token");
+    try {
+        const response = await fetch(`${BASE_URL}/tasks/${encodeURIComponent(taskId)}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify(payload)
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.detail || "Unable to update task.");
+        }
+        if (!options.silent) {
+            showNotification(data.message || "Task updated successfully.");
+        }
+        if (socket?.readyState === WebSocket.OPEN) {
+            socket.send(`Task Updated: ${taskId}`);
+        }
+        return data.task || null;
+    } catch (error) {
+        console.error("Failed to update task", error);
+        showNotification(error.message || "Unable to update task.", "error");
+        return null;
+    }
+}
+
+async function addAdminTaskComment() {
+    const taskId = selectedAdminTaskId;
+    const input = document.getElementById("admin-task-comment-input");
+    const content = input?.value.trim();
+    const token = sessionStorage.getItem("token");
+    if (!taskId || !input) return;
+    if (!content) {
+        showNotification("Write a comment first.", "warning");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BASE_URL}/tasks/${encodeURIComponent(taskId)}/comments`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({ content })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) {
+            throw new Error(data.message || data.detail || "Unable to post comment.");
+        }
+        input.value = "";
+        if (data.task) {
+            adminState.tasks = adminState.tasks.map((task) => String(task.id) === String(taskId) ? data.task : task);
+        } else {
+            await refreshAdminData();
+        }
+        renderTasksView();
+    } catch (error) {
+        console.error("Failed to add admin task comment", error);
+        showNotification(error.message || "Unable to post comment.", "error");
+    }
+}
+
+async function downloadAdminTaskAttachment(taskId, encodedStoredName, encodedFileName) {
+    const token = sessionStorage.getItem("token");
+    if (!token || !taskId || !encodedStoredName) return;
+
+    try {
+        const storedName = decodeURIComponent(encodedStoredName);
+        const fileName = encodedFileName ? decodeURIComponent(encodedFileName) : storedName;
+        const response = await fetch(`${BASE_URL}/tasks/${encodeURIComponent(taskId)}/attachments/${encodeURIComponent(storedName)}`, {
+            headers: { "Authorization": "Bearer " + token }
+        });
+        if (!response.ok) {
+            const data = await response.json().catch(() => ({}));
+            throw new Error(data.message || data.detail || "Unable to download attachment.");
+        }
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+    } catch (error) {
+        console.error("Failed to download task attachment", error);
+        showNotification(error.message || "Unable to download attachment.", "error");
+    }
 }
 
 function renderAdminTaskModal(projects) {
@@ -1521,6 +2090,12 @@ async function submitAdminTask(event) {
 
 async function adminDeleteTask(id) {
     await deleteTask(id);
+    if (String(selectedAdminTaskId) === String(id)) {
+        selectedAdminTaskId = null;
+        adminTaskDetailOpen = false;
+        adminTaskEditMode = false;
+        sessionStorage.removeItem("taskflow.adminSelectedTaskId");
+    }
     await refreshAdminData();
     renderTasksView();
 }
@@ -5597,7 +6172,20 @@ window.exportAdminReport = exportAdminReport;
 window.toggleAdminReportList = toggleAdminReportList;
 window.setAdminTaskProjectFilter = setAdminTaskProjectFilter;
 window.setAdminTaskStatusFilter = setAdminTaskStatusFilter;
+window.setAdminTaskPriorityFilter = setAdminTaskPriorityFilter;
+window.setAdminTaskDueFilter = setAdminTaskDueFilter;
+window.setAdminTaskSort = setAdminTaskSort;
 window.setAdminTaskPage = setAdminTaskPage;
+window.openAdminTaskDetail = openAdminTaskDetail;
+window.closeAdminTaskDetail = closeAdminTaskDetail;
+window.handleAdminTaskCardKeydown = handleAdminTaskCardKeydown;
+window.enterAdminTaskEditMode = enterAdminTaskEditMode;
+window.exitAdminTaskEditMode = exitAdminTaskEditMode;
+window.saveAdminTaskEdit = saveAdminTaskEdit;
+window.adminMarkTaskComplete = adminMarkTaskComplete;
+window.adminUpdateTaskStatus = adminUpdateTaskStatus;
+window.addAdminTaskComment = addAdminTaskComment;
+window.downloadAdminTaskAttachment = downloadAdminTaskAttachment;
 window.toggleAdminTeamProject = toggleAdminTeamProject;
 window.setAdminTeamSearch = setAdminTeamSearch;
 window.setAdminTeamProjectFilter = setAdminTeamProjectFilter;
