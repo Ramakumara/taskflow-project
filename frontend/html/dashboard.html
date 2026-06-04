@@ -278,10 +278,8 @@
                             <span>Add Task</span>
                         </button>
                     </div>
-                    <div class="task-inbox-shell">
-                        <div class="task-inbox-left" id="taskInboxPanel">
-                            <div class="task-inbox-toolbar" id="taskToolbar">
-                                <div class="task-toolbar-primary">
+                            <div class="common-toolbar" id="taskToolbar">
+        
                                     <label class="team-search" for="taskSearchInput">
                                         <i class="fas fa-search"></i>
                                         <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="handleDashboardTaskFiltersChange()">
@@ -289,12 +287,8 @@
                                     <button class="task-icon-btn" type="button" onclick="loadAllTasks()" aria-label="Refresh tasks" title="Refresh">
                                         <i class="fas fa-rotate-right"></i>
                                     </button>
-                                </div>
+            
                                 <div class="task-toolbar-filters">
-                                    <button class="task-filter-toggle" type="button" aria-label="Task filters">
-                                        <i class="fas fa-filter"></i>
-                                        <span>Filter</span>
-                                    </button>
                                     <select id="taskProjectFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by project">
                                         <option value="all">All Projects</option>
                                     </select>
@@ -326,7 +320,8 @@
                                     </select>
                                 </div>
                             </div>
-
+                    <div class="task-inbox-shell">
+                        <div class="task-inbox-left" id="taskInboxPanel">
                             <div id="all-tasks-list" class="task-inbox-list" tabindex="0" aria-label="Task inbox"></div>
                             <div class="task-pagination" id="dashboardTaskPagination"></div>
                         </div>
