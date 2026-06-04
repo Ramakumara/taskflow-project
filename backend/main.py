@@ -14,6 +14,8 @@ from database import db
 from contextlib import asynccontextmanager
 import json
 import os
+from routes import chat
+
 
 
 @asynccontextmanager
@@ -57,7 +59,7 @@ app.include_router(activity.router)
 app.include_router(auth_router)
 app.include_router(google_router)
 app.include_router(notification_router)
-
+app.include_router(chat.router)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

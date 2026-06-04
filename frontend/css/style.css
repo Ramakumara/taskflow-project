@@ -10206,6 +10206,7 @@ workspace-table td,
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    margin-left: auto;
 }
 
 
@@ -13087,5 +13088,61 @@ body.dashboard-theme-dark .clear-btn:hover {
     background: #162033 !important;
     border-color: rgba(22, 163, 74, 0.4) !important;
     color: #f8fafc !important;
+}
+
+/* File toolbar dropdowns must sit above file-row assignee hover popovers. */
+.files-page .files-category-dropdown,
+.files-page .files-storage-dropdown,
+.files-page .sort-container {
+    position: relative;
+    z-index: 12010;
+}
+
+.files-page .category-dropdown-menu,
+.files-page .storage-dropdown-menu,
+.files-page .sort-options {
+    z-index: 12020 !important;
+    background: #ffffff !important;
+    isolation: isolate;
+}
+
+.files-page .category-dropdown-menu {
+    width: 236px;
+    padding: 10px;
+}
+
+.files-page .category-list {
+    display: grid;
+    gap: 6px;
+}
+
+.files-page .category-item {
+    position: relative;
+    width: 100%;
+    min-height: 36px;
+    background: #f8fafc !important;
+    color: #26344f !important;
+    text-align: left;
+}
+
+.files-page .category-item span {
+    min-width: 0;
+}
+
+.files-page .category-item strong {
+    flex: 0 0 auto;
+}
+
+.files-page .category-item.active,
+.files-page .category-item:hover {
+    background: #eaf8ef !important;
+    color: #0f7a3d !important;
+}
+
+body.dashboard-theme-dark .files-page .category-dropdown-menu,
+body.dashboard-theme-dark .files-page .storage-dropdown-menu,
+body.dashboard-theme-dark .files-page .sort-options {
+    background: #182235 !important;
+    border-color: #2d3a50 !important;
 }
 

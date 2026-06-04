@@ -3999,7 +3999,19 @@ function setFilesCategory(category) {
 
 function toggleCategoryDropdown() {
     const menu = document.getElementById("files-category-dropdown-menu");
-    if (menu) menu.classList.toggle("hidden");
+    if (!menu) return;
+
+    const storageMenu = document.getElementById("storage-dropdown-menu");
+    if (storageMenu && !storageMenu.classList.contains("hidden")) {
+        storageMenu.classList.add("hidden");
+    }
+
+    const sortOptions = document.getElementById("sortOptions");
+    if (sortOptions) {
+        sortOptions.classList.remove("show");
+    }
+
+    menu.classList.toggle("hidden");
 }
 
 function closeCategoryDropdown() {
@@ -4015,6 +4027,10 @@ function toggleStorageDropdown() {
     const categoryMenu = document.getElementById("files-category-dropdown-menu");
     if (categoryMenu && !categoryMenu.classList.contains("hidden")) {
         categoryMenu.classList.add("hidden");
+    }
+    const sortOptions = document.getElementById("sortOptions");
+    if (sortOptions) {
+        sortOptions.classList.remove("show");
     }
     menu.classList.toggle("hidden");
 }
@@ -4054,7 +4070,12 @@ window.addEventListener("click", function(event) {
 });
 
 function toggleFilesSort() {
-    document.getElementById("sortOptions").classList.toggle("show");
+    const sortOptions = document.getElementById("sortOptions");
+    if (!sortOptions) return;
+
+    closeCategoryDropdown();
+    closeStorageDropdown();
+    sortOptions.classList.toggle("show");
 }
 
 function setSort(sortType) {
