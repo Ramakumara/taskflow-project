@@ -242,7 +242,7 @@ function getSavedDashboardLanguage() {
 }
 
 function getTaskAssignedBy(task, project) {
-    return task.assigned_by || project?.owner_email || "Unknown";
+    return task.assigned_by || task.assigned_by_email || task.created_by || project?.owner_email || project?.assigned_manager || "Unknown";
 }
 
 function getTaskAssignments(task) {
@@ -796,35 +796,38 @@ function renderTaskReadPanel(task, project, role) {
     const priority = normalizeDashboardTaskPriority(task.priority);
     const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
     const canManage = role === "manager" || role === "admin";
+    const assignedBy = getTaskAssignedBy(task, project);
+    const assignedByName = getUserDisplayName(assignedBy, dashboardTaskCache.users);
 
     return `
         <div class="task-detail-header">
-            
-            <div>
+            <div class="task-detail-title-group">
+                <span class="task-detail-kicker">Task Details</span>
                 <h2>${escapeTeamHtml(task.title || "Untitled Task")}</h2>
-                <p>${escapeTeamHtml(project?.name || "Unknown Project")}</p>
+                <p><i class="fas fa-folder"></i>${escapeTeamHtml(project?.name || "Unknown Project")}</p>
             </div>
 
-        <div class="task-detail-actions">
-            <button class="task-detail-back" type="button" onclick="clearDashboardTaskSelection()" aria-label="Back to task list">
-                <i class="fas fa-arrow-left"></i>
-                <span>Back to Tasks</span>
-            </button>
-            ${canManage ? `<button type="button" onclick="enterDashboardTaskEditMode()"><i class="fas fa-pen"></i>Edit</button>` : ""}
-            ${canManage ? `<button class="danger" type="button" onclick="deleteTask('${escapeTeamHtml(task.id)}')"><i class="fas fa-trash"></i>Delete</button>` : ""}
+            <div class="task-detail-actions">
+                <button class="task-detail-back" type="button" onclick="clearDashboardTaskSelection()" aria-label="Back to task list">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Back</span>
+                </button>
+                ${canManage ? `<button type="button" onclick="enterDashboardTaskEditMode()"><i class="fas fa-pen"></i>Edit</button>` : ""}
+                ${canManage ? `<button class="danger" type="button" onclick="deleteTask('${escapeTeamHtml(task.id)}')"><i class="fas fa-trash"></i>Delete</button>` : ""}
+            </div>
         </div>
-        </div>
+
+        <section class="task-detail-grid">
+            <div><span>Project</span><strong>${escapeTeamHtml(project?.name || "Unknown")}</strong></div>
+            <div><span>Assigned by</span><strong title="${escapeTeamHtml(assignedBy)}">${escapeTeamHtml(assignedByName || assignedBy)}</strong></div>
+            <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></strong></div>
+            <div><span>Status</span><strong>${renderDashboardStatusControl(task, role, statusClass)}</strong></div>
+            <div><span>Due date</span><strong>${escapeTeamHtml(formatDeadlineDate(task.deadline || task.due_date))}</strong></div>
+        </section>
 
         <section class="task-detail-section">
             <h3>Description</h3>
             <p class="task-detail-description">${escapeTeamHtml(task.description || "No description added.")}</p>
-        </section>
-
-        <section class="task-detail-grid">
-            <div><span>Project</span><strong>${escapeTeamHtml(project?.name || "Unknown")}</strong></div>
-            <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></strong></div>
-            <div><span>Status</span><strong>${renderDashboardStatusControl(task, role, statusClass)}</strong></div>
-            <div><span>Due date</span><strong>${escapeTeamHtml(formatDeadlineDate(task.deadline))}</strong></div>
         </section>
 
         <section class="task-detail-section">

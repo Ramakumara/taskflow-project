@@ -1209,38 +1209,39 @@ function renderAdminTaskReadPanel(task, project) {
     const statusClass = statusClassName(task.status);
     const priority = normalizeTaskPriority(task.priority);
     const priorityClass = priority.toLowerCase().replace(/\s+/g, "-");
+    const assignedBy = getAdminTaskAssignedBy(task, project);
+    const assignedByName = getAdminUserDisplayName(assignedBy);
 
     return `
         <div class="admin-task-detail-content">
             <div class="admin-task-detail-header">
-                
-                <div>
+                <div class="admin-task-detail-title-group">
+                    <span class="admin-task-detail-kicker">Task Details</span>
                     <h2>${escapeHtml(task.title || "Untitled Task")}</h2>
-                    <p>${escapeHtml(project?.name || "Unknown Project")}</p>
+                    <p><i class="fas fa-folder"></i>${escapeHtml(project?.name || "Unknown Project")}</p>
                 </div>
                 
                 <div class="admin-task-detail-actions">
                     <button class="admin-task-detail-back" type="button" onclick="closeAdminTaskDetail()" aria-label="Back to task list">
                         <i class="fas fa-arrow-left"></i>
-                        <span>Back to Tasks</span>
+                        <span>Back</span>
                     </button>
                     <button type="button" onclick="enterAdminTaskEditMode()"><i class="fas fa-pen"></i>Edit</button>
                     <button class="danger" type="button" onclick="adminDeleteTask('${escapeHtml(task.id)}')"><i class="fas fa-trash"></i>Delete</button>
                 </div>
             </div>
 
-            
+            <section class="admin-task-detail-grid">
+                <div><span>Project</span><strong>${escapeHtml(project?.name || "Unknown")}</strong></div>
+                <div><span>Assigned by</span><strong title="${escapeHtml(assignedBy)}">${escapeHtml(assignedByName || assignedBy)}</strong></div>
+                <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeHtml(priority)}</span></strong></div>
+                <div><span>Status</span><strong>${renderAdminTaskStatusControl(task, statusClass)}</strong></div>
+                <div><span>Due date</span><strong>${escapeHtml(formatDate(task.deadline || task.due_date))}</strong></div>
+            </section>
 
             <section class="admin-task-detail-section">
                 <h3>Description</h3>
                 <p class="admin-task-detail-description">${escapeHtml(task.description || "No description added.")}</p>
-            </section>
-
-            <section class="admin-task-detail-grid">
-                <div><span>Project</span><strong>${escapeHtml(project?.name || "Unknown")}</strong></div>
-                <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeHtml(priority)}</span></strong></div>
-                <div><span>Status</span><strong>${renderAdminTaskStatusControl(task, statusClass)}</strong></div>
-                <div><span>Due date</span><strong>${escapeHtml(formatDate(task.deadline))}</strong></div>
             </section>
 
             <section class="admin-task-detail-section">
@@ -1258,6 +1259,10 @@ function renderAdminTaskReadPanel(task, project) {
             ${renderAdminTaskHistory(task)}
         </div>
     `;
+}
+
+function getAdminTaskAssignedBy(task, project) {
+    return task.assigned_by || task.assigned_by_email || task.created_by || project?.owner_email || project?.assigned_manager || "Unknown";
 }
 
 function renderAdminTaskEditPanel(task, project) {

@@ -3785,7 +3785,7 @@ body {
 
 .admin-task-detail-content {
     height: 100%;
-    padding: 16px 18px 20px;
+    padding: 18px;
     background: #ffffff;
     overflow-y: auto;
     animation: adminTaskDetailIn 180ms ease;
@@ -3803,11 +3803,34 @@ body {
 }
 
 .admin-task-detail-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    width:100%;
-    gap:20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 16px;
+    border: 1px solid #e6edf5;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ffffff, #f8fbff);
+}
+
+.admin-task-detail-title-group {
+    min-width: 0;
+}
+
+.admin-task-detail-kicker {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    margin-bottom: 8px;
+    border-radius: 999px;
+    background: #eaf8f0;
+    color: #0f7a43;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
 }
 
 .admin-task-detail-back,
@@ -3841,24 +3864,29 @@ body {
 .admin-task-detail-header h2 {
     margin: 0;
     color: #172033;
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 500;
     line-height: 1.2;
+    overflow-wrap: anywhere;
 }
 
 .admin-task-detail-header p {
-    margin: 4px 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 7px 0 0;
     color: #64748b;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 700;
 }
 
 .admin-task-detail-actions {
     display: flex;
     align-items: center;
-    gap: 7px;
+    justify-content: flex-end;
+    gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: 14px;
+    margin-bottom: 0;
 }
 
 .admin-task-detail-actions .danger {
@@ -3867,8 +3895,11 @@ body {
 }
 
 .admin-task-detail-section {
-    padding: 13px 0;
-    border-top: 1px solid #e6edf5;
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid #e6edf5;
+    border-radius: 10px;
+    background: #ffffff;
 }
 
 .admin-task-detail-section h3 {
@@ -3887,19 +3918,24 @@ body {
 }
 
 .admin-task-detail-grid {
-    padding: 12px 0;
-    border-top: 1px solid #e6edf5;
+    padding: 0;
+    border-top: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
 }
 
 .admin-task-detail-grid > div {
-    min-height: 64px;
-    padding: 10px 11px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 76px;
+    padding: 12px;
     border: 1px solid #e6edf5;
-    border-radius: 8px;
+    border-radius: 10px;
     background: #fbfdff;
+    overflow: hidden;
 }
 
 .admin-task-detail-grid span {
@@ -3910,11 +3946,13 @@ body {
 }
 
 .admin-task-detail-grid strong {
-    margin-top: 7px;
+    margin-top: 0;
     color: #172033;
-    display: block;
+    display: flex;
+    align-items: center;
     font-size: 12px;
     line-height: 1.35;
+    font-weight: 500;
     overflow-wrap: anywhere;
 }
 
@@ -4122,6 +4160,12 @@ body {
 
 @media (max-width: 1120px) {
     .admin-task-detail-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 920px) {
+    .admin-task-detail-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
@@ -4130,6 +4174,15 @@ body {
     .admin-task-inbox-shell {
         height: auto;
         min-height: 620px;
+    }
+
+    .admin-task-detail-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-task-detail-actions {
+        justify-content: flex-start;
     }
 
     .admin-task-detail-grid,

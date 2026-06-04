@@ -12389,7 +12389,7 @@ body.dashboard-theme-dark .dashboard-profile-card {
 
 .task-detail-content {
     height: 100%;
-    padding: 16px 18px 20px;
+    padding: 18px;
     background: #ffffff;
     overflow-y: auto;
     animation: taskDetailIn 180ms ease;
@@ -12407,23 +12407,43 @@ body.dashboard-theme-dark .dashboard-profile-card {
 }
 
 .task-detail-header {
-    display:flex;
-    justify-content:space-between;
-    align-items:flex-start;
-    gap: 14px;
-    margin-bottom: 12px;
-    padding: 4px 0 12px;
-    border-bottom: 1px solid var(--tf-border-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 16px;
+    border: 1px solid var(--tf-border-soft);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #ffffff, #f8fbff);
+}
+
+.task-detail-title-group {
+    min-width: 0;
+}
+
+.task-detail-kicker {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 0 8px;
+    margin-bottom: 8px;
+    border-radius: 999px;
+    background: #eaf8f0;
+    color: var(--tf-primary);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
 }
 
 .task-detail-back {
     width: auto;
-    min-height: 34px;
+    min-height: 36px;
     padding: 0 12px;
     flex: 0 0 auto;
     border-radius: 8px;
     font-size: 12px;
-    text-align: right !important;
+    text-align: center !important;
 }
 
 
@@ -12431,25 +12451,30 @@ body.dashboard-theme-dark .dashboard-profile-card {
 .task-detail-header h2 {
     margin: 0;
     color: var(--tf-heading);
-    font-size: 20px;
-    font-weight: 500;
+    font-size: 22px;
+    font-weight: 500    ;
     line-height: 1.2;
     letter-spacing: 0;
+    overflow-wrap: anywhere;
 }
 
 .task-detail-header p {
-    margin: 4px 0 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    margin: 7px 0 0;
     color: var(--tf-muted);
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 700;
 }
 
 .task-detail-actions {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: flex-end;
+    gap: 8px;
     flex-wrap: wrap;
-    margin-bottom: 14px;
+    margin-bottom: 0;
 }
 
 .task-detail-actions .danger {
@@ -12458,15 +12483,18 @@ body.dashboard-theme-dark .dashboard-profile-card {
 }
 
 .task-detail-section {
-    padding: 13px 0;
-    border-top: 1px solid var(--tf-border-soft);
+    margin-top: 12px;
+    padding: 14px;
+    border: 1px solid var(--tf-border-soft);
+    border-radius: 10px;
+    background: #ffffff;
 }
 
 .task-detail-section h3 {
     margin: 0 0 8px;
     color: var(--tf-heading);
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .task-detail-description {
@@ -12478,23 +12506,24 @@ body.dashboard-theme-dark .dashboard-profile-card {
 }
 
 .task-detail-grid {
-    padding: 12px 0;
-    border-top: 1px solid var(--tf-border-soft);
+    padding: 0;
+    border-top: 0;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
 }
 
 .task-detail-grid > div {
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    min-height: 64px;
-    padding: 10px 11px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 76px;
+    padding: 12px;
     border: 1px solid var(--tf-border-soft);
-    border-radius: 8px;
+    border-radius: 10px;
     background: #fbfdff;
-    overflow:visible;
+    overflow: hidden;
 }
 
 .task-detail-grid span {
@@ -12505,10 +12534,10 @@ body.dashboard-theme-dark .dashboard-profile-card {
 }
 
 .task-detail-grid strong {
-    margin-top: 7px;
+    margin-top: 0;
     color: var(--tf-heading);
-    display:flex;
-    align-items:center;
+    display: flex;
+    align-items: center;
     font-size: 12px;
     line-height: 1.35;
     font-weight: 500;
@@ -12814,11 +12843,17 @@ body.dashboard-theme-dark .dashboard-profile-card {
 
 @media (max-width: 1120px) {
     .task-detail-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .task-toolbar-filters .task-board-filter {
         min-width: calc(50% - 4px);
+    }
+}
+
+@media (max-width: 920px) {
+    .task-detail-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -12864,6 +12899,15 @@ body.dashboard-theme-dark .dashboard-profile-card {
     .task-edit-grid {
         grid-template-columns: 1fr;
         flex-direction: column;
+    }
+
+    .task-detail-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .task-detail-actions {
+        justify-content: flex-start;
     }
 
     .task-detail-grid {
