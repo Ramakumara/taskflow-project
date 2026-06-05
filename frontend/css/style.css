@@ -788,15 +788,15 @@ select {
 }
 
 select option[value="todo"] {
-    color: orange;
+    color: var(--status-pending-text);
 }
 
 select option[value="in progress"] {
-    color: blue;
+    color: var(--status-progress-text);
 }
 
 select option[value="done"] {
-    color: green;
+    color: var(--status-completed-text);
 }
 
 .status {
@@ -806,19 +806,36 @@ select option[value="done"] {
     font-weight: bold;
 }
 
-.status.todo {
-    background: #fdebd0;
-    color: #e67e22;
+.status.todo,
+.status.pending {
+    background: var(--status-pending-bg);
+    border: 1px solid var(--status-pending-border);
+    color: var(--status-pending-text);
 }
 
 .status.in-progress {
-    background: #d6eaf8;
-    color: #3498db;
+    background: var(--status-progress-bg);
+    border: 1px solid var(--status-progress-border);
+    color: var(--status-progress-text);
 }
 
+.status.completed,
 .status.done {
-    background: #d5f5e3;
-    color: #2ecc71;
+    background: var(--status-completed-bg);
+    border: 1px solid var(--status-completed-border);
+    color: var(--status-completed-text);
+}
+
+.status.on-hold {
+    background: var(--status-hold-bg);
+    border: 1px solid var(--status-hold-border);
+    color: var(--status-hold-text);
+}
+
+.status.planning {
+    background: var(--status-planning-bg);
+    border: 1px solid var(--status-planning-border);
+    color: var(--status-planning-text);
 }
 
 .main-content {
@@ -892,7 +909,7 @@ select option[value="done"] {
     font-size: 17px;
 }
 #project-charts {
-    width: 100%; /* 🔥 fix (was 5%) */
+    width: 100%;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
     gap: 25px;
@@ -911,7 +928,6 @@ select option[value="done"] {
     margin-left: 30px;
 }
 
-/* 🔥 Vertical line (between 2 columns) */
 .project-chart:nth-child(2n+1)::after {
     content: "";
     position: absolute;
@@ -1782,18 +1798,33 @@ select option[value="done"] {
 }
 
 .team-status.in-progress {
-    background: #e8f1ff;
-    color: #2f63ff;
+    background: var(--status-progress-bg);
+    border: 1px solid var(--status-progress-border);
+    color: var(--status-progress-text);
 }
 
 .team-status.completed {
-    background: #e8f8ef;
-    color: #18a05e;
+    background: var(--status-completed-bg);
+    border: 1px solid var(--status-completed-border);
+    color: var(--status-completed-text);
 }
 
 .team-status.pending {
-    background: #fff3dd;
-    color: #c27803;
+    background: var(--status-pending-bg);
+    border: 1px solid var(--status-pending-border);
+    color: var(--status-pending-text);
+}
+
+.team-status.on-hold {
+    background: var(--status-hold-bg);
+    border: 1px solid var(--status-hold-border);
+    color: var(--status-hold-text);
+}
+
+.team-status.planning {
+    background: var(--status-planning-bg);
+    border: 1px solid var(--status-planning-border);
+    color: var(--status-planning-text);
 }
 
 .team-add-member-btn {
@@ -2603,33 +2634,66 @@ select option[value="done"] {
 
 .status-pill.todo,
 .status-pill.pending {
-    background: #f24844;
+    background: var(--status-pending-bg);
+    border: 1px solid var(--status-pending-border);
+    color: var(--status-pending-text);
 }
 
 .status-pill.in-progress {
-    background: #53b85e;
+    background: var(--status-progress-bg);
+    border: 1px solid var(--status-progress-border);
+    color: var(--status-progress-text);
 }
 
 .status-pill.done,
 .status-pill.completed {
-    background: #ffa121;
+    background: var(--status-completed-bg);
+    border: 1px solid var(--status-completed-border);
+    color: var(--status-completed-text);
+}
+
+.status-pill.on-hold {
+    background: var(--status-hold-bg);
+    border: 1px solid var(--status-hold-border);
+    color: var(--status-hold-text);
+}
+
+.status-pill.planning {
+    background: var(--status-planning-bg);
+    border: 1px solid var(--status-planning-border);
+    color: var(--status-planning-text);
 }
 
 .status-badge.todo,
 .status-badge.pending {
-    background: #fee2e2;
-    color: #dc2626;
+    background: var(--status-pending-bg);
+    border: 1px solid var(--status-pending-border);
+    color: var(--status-pending-text);
 }
 
 .status-badge.in-progress {
-    background: #dbeafe;
-    color: #2563eb;
+    background: var(--status-progress-bg);
+    border: 1px solid var(--status-progress-border);
+    color: var(--status-progress-text);
 }
 
 .status-badge.done,
 .status-badge.completed {
-    background: #dcfce7;
-    color: #16a34a;
+    background: var(--status-completed-bg);
+    border: 1px solid var(--status-completed-border);
+    color: var(--status-completed-text);
+}
+
+.status-badge.on-hold {
+    background: var(--status-hold-bg);
+    border: 1px solid var(--status-hold-border);
+    color: var(--status-hold-text);
+}
+
+.status-badge.planning {
+    background: var(--status-planning-bg);
+    border: 1px solid var(--status-planning-border);
+    color: var(--status-planning-text);
 }
 
 /* ASSIGNEE */
@@ -5222,9 +5286,13 @@ body.dashboard-theme-dark .file-assignee-popover p {
     border-radius: 50%;
 }
 
-.legend-dot.blue { background: #2f7bff; }
-.legend-dot.orange { background: #f59e0b; }
-.legend-dot.red { background: #ff3b4f; }
+.legend-dot.pending { background: var(--status-pending); }
+.legend-dot.in-progress,
+.legend-dot.progress { background: var(--status-progress); }
+.legend-dot.completed { background: var(--status-completed); }
+.legend-dot.on-hold,
+.legend-dot.red { background: var(--status-hold); }
+.legend-dot.planning { background: var(--status-planning); }
 
 .chart-footnote {
     margin: 18px 0 0;
@@ -6965,19 +7033,39 @@ button {
 }
 
 .project-card-chip.status {
-    background: #ecfdf3;
-    color: #16a34a;
+    background: var(--status-planning-bg);
+    border: 1px solid var(--status-planning-border);
+    color: var(--status-planning-text);
+}
+
+.project-card-chip.status.pending {
+    background: var(--status-pending-bg);
+    border-color: var(--status-pending-border);
+    color: var(--status-pending-text);
+}
+
+.project-card-chip.status.in-progress {
+    background: var(--status-progress-bg);
+    border-color: var(--status-progress-border);
+    color: var(--status-progress-text);
 }
 
 .project-card-chip.status.completed {
-    background: #eef2ff;
-    color: #4338ca;
+    background: var(--status-completed-bg);
+    border-color: var(--status-completed-border);
+    color: var(--status-completed-text);
 }
 
-.project-card-chip.status.on-hold,
+.project-card-chip.status.on-hold {
+    background: var(--status-hold-bg);
+    border-color: var(--status-hold-border);
+    color: var(--status-hold-text);
+}
+
 .project-card-chip.status.planning {
-    background: #fff7ed;
-    color: #c2410c;
+    background: var(--status-planning-bg);
+    border-color: var(--status-planning-border);
+    color: var(--status-planning-text);
 }
 
 .project-card-meta {
@@ -7014,16 +7102,27 @@ button {
 .project-card-meta-row.status-row i {
     width: auto;
     font-size: 7px;
-    color: #22c55e;
+    color: var(--status-planning);
+}
+
+.project-card-meta-row.status-row.pending i {
+    color: var(--status-pending);
+}
+
+.project-card-meta-row.status-row.in-progress i {
+    color: var(--status-progress);
 }
 
 .project-card-meta-row.status-row.completed i {
-    color: #6366f1;
+    color: var(--status-completed);
 }
 
-.project-card-meta-row.status-row.on-hold i,
+.project-card-meta-row.status-row.on-hold i {
+    color: var(--status-hold);
+}
+
 .project-card-meta-row.status-row.planning i {
-    color: #f59e0b;
+    color: var(--status-planning);
 }
 
 .project-card-footer {
@@ -7922,11 +8021,19 @@ workspace-table td,
 }
 
 #report-content .legend-dot.blue {
-    background: var(--tf-primary);
+    background: var(--status-completed);
+}
+
+#report-content .legend-dot.in-progress {
+    background: var(--status-progress);
+}
+
+#report-content .legend-dot.completed {
+    background: var(--status-completed);
 }
 
 #report-content .legend-dot.red {
-    background: var(--tf-danger);
+    background: var(--status-hold);
 }
 
 #report-content .report-date-btn {
@@ -8538,33 +8645,55 @@ workspace-table td,
 
 .dashboard .status.todo,
 .dashboard .status-pill.todo,
+.dashboard .status.pending,
 .dashboard .status-pill.pending,
 .workspace-table .status.todo,
+.workspace-table .status.pending,
 .workspace-table .status-pill.todo,
 .workspace-table .status-pill.pending {
-    background: #eef4ff;
-    border-color: #dbeafe;
-    color: #1d4ed8;
+    background: var(--status-pending-bg);
+    border-color: var(--status-pending-border);
+    color: var(--status-pending-text);
 }
 
 .dashboard .status.in-progress,
 .dashboard .status-pill.in-progress,
 .workspace-table .status.in-progress,
 .workspace-table .status-pill.in-progress {
-    background: #fff4de;
-    border-color: #fed7aa;
-    color: #b45309;
+    background: var(--status-progress-bg);
+    border-color: var(--status-progress-border);
+    color: var(--status-progress-text);
 }
 
 .dashboard .status.done,
+.dashboard .status.completed,
 .dashboard .status-pill.done,
 .dashboard .status-pill.completed,
 .workspace-table .status.done,
+.workspace-table .status.completed,
 .workspace-table .status-pill.done,
 .workspace-table .status-pill.completed {
-    background: #e7f8ee;
-    border-color: #bbf7d0;
-    color: #08783f;
+    background: var(--status-completed-bg);
+    border-color: var(--status-completed-border);
+    color: var(--status-completed-text);
+}
+
+.dashboard .status.on-hold,
+.dashboard .status-pill.on-hold,
+.workspace-table .status.on-hold,
+.workspace-table .status-pill.on-hold {
+    background: var(--status-hold-bg);
+    border-color: var(--status-hold-border);
+    color: var(--status-hold-text);
+}
+
+.dashboard .status.planning,
+.dashboard .status-pill.planning,
+.workspace-table .status.planning,
+.workspace-table .status-pill.planning {
+    background: var(--status-planning-bg);
+    border-color: var(--status-planning-border);
+    color: var(--status-planning-text);
 }
 
 .task-priority-pill{
@@ -8690,21 +8819,33 @@ workspace-table td,
 }
 
 .member-status-badge.pending {
-    background: #eef4ff;
-    border-color: #dbeafe;
-    color: #1d4ed8;
+    background: var(--status-pending-bg);
+    border-color: var(--status-pending-border);
+    color: var(--status-pending-text);
 }
 
 .member-status-badge.in-progress {
-    background: #fff4de;
-    border-color: #fed7aa;
-    color: #b45309;
+    background: var(--status-progress-bg);
+    border-color: var(--status-progress-border);
+    color: var(--status-progress-text);
 }
 
 .member-status-badge.completed {
-    background: #e7f8ee;
-    border-color: #bbf7d0;
-    color: #08783f;
+    background: var(--status-completed-bg);
+    border-color: var(--status-completed-border);
+    color: var(--status-completed-text);
+}
+
+.member-status-badge.on-hold {
+    background: var(--status-hold-bg);
+    border-color: var(--status-hold-border);
+    color: var(--status-hold-text);
+}
+
+.member-status-badge.planning {
+    background: var(--status-planning-bg);
+    border-color: var(--status-planning-border);
+    color: var(--status-planning-text);
 }
 
 .member-status-dot {
@@ -8941,7 +9082,7 @@ workspace-table td,
     justify-content: center;
     gap: 12px;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 500;
     cursor: pointer;
     box-shadow: 0 8px 18px rgba(25, 168, 91, 0.08);
     transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease, transform 0.18s ease;
@@ -8982,7 +9123,7 @@ workspace-table td,
     margin-bottom: 6px;
     color: #475467;
     font-size: 13px;
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .activity-log-date-popover input {
@@ -9011,7 +9152,7 @@ workspace-table td,
     background: #e8f7ee;
     color: #0c8a4a;
     font-size: 14px;
-    font-weight: 700;
+    font-weight: 500;
     cursor: pointer;
 }
 
@@ -9032,7 +9173,7 @@ workspace-table td,
     justify-content: center;
     gap: 10px;
     font-size: 14px;
-    font-weight: 750;
+    font-weight: 500;
     cursor: pointer;
     box-shadow: none;
     transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
@@ -9348,7 +9489,7 @@ workspace-table td,
     display: inline-flex;
     align-items: center;
     gap: 7px;
-    color: #1d4ed8;
+    color: var(--status-pending-text);
     font-size: 13px;
     font-weight: 850;
     white-space: nowrap;
@@ -9362,15 +9503,23 @@ workspace-table td,
 }
 
 .task-assignee-status.in-progress {
-    color: #f97316;
+    color: var(--status-progress-text);
 }
 
 .task-assignee-status.pending {
-    color: #2563eb;
+    color: var(--status-pending-text);
 }
 
 .task-assignee-status.completed {
-    color: #16a34a;
+    color: var(--status-completed-text);
+}
+
+.task-assignee-status.on-hold {
+    color: var(--status-hold-text);
+}
+
+.task-assignee-status.planning {
+    color: var(--status-planning-text);
 }
 
 .dashboard .status,
@@ -9378,8 +9527,8 @@ workspace-table td,
 .workspace-table .status,
 .workspace-table .status-pill {
     border: 1px solid transparent !important;
-    color: #2563eb !important;
-    background: #eef4ff !important;
+    color: var(--status-pending-text) !important;
+    background: var(--status-pending-bg) !important;
 }
 
 .dashboard .status.todo,
@@ -9390,18 +9539,18 @@ workspace-table td,
 .workspace-table .status.pending,
 .workspace-table .status-pill.todo,
 .workspace-table .status-pill.pending {
-    border-color: #dbeafe !important;
-    color: #2563eb !important;
-    background: #eef4ff !important;
+    border-color: var(--status-pending-border) !important;
+    color: var(--status-pending-text) !important;
+    background: var(--status-pending-bg) !important;
 }
 
 .dashboard .status.in-progress,
 .dashboard .status-pill.in-progress,
 .workspace-table .status.in-progress,
 .workspace-table .status-pill.in-progress {
-    border-color: #fed7aa !important;
-    color: #f97316 !important;
-    background: #fff4de !important;
+    border-color: var(--status-progress-border) !important;
+    color: var(--status-progress-text) !important;
+    background: var(--status-progress-bg) !important;
 }
 
 .dashboard .status.done,
@@ -9412,9 +9561,27 @@ workspace-table td,
 .workspace-table .status.completed,
 .workspace-table .status-pill.done,
 .workspace-table .status-pill.completed {
-    border-color: #bbf7d0 !important;
-    color: #16a34a !important;
-    background: #e7f8ee !important;
+    border-color: var(--status-completed-border) !important;
+    color: var(--status-completed-text) !important;
+    background: var(--status-completed-bg) !important;
+}
+
+.dashboard .status.on-hold,
+.dashboard .status-pill.on-hold,
+.workspace-table .status.on-hold,
+.workspace-table .status-pill.on-hold {
+    border-color: var(--status-hold-border) !important;
+    color: var(--status-hold-text) !important;
+    background: var(--status-hold-bg) !important;
+}
+
+.dashboard .status.planning,
+.dashboard .status-pill.planning,
+.workspace-table .status.planning,
+.workspace-table .status-pill.planning {
+    border-color: var(--status-planning-border) !important;
+    color: var(--status-planning-text) !important;
+    background: var(--status-planning-bg) !important;
 }
 
 .task-more-btn {
@@ -12928,6 +13095,34 @@ body.dashboard-theme-dark .dashboard-profile-card {
     }
 }
 
+#taskToolbar {
+    display: flex;
+    align-items: center;
+}
+
+#taskToolbar .task-toolbar-filters {
+    display: flex;
+    gap: 12px;
+    margin-left: auto;   /* moves filters to right */
+}
+
+#taskToolbar .team-search {
+    flex: 1;
+    max-width: 420px;
+}
+
+#taskToolbar .task-board-filter,
+#taskToolbar select {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    height: 44px !important;
+    box-sizing: border-box;
+}
+
+#taskToolbar .team-search {
+    height: 44px !important;
+}
 
 /* Hide Google top bar */
 .goog-te-banner-frame,
@@ -13063,19 +13258,39 @@ body.dashboard-theme-dark .project-card-chip.subtle {
 }
 
 body.dashboard-theme-dark .project-card-chip.status {
-    background: rgba(34, 197, 94, 0.18) !important;
-    color: #bbf7d0 !important;
+    background: rgba(var(--status-planning-rgb), 0.18) !important;
+    border-color: rgba(var(--status-planning-rgb), 0.32) !important;
+    color: var(--status-planning-border) !important;
+}
+
+body.dashboard-theme-dark .project-card-chip.status.pending {
+    background: rgba(var(--status-pending-rgb), 0.18) !important;
+    border-color: rgba(var(--status-pending-rgb), 0.32) !important;
+    color: var(--status-pending-border) !important;
+}
+
+body.dashboard-theme-dark .project-card-chip.status.in-progress {
+    background: rgba(var(--status-progress-rgb), 0.18) !important;
+    border-color: rgba(var(--status-progress-rgb), 0.32) !important;
+    color: var(--status-progress-border) !important;
 }
 
 body.dashboard-theme-dark .project-card-chip.status.completed {
-    background: rgba(99, 102, 241, 0.18) !important;
-    color: #c7d2fe !important;
+    background: rgba(var(--status-completed-rgb), 0.18) !important;
+    border-color: rgba(var(--status-completed-rgb), 0.32) !important;
+    color: var(--status-completed-border) !important;
 }
 
-body.dashboard-theme-dark .project-card-chip.status.on-hold,
+body.dashboard-theme-dark .project-card-chip.status.on-hold {
+    background: rgba(var(--status-hold-rgb), 0.18) !important;
+    border-color: rgba(var(--status-hold-rgb), 0.32) !important;
+    color: var(--status-hold-border) !important;
+}
+
 body.dashboard-theme-dark .project-card-chip.status.planning {
-    background: rgba(245, 158, 11, 0.16) !important;
-    color: #fcd34d !important;
+    background: rgba(var(--status-planning-rgb), 0.18) !important;
+    border-color: rgba(var(--status-planning-rgb), 0.32) !important;
+    color: var(--status-planning-border) !important;
 }
 
 body.dashboard-theme-dark .project-card-footer,

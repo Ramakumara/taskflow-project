@@ -16,6 +16,18 @@ const DASHBOARD_VIEW_IDS = [
     "project-workspace-view",
     "report-view"
 ];
+const STATUS_COLOR_FALLBACKS = {
+    pending: "#f59e0b",
+    progress: "#2563eb",
+    completed: "#16a34a",
+    hold: "#d92d20",
+    planning: "#9333ea"
+};
+
+function getStatusColorToken(name) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(`--status-${name}`).trim();
+    return value || STATUS_COLOR_FALLBACKS[name] || STATUS_COLOR_FALLBACKS.pending;
+}
 
 const params = new URLSearchParams(window.location.search);
 
@@ -264,6 +276,8 @@ function normalizeMemberStatus(status) {
     if (value === "todo" || value === "pending") return "Pending";
     if (value === "in progress" || value === "progress") return "In Progress";
     if (value === "done" || value === "completed") return "Completed";
+    if (value === "on hold" || value === "hold") return "On Hold";
+    if (value === "planning" || value === "planned") return "Planning";
     return "Pending";
 }
 
@@ -346,6 +360,8 @@ function renderMyStatusControl(task) {
             <option value="Pending" ${status === "Pending" ? "selected" : ""}>Pending</option>
             <option value="In Progress" ${status === "In Progress" ? "selected" : ""}>In Progress</option>
             <option value="Completed" ${status === "Completed" ? "selected" : ""}>Completed</option>
+            <option value="On Hold" ${status === "On Hold" ? "selected" : ""}>On Hold</option>
+            <option value="Planning" ${status === "Planning" ? "selected" : ""}>Planning</option>
         </select>
     `;
 }
@@ -870,7 +886,7 @@ function renderTaskEditPanel(task, project) {
                 </label>
                 <label>Status
                     <select id="taskEditStatus">
-                        ${["Pending", "In Progress", "Completed"].map(item => `<option value="${item}" ${status === item ? "selected" : ""}>${item}</option>`).join("")}
+                        ${["Pending", "In Progress", "Completed", "On Hold", "Planning"].map(item => `<option value="${item}" ${status === item ? "selected" : ""}>${item}</option>`).join("")}
                     </select>
                 </label>
                 <label>Due date<input id="taskEditDeadline" type="date" value="${escapeTeamHtml(task.deadline || task.due_date || "")}"></label>
@@ -1606,6 +1622,8 @@ function normalizeTeamStatus(status) {
     const value = String(status || "Pending").trim().toLowerCase();
     if (value === "done" || value === "completed") return "Completed";
     if (value === "in progress" || value === "progress") return "In Progress";
+    if (value === "on hold" || value === "hold") return "On Hold";
+    if (value === "planning" || value === "planned") return "Planning";
     return "Pending";
 }
 
@@ -2646,6 +2664,11 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
 
     if (!statusCtx || !lineCtx || !priorityCtx) return;
 
+    const completedColor = getStatusColorToken("completed");
+    const progressColor = getStatusColorToken("progress");
+    const overdueColor = getStatusColorToken("hold");
+    const pendingColor = getStatusColorToken("pending");
+
     Chart.defaults.font.family = "Arial, sans-serif";
     Chart.defaults.font.size = 12;
     Chart.defaults.color = "#0b1538";
@@ -2660,9 +2683,9 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
 
     if (statusLegend) {
         statusLegend.innerHTML = `
-            <div><span class="legend-dot blue"></span><strong>Completed</strong><small>${completed} (${completedPercent}%)</small></div>
-            <div><span class="legend-dot orange"></span><strong>In Progress</strong><small>${inProgress} (${progressPercent}%)</small></div>
-            <div><span class="legend-dot red"></span><strong>Overdue</strong><small>${overdue} (${overduePercent}%)</small></div>
+            <div><span class="legend-dot completed"></span><strong>Completed</strong><small>${completed} (${completedPercent}%)</small></div>
+            <div><span class="legend-dot in-progress"></span><strong>In Progress</strong><small>${inProgress} (${progressPercent}%)</small></div>
+            <div><span class="legend-dot on-hold"></span><strong>Overdue</strong><small>${overdue} (${overduePercent}%)</small></div>
         `;
     }
     if (statusTotal) statusTotal.textContent = `Total: ${totalTasks} task${totalTasks === 1 ? "" : "s"}`;
@@ -2675,7 +2698,7 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
             labels: ["Completed", "In Progress", "Overdue"],
             datasets: [{
                 data: [completed, inProgress, overdue],
-                backgroundColor: ["#20b864", "#f59e0b", "#dc2626"],
+                backgroundColor: [completedColor, progressColor, overdueColor],
                 borderWidth: 0
             }]
         },
@@ -2711,10 +2734,10 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
             datasets: [{
                 label: "Completed Tasks",
                 data: sortedDates.map(date => map[date]),
-                borderColor: "#20b864",
-                backgroundColor: "rgba(32, 184, 100, 0.12)",
-                pointBackgroundColor: "#20b864",
-                pointBorderColor: "#20b864",
+                borderColor: completedColor,
+                backgroundColor: "rgba(22, 163, 74, 0.12)",
+                pointBackgroundColor: completedColor,
+                pointBorderColor: completedColor,
                 pointRadius: 4,
                 pointHoverRadius: 5,
                 tension: 0.35,
@@ -2754,7 +2777,7 @@ function renderCharts(projects, tasks, completed, inProgress, overdue) {
             datasets: [{
                 label: "Tasks",
                 data: projectCounts,
-                backgroundColor: ["#20b864", "#159653", "#14b8a6", "#f59e0b", "#64748b", "#dc2626"],
+                backgroundColor: [completedColor, progressColor, "#14b8a6", pendingColor, "#64748b", overdueColor],
                 borderRadius: 4,
                 maxBarThickness: 38
             }]

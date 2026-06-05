@@ -7,18 +7,23 @@ from database import db
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 import re
 import random
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 
 router = APIRouter()
 
-SECRET_KEY = "your_secret_key_here"
-ALGORITHM = "HS256"
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440
 conf = ConnectionConfig(
-    MAIL_USERNAME="ramkumarram6073@gmail.com",
-    MAIL_PASSWORD="fjus euiw bhvz idyb",
-    MAIL_FROM="ramkumarram6073@gmail.com",
-    MAIL_PORT=587,
-    MAIL_SERVER="smtp.gmail.com",
+    MAIL_USERNAME=os.getenv("MAIL_USERNAME"),
+    MAIL_PASSWORD=os.getenv("MAIL_PASSWORD"),
+    MAIL_FROM=os.getenv("MAIL_FROM"),
+    MAIL_PORT=int(os.getenv("MAIL_PORT", 587)),
+    MAIL_SERVER=os.getenv("MAIL_SERVER"),
     MAIL_STARTTLS=True,
     MAIL_SSL_TLS=False
 )

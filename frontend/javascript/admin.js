@@ -37,6 +37,18 @@ const adminState = {
         attachments: []
     }
 };
+const ADMIN_STATUS_COLOR_FALLBACKS = {
+    pending: "#f59e0b",
+    progress: "#2563eb",
+    completed: "#16a34a",
+    hold: "#d92d20",
+    planning: "#9333ea"
+};
+
+function getAdminStatusColorToken(name) {
+    const value = getComputedStyle(document.documentElement).getPropertyValue(`--status-${name}`).trim();
+    return value || ADMIN_STATUS_COLOR_FALLBACKS[name] || ADMIN_STATUS_COLOR_FALLBACKS.pending;
+}
 
 let projectStatusChart = null;
 let taskOverviewChart = null;
@@ -1050,24 +1062,18 @@ function renderTasksView() {
                             oninput: "handleAdminSearch(event)",
                             ariaLabel: "Search tasks"
                         })}
-                    </div>
                     <div class="common-toolbar">
                         <select class="admin-task-filter common-filter-select" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
                             <option value="all">All Projects</option>
                             ${projectOptions}
-                        </select>
-                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskPriorityFilter(this.value)" aria-label="Filter tasks by priority">
-                            <option value="all" ${adminTaskFilters.priority === "all" ? "selected" : ""}>All Priority</option>
-                            <option value="Urgent" ${adminTaskFilters.priority === "Urgent" ? "selected" : ""}>Urgent</option>
-                            <option value="High" ${adminTaskFilters.priority === "High" ? "selected" : ""}>High</option>
-                            <option value="Medium" ${adminTaskFilters.priority === "Medium" ? "selected" : ""}>Medium</option>
-                            <option value="Low" ${adminTaskFilters.priority === "Low" ? "selected" : ""}>Low</option>
                         </select>
                         <select class="admin-task-filter common-filter-select" onchange="setAdminTaskStatusFilter(this.value)" aria-label="Filter tasks by status">
                             <option value="all" ${adminTaskFilters.status === "all" ? "selected" : ""}>All Status</option>
                             <option value="Pending" ${adminTaskFilters.status === "Pending" ? "selected" : ""}>Pending</option>
                             <option value="In Progress" ${adminTaskFilters.status === "In Progress" ? "selected" : ""}>In Progress</option>
                             <option value="Completed" ${adminTaskFilters.status === "Completed" ? "selected" : ""}>Completed</option>
+                            <option value="On Hold" ${adminTaskFilters.status === "On Hold" ? "selected" : ""}>On Hold</option>
+                            <option value="Planning" ${adminTaskFilters.status === "Planning" ? "selected" : ""}>Planning</option>
                         </select>
                         <select class="admin-task-filter common-filter-select" onchange="setAdminTaskDueFilter(this.value)" aria-label="Filter tasks by due date">
                             <option value="all" ${adminTaskFilters.due === "all" ? "selected" : ""}>Any Due Date</option>
@@ -1076,13 +1082,8 @@ function renderTasksView() {
                             <option value="week" ${adminTaskFilters.due === "week" ? "selected" : ""}>Due This Week</option>
                             <option value="none" ${adminTaskFilters.due === "none" ? "selected" : ""}>No Due Date</option>
                         </select>
-                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskSort(this.value)" aria-label="Sort tasks">
-                            <option value="newest" ${adminTaskFilters.sort === "newest" ? "selected" : ""}>Newest</option>
-                            <option value="due-asc" ${adminTaskFilters.sort === "due-asc" ? "selected" : ""}>Due Date</option>
-                            <option value="priority-desc" ${adminTaskFilters.sort === "priority-desc" ? "selected" : ""}>Priority</option>
-                            <option value="title-asc" ${adminTaskFilters.sort === "title-asc" ? "selected" : ""}>Title A-Z</option>
-                        </select>
                     </div>
+                </div>
                 `,
                 content: renderCommonContentCard(`
                     <div class="admin-task-inbox-shell ${adminTaskDetailOpen ? "showing-detail" : ""}">
@@ -1290,7 +1291,7 @@ function renderAdminTaskEditPanel(task, project) {
                 </label>
                 <label>Status
                     <select id="adminTaskEditStatus">
-                        ${["Pending", "In Progress", "Completed"].map(item => `<option value="${item}" ${status === item ? "selected" : ""}>${item}</option>`).join("")}
+                        ${["Pending", "In Progress", "Completed", "On Hold", "Planning"].map(item => `<option value="${item}" ${status === item ? "selected" : ""}>${item}</option>`).join("")}
                     </select>
                 </label>
                 <label>Due date<input id="adminTaskEditDeadline" type="date" value="${escapeHtml(task.deadline || task.due_date || "")}"></label>
@@ -3161,6 +3162,10 @@ function buildAdminTeamMap(tasks) {
 function renderAdminReportCharts(projects, tasks, counts) {
     const statusCanvas = document.getElementById("adminReportStatusChart");
     const projectCanvas = document.getElementById("adminReportProjectChart");
+    const completedColor = getAdminStatusColorToken("completed");
+    const progressColor = getAdminStatusColorToken("progress");
+    const pendingColor = getAdminStatusColorToken("pending");
+    const holdColor = getAdminStatusColorToken("hold");
 
     if (adminReportStatusChart) adminReportStatusChart.destroy();
     if (adminReportProjectChart) adminReportProjectChart.destroy();
@@ -3172,7 +3177,7 @@ function renderAdminReportCharts(projects, tasks, counts) {
                 labels: ["Completed", "In Progress", "Pending", "Overdue"],
                 datasets: [{
                     data: [counts.completed, counts.inProgress, counts.pending, counts.overdue],
-                    backgroundColor: ["#1668f2", "#18b87a", "#f8a425", "#f04438"],
+                    backgroundColor: [completedColor, progressColor, pendingColor, holdColor],
                     borderWidth: 0
                 }]
             },
@@ -3203,8 +3208,8 @@ function renderAdminReportCharts(projects, tasks, counts) {
                         type: "line",
                         label: "Created",
                         data: overview.created,
-                        borderColor: "#1668f2",
-                        backgroundColor: "#1668f2",
+                        borderColor: pendingColor,
+                        backgroundColor: pendingColor,
                         pointRadius: 2,
                         tension: 0.35
                     },
@@ -3212,8 +3217,8 @@ function renderAdminReportCharts(projects, tasks, counts) {
                         type: "line",
                         label: "Completed",
                         data: overview.completed,
-                        borderColor: "#18b87a",
-                        backgroundColor: "#18b87a",
+                        borderColor: completedColor,
+                        backgroundColor: completedColor,
                         pointRadius: 2,
                         tension: 0.35
                     },
@@ -3221,8 +3226,8 @@ function renderAdminReportCharts(projects, tasks, counts) {
                         type: "line",
                         label: "Overdue",
                         data: overview.overdue,
-                        borderColor: "#f04438",
-                        backgroundColor: "#f04438",
+                        borderColor: holdColor,
+                        backgroundColor: holdColor,
                         pointRadius: 2,
                         tension: 0.35
                     }
@@ -4715,15 +4720,19 @@ function filterCollection(collection, extractFields) {
 }
 
 function buildProjectStatus(tasks) {
-    const counts = { completed: 0, progress: 0, hold: 0 };
+    const counts = { pending: 0, progress: 0, completed: 0, hold: 0, planning: 0 };
 
     tasks.forEach((task) => {
         if (isCompletedStatus(task.status)) {
             counts.completed += 1;
         } else if (isInProgressStatus(task.status)) {
             counts.progress += 1;
-        } else {
+        } else if (statusClassName(task.status) === "on-hold") {
             counts.hold += 1;
+        } else if (statusClassName(task.status) === "planning") {
+            counts.planning += 1;
+        } else {
+            counts.pending += 1;
         }
     });
 
@@ -4731,25 +4740,39 @@ function buildProjectStatus(tasks) {
 
     return [
         {
+            key: "pending",
+            label: "Pending",
+            value: counts.pending,
+            percent: Math.round((counts.pending / total) * 100),
+            color: getAdminStatusColorToken("pending")
+        },
+        {
             key: "completed",
             label: "Completed",
             value: counts.completed,
             percent: Math.round((counts.completed / total) * 100),
-            color: "#35a65a"
+            color: getAdminStatusColorToken("completed")
         },
         {
             key: "progress",
             label: "In Progress",
             value: counts.progress,
             percent: Math.round((counts.progress / total) * 100),
-            color: "#ffa21b"
+            color: getAdminStatusColorToken("progress")
         },
         {
             key: "hold",
             label: "On Hold",
             value: counts.hold,
             percent: Math.round((counts.hold / total) * 100),
-            color: "#f24844"
+            color: getAdminStatusColorToken("hold")
+        },
+        {
+            key: "planning",
+            label: "Planning",
+            value: counts.planning,
+            percent: Math.round((counts.planning / total) * 100),
+            color: getAdminStatusColorToken("planning")
         }
     ];
 }
@@ -4995,6 +5018,10 @@ function renderTaskOverviewChart(overview) {
         taskOverviewChart.destroy();
     }
 
+    const pendingColor = getAdminStatusColorToken("pending");
+    const completedColor = getAdminStatusColorToken("completed");
+    const progressColor = getAdminStatusColorToken("progress");
+
     taskOverviewChart = new Chart(canvas, {
         data: {
             labels: overview.labels,
@@ -5003,7 +5030,7 @@ function renderTaskOverviewChart(overview) {
                     type: "bar",
                     label: "Created",
                     data: overview.created,
-                    backgroundColor: "#2e6fc0",
+                    backgroundColor: pendingColor,
                     borderRadius: 0,
                     barThickness: 20
                 },
@@ -5011,7 +5038,7 @@ function renderTaskOverviewChart(overview) {
                     type: "bar",
                     label: "Completed",
                     data: overview.completed,
-                    backgroundColor: "#76a8e8",
+                    backgroundColor: completedColor,
                     borderRadius: 0,
                     barThickness: 20
                 },
@@ -5019,10 +5046,10 @@ function renderTaskOverviewChart(overview) {
                     type: "line",
                     label: "Trend",
                     data: overview.trend,
-                    borderColor: "#f39b2c",
-                    backgroundColor: "#f39b2c",
-                    pointBackgroundColor: "#f39b2c",
-                    pointBorderColor: "#f39b2c",
+                    borderColor: progressColor,
+                    backgroundColor: progressColor,
+                    pointBackgroundColor: progressColor,
+                    pointBorderColor: progressColor,
                     pointRadius: 4,
                     pointHoverRadius: 4,
                     borderWidth: 3,
@@ -5970,8 +5997,8 @@ function getAdminProjectCreatedDate(project) {
 function renderProjectCard(project) {
     const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
     const managerName = project.assigned_manager ? getAdminUserDisplayName(project.assigned_manager) : "Unassigned";
-    const statusLabel = capitalize(String(project.status || "Planning").trim().toLowerCase()).replace("On hold", "On Hold");
-    const statusClass = String(project.status || "Planning").trim().toLowerCase().replace(/\s+/g, "-");
+    const statusLabel = normalizeStatusLabel(project.status || "Planning");
+    const statusClass = statusClassName(project.status || "Planning");
 
     return `
         <article class="admin-project-card manager-project-card" onclick="openAdminProjectWorkspace('${escapeHtml(project.id)}')">
@@ -6033,11 +6060,11 @@ function isInProgressStatus(status) {
 
 function isPendingStatus(status) {
     const normalized = String(status || "").toLowerCase();
-    return normalized === "todo" || normalized === "pending" || normalized === "on hold";
+    return normalized === "todo" || normalized === "pending";
 }
 
 function statusClassName(status) {
-    const normalized = String(status || "").toLowerCase();
+    const normalized = String(status || "").trim().toLowerCase();
     if (normalized === "done" || normalized === "completed") {
         return "completed";
     }
@@ -6047,19 +6074,34 @@ function statusClassName(status) {
     if (normalized === "in progress" || normalized === "progress") {
         return "in-progress";
     }
-    if (normalized === "pending" || normalized === "todo" || normalized === "on hold") {
+    if (normalized === "on hold" || normalized === "hold") {
+        return "on-hold";
+    }
+    if (normalized === "planning" || normalized === "planned") {
+        return "planning";
+    }
+    if (normalized === "pending" || normalized === "todo") {
         return normalized.replace(/\s+/g, "-");
     }
     return "pending";
 }
 
 function normalizeStatusLabel(status) {
-    const normalized = String(status || "pending").toLowerCase();
+    const normalized = String(status || "pending").trim().toLowerCase();
     if (normalized === "todo") {
         return "Pending";
     }
     if (normalized === "done") {
         return "Completed";
+    }
+    if (normalized === "progress") {
+        return "In Progress";
+    }
+    if (normalized === "hold") {
+        return "On Hold";
+    }
+    if (normalized === "planned") {
+        return "Planning";
     }
     return normalized.split(" ").map(capitalize).join(" ");
 }

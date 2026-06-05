@@ -280,25 +280,13 @@
                         </button>
                     </div>
                             <div class="common-toolbar" id="taskToolbar">
-        
-                                    <label class="team-search" for="taskSearchInput">
-                                        <i class="fas fa-search"></i>
-                                        <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="handleDashboardTaskFiltersChange()">
-                                    </label>
-                                    <button class="task-icon-btn" type="button" onclick="loadAllTasks()" aria-label="Refresh tasks" title="Refresh">
-                                        <i class="fas fa-rotate-right"></i>
-                                    </button>
-            
+                                <label class="team-search" for="taskSearchInput">
+                                    <i class="fas fa-search"></i>
+                                    <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="handleDashboardTaskFiltersChange()">
+                                </label>
                                 <div class="task-toolbar-filters">
                                     <select id="taskProjectFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by project">
                                         <option value="all">All Projects</option>
-                                    </select>
-                                    <select id="taskPriorityFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by priority">
-                                        <option value="all">All Priority</option>
-                                        <option value="Urgent">Urgent</option>
-                                        <option value="High">High</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="Low">Low</option>
                                     </select>
                                     <select id="taskStatusFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by status">
                                         <option value="all">All Status</option>
@@ -313,12 +301,7 @@
                                         <option value="week">Due This Week</option>
                                         <option value="none">No Due Date</option>
                                     </select>
-                                    <select id="taskSortSelect" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Sort tasks">
-                                        <option value="newest">Newest</option>
-                                        <option value="due-asc">Due Date</option>
-                                        <option value="priority-desc">Priority</option>
-                                        <option value="title-asc">Title A-Z</option>
-                                    </select>
+    
                                 </div>
                             </div>
                     <div class="task-inbox-shell">

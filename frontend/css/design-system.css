@@ -34,6 +34,37 @@
     --app-scroll-thumb-hover: #27c06a;
 }
 
+:root {
+    --status-pending: #f59e0b;
+    --status-pending-bg: #fff7ed;
+    --status-pending-border: #fed7aa;
+    --status-pending-text: #b45309;
+    --status-pending-rgb: 245, 158, 11;
+    --status-progress: #2563eb;
+    --status-progress-bg: #eff6ff;
+    --status-progress-border: #bfdbfe;
+    --status-progress-text: #1d4ed8;
+    --status-progress-rgb: 37, 99, 235;
+    --status-completed: #16a34a;
+    --status-completed-bg: #ecfdf3;
+    --status-completed-border: #bbf7d0;
+    --status-completed-text: #15803d;
+    --status-completed-rgb: 22, 163, 74;
+    --status-hold: #d92d20;
+    --status-hold-bg: #fef3f2;
+    --status-hold-border: #fecaca;
+    --status-hold-text: #b42318;
+    --status-hold-rgb: 217, 45, 32;
+    --status-planning: #9333ea;
+    --status-planning-bg: #faf5ff;
+    --status-planning-border: #e9d5ff;
+    --status-planning-text: #7e22ce;
+    --status-planning-rgb: 147, 51, 234;
+    --status-badge-bg: var(--status-pending-bg);
+    --status-badge-border: var(--status-pending-border);
+    --status-badge-text: var(--status-pending-text);
+}
+
 * {
     box-sizing: border-box;
     scrollbar-width: thin;
