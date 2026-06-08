@@ -169,7 +169,6 @@ function renderDashboard() {
     const data = superState.dashboard || {};
     setHealth(data.system_health);
     document.getElementById("superContent").innerHTML = `
-        ${pageHead("Enterprise Command Center", "Platform-wide users, projects, work health, automation, and system signals.")}
         <section class="stat-grid">
             ${statCard("Total Users", data.total_users, "fa-users")}
             ${statCard("Total Admins", data.total_admins, "fa-user-shield")}
@@ -179,17 +178,11 @@ function renderDashboard() {
             ${statCard("Completed Tasks", data.completed_tasks, "fa-circle-check")}
             ${statCard("Pending Tasks", data.pending_tasks, "fa-hourglass-half")}
             ${statCard("Overdue Tasks", data.overdue_tasks, "fa-triangle-exclamation")}
-            ${statCard("Notifications Sent", data.total_notifications_sent, "fa-bell")}
-            ${statCard("AI Queries", data.total_ai_queries, "fa-robot")}
-            ${statCard("Storage Used", formatBytes(data.total_storage_used), "fa-database")}
-            ${statCard("Super Admins", data.total_super_admins, "fa-crown")}
         </section>
         <section class="panel-grid">
             ${chartPanel("User Growth", "superUserGrowth")}
             ${chartPanel("Project Growth", "superProjectGrowth")}
             ${chartPanel("Task Status Distribution", "superTaskStatus")}
-            ${listPanel("System Health Overview", renderHealthList(data.system_health))}
-            ${listPanel("Recent Activities", renderActivityList(data.recent_activities))}
             ${listPanel("Top Active Projects", renderTopProjects(data.top_active_projects))}
         </section>
     `;
@@ -275,7 +268,6 @@ function userActions(user) {
             ${role === "manager" ? smallButton("Promote", `updateSuperUser('${email}', { role: 'admin' })`, "fa-arrow-up") : ""}
             ${role === "admin" ? smallButton("Demote", `updateSuperUser('${email}', { role: 'manager' })`, "fa-arrow-down") : ""}
             ${status === "suspended" ? smallButton("Activate", `updateSuperUser('${email}', { status: 'active' })`, "fa-toggle-on") : smallButton("Suspend", `updateSuperUser('${email}', { status: 'suspended' })`, "fa-ban", "warning")}
-            ${smallButton("Reset", `resetSuperPassword('${email}')`, "fa-key")}
             ${smallButton("Delete", `deleteSuperUser('${email}')`, "fa-trash", "danger")}
         </div>
     `;
@@ -300,7 +292,6 @@ function renderAdmins() {
                             <td>${formatDate(admin.last_login)}</td>
                             <td>
                                 <div class="action-row">
-                                    ${smallButton("Activity", `viewAdminActivity('${escapeSuper(admin.email)}')`, "fa-clock-rotate-left")}
                                     ${smallButton("Demote", `updateAdmin('${escapeSuper(admin.email)}', { role: 'manager' })`, "fa-arrow-down", "warning")}
                                     ${smallButton(admin.status === "suspended" ? "Activate" : "Deactivate", `updateAdmin('${escapeSuper(admin.email)}', { status: '${admin.status === "suspended" ? "active" : "suspended"}' })`, "fa-ban")}
                                 </div>
@@ -344,11 +335,7 @@ function renderProjects() {
                             <td>${formatDate(project.created_at)}</td>
                             <td>
                                 <div class="action-row">
-                                    <select onchange="transferProject('${escapeSuper(project.id)}', this.value)">
-                                        <option value="">Transfer</option>
-                                        ${managers.map(manager => `<option value="${escapeSuper(manager.email)}">${escapeSuper(manager.username || manager.email)}</option>`).join("")}
-                                    </select>
-                                    ${smallButton("Archive", `archiveProject('${escapeSuper(project.id)}')`, "fa-box-archive", "warning")}
+                                    
                                     ${smallButton("Delete", `deleteProjectGlobal('${escapeSuper(project.id)}')`, "fa-trash", "danger")}
                                 </div>
                             </td>
@@ -421,7 +408,6 @@ function renderAnalytics() {
         <section class="stat-grid">
             ${statCard("Completion Rate", `${data.completion_rate || 0}%`, "fa-percent")}
             ${statCard("Active Users", data.active_users || 0, "fa-user-check")}
-            ${statCard("AI Usage", data.ai_usage_statistics?.total || 0, "fa-robot")}
             ${statCard("Task Groups", Object.keys(data.task_status_distribution || {}).length, "fa-chart-pie")}
         </section>
         <section class="panel-grid">
@@ -429,7 +415,6 @@ function renderAnalytics() {
             ${chartPanel("Project Growth", "analyticsProjects")}
             ${chartPanel("Task Growth", "analyticsTasks")}
             ${chartPanel("Task Status Distribution", "analyticsStatus")}
-            ${chartPanel("AI Usage Statistics", "analyticsAi")}
             ${chartPanel("Monthly Activity", "analyticsActivity")}
         </section>
     `;

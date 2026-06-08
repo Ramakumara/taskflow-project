@@ -2234,7 +2234,7 @@ function renderUsersView() {
                     "Users",
                     "Manage users, roles, and access permissions from one consistent workspace.",
                     `   
-                         <button class="btn btn-success" onclick="openInviteModal()">
+                         <button class="action-btn common-action-btn admin-add-user-btn" onclick="openInviteModal()">
                             <i class="fas fa-envelope"></i>
                             Invite User
                         </button>
@@ -2388,13 +2388,6 @@ function renderUsersView() {
                                                                         .toLowerCase() === "manager"
                                                                         ? "selected" : ""}>
                                                                     Manager
-                                                                </option>
-
-                                                                <option value="admin"
-                                                                    ${String(user.role || "")
-                                                                        .toLowerCase() === "admin"
-                                                                        ? "selected" : ""}>
-                                                                    Admin
                                                                 </option>
 
                                                             </select>
