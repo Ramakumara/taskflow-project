@@ -102,7 +102,8 @@ button {
 .super-toast.warning { background: #d97706; }
 
 .super-shell {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     display: grid;
     grid-template-columns: 246px minmax(0, 1fr);
 }
@@ -113,6 +114,8 @@ button {
     padding: 18px 18px 20px;
     border-right: 1px solid var(--sidebar-border);
     box-shadow: 10px 0 30px rgba(3, 26, 19, 0.12);
+    height: 100vh;
+    overflow-y: auto;
 }
 
 .super-brand {
@@ -217,6 +220,8 @@ button {
     display: flex;
     flex-direction: column;
     background: var(--page-bg);
+    height: 100vh;
+    overflow: hidden;
 }
 
 .super-topbar {
@@ -232,6 +237,7 @@ button {
     position: sticky;
     top: 0;
     z-index: 20;
+    flex-shrink: 0;
 }
 
 .super-search {
@@ -308,6 +314,8 @@ button {
     padding: 28px;
     display: grid;
     gap: 22px;
+    flex: 1;
+    overflow-y: auto;
 }
 
 .super-loading,

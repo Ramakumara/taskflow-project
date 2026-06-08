@@ -1,0 +1,81 @@
+I have layout issues in my TaskFlow Project Management System.
+
+Problems:
+
+1. Large Empty Space at Bottom
+- A large gray/white empty strip appears below the page content.
+- Projects, Users, Reports, and Dashboard cards end correctly, but the page continues with unnecessary empty space.
+- The TaskFlow Assistant appears on top of this empty area.
+- The sidebar height is correct, but the main content container is larger than necessary.
+
+2. Manager Dashboard Not Scrolling
+- The Manager Dashboard content is not scrollable.
+- When content exceeds the screen height, users cannot properly scroll through all sections.
+- The Manager Dashboard should behave the same way as the Admin Dashboard.
+- Sidebar should remain fixed.
+- Navbar should remain sticky.
+- Only the content area should scroll.
+
+Your task:
+
+1. Analyze the complete layout structure.
+2. Inspect all parent containers and wrappers:
+   - dashboard-layout
+   - dashboard-shell
+   - dashboard-content
+   - main-content
+   - page-content
+   - content-area
+   - main-panel
+   - manager-dashboard
+   - admin-dashboard
+   - projects-section
+   - reports-section
+   - users-section
+
+3. Find all CSS rules using:
+   - height: 100vh
+   - min-height: 100vh
+   - height: 100%
+   - min-height: 100%
+   - flex: 1
+   - flex-grow
+   - calc(100vh - ...)
+   - overflow
+   - overflow-y
+   - padding-bottom
+   - margin-bottom
+
+4. Identify the EXACT root causes of:
+   - The extra empty space at the bottom.
+   - The Manager Dashboard not scrolling.
+
+5. Return:
+   - Exact file name.
+   - Exact selector/class.
+   - Exact line number.
+   - Current code.
+   - Corrected code.
+
+6. Verify after fixing:
+   - Sidebar remains fixed.
+   - Navbar remains sticky.
+   - Admin Dashboard scrolls correctly.
+   - Manager Dashboard scrolls correctly.
+   - User Dashboard scrolls correctly.
+   - Super Admin Dashboard scrolls correctly.
+   - Only the content area scrolls.
+   - No blank strip appears at the bottom.
+   - Existing functionality remains unchanged.
+
+Important:
+- Do NOT redesign the UI.
+- Do NOT rebuild CSS.
+- Do NOT provide generic suggestions.
+- Find the actual root cause in the codebase and provide the exact fix only.
+
+Expected Result:
+- No empty space below content.
+- Manager Dashboard scrolls normally.
+- All dashboards use the same scrolling behavior.
+- Layout behaves like Jira, Asana, ClickUp, or Monday.com.

@@ -33,15 +33,19 @@
 /* Permanent 90% visual scaling for admin dashboard surfaces only */
 body:has(.dashboard-shell) {
     zoom: 0.9;
+    overflow: hidden;
 }
 
 html:has(.dashboard-shell),
 body:has(.dashboard-shell) {
     background: var(--page-bg);
+    height: 100%;
+    overflow: hidden;
 }
 
 body:has(.dashboard-shell) .dashboard-shell {
-    min-height: calc(100vh / 0.9);
+    height: calc(100vh / 0.9);
+    min-height: 0;
 }
 
 * {
@@ -524,7 +528,8 @@ select {
 }
 
 .dashboard-shell {
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     display: grid;
     grid-template-columns: 246px minmax(0, 1fr);
 }
@@ -534,6 +539,8 @@ select {
     color: #fff;
     padding: 28px 0;
     box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
+    height: 100%;
+    overflow-y: auto;
 }
 
 .brand-mark {
@@ -620,6 +627,9 @@ select {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
 }
 
 .topbar {
@@ -631,6 +641,7 @@ select {
     justify-content: space-between;
     gap: 24px;
     padding: 0 28px;
+    flex-shrink: 0;
 }
 
 .search-box {
@@ -1145,7 +1156,10 @@ select {
 
 .content-area {
     flex: 1;
+    min-height: 0;
     padding: 28px;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .settings-page {
@@ -3654,17 +3668,25 @@ body {
 }
 
 .admin-task-inbox-shell {
-    height: calc(100vh - 260px);
-    min-height: 600px;
+    height: auto;
+    max-height: calc(100vh - 260px);
+    min-height: 0;
     display: block;
     overflow: hidden;
     background: #ffffff;
 }
 
+.admin-task-inbox-shell.showing-detail {
+    height: calc(100vh - 105px);
+    max-height: calc(100vh - 105px);
+    min-height: 0;
+}
+
 .admin-task-inbox-left {
-    height: 100%;
+    height: auto;
+    max-height: inherit;
     display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, auto) auto;
     background: #fbfdff;
 }
 
@@ -3674,6 +3696,7 @@ body {
 
 .admin-task-inbox-list {
     min-height: 0;
+    max-height: calc(100vh - 318px);
     padding: 8px;
     overflow-y: auto;
     outline: none;
@@ -3853,13 +3876,16 @@ body {
 
 .admin-task-inbox-shell.showing-detail .admin-task-detail-panel {
     display: block;
+    height: 100%;
 }
 
 .admin-task-detail-content {
     height: 100%;
+    max-height: 100%;
     padding: 18px;
     background: #ffffff;
     overflow-y: auto;
+    overflow-x: hidden;
     animation: adminTaskDetailIn 180ms ease;
 }
 
@@ -4276,7 +4302,13 @@ body {
 @media (max-width: 760px) {
     .admin-task-inbox-shell {
         height: auto;
-        min-height: 620px;
+        min-height: 0;
+        max-height: none;
+    }
+
+    .admin-task-inbox-shell.showing-detail {
+        height: calc(100vh - 120px);
+        max-height: calc(100vh - 120px);
     }
 
     .admin-task-detail-header {

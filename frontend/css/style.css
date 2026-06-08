@@ -8,15 +8,19 @@ body {
 /* Permanent 90% visual scaling for dashboard surfaces only */
 body:has(.dashboard) {
     zoom: 0.9;
+    overflow: hidden;
 }
 
 html:has(.dashboard),
 body:has(.dashboard) {
     background: var(--tf-bg, #f4f8f6);
+    height: 100%;
+    overflow: hidden;
 }
 
 body:has(.dashboard) .dashboard {
-    min-height: calc(100vh / 0.9);
+    height: calc(100vh / 0.9);
+    min-height: 0;
 }
 
 :root {
@@ -90,6 +94,7 @@ body:has(.dashboard) .dashboard {
     padding: 0 22px;
     border-bottom: 1px solid var(--dashboard-border);
     box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .dashboard .topbar h2 {
@@ -333,10 +338,13 @@ body:has(.dashboard) .dashboard {
 
 .dashboard .main-content {
     flex: 1;
+    min-height: 0;
     margin-left: 0;
     padding: 34px 18px 18px;
     background: var(--dashboard-content-bg);
     box-sizing: border-box;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .dashboard .card,
@@ -1197,7 +1205,8 @@ select option[value="done"] {
     --shell-heading: #2f3b54;
     --shell-body: #465066;
     --shell-muted: #8a94a8;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     display: grid;
     grid-template-columns: 246px minmax(0, 1fr);
     background: var(--shell-page-bg);
@@ -1208,6 +1217,9 @@ select option[value="done"] {
     color: #fff;
     padding: 28px 0;
     box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.03);
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .dashboard .dashboard-brand {
@@ -1322,6 +1334,9 @@ select option[value="done"] {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
 }
@@ -2768,7 +2783,7 @@ select option[value="done"] {
 
 .dashboard .dashboard-sidebar {
     width: 250px;
-    min-height: 100vh;
+    min-height: 0;
     background: linear-gradient(180deg, #0f1c31 0%, #15253d 100%);
     padding: 18px 14px;
     box-sizing: border-box;
@@ -12253,12 +12268,13 @@ body.dashboard-theme-dark .dashboard-profile-card {
 
 /* Gmail-style task inbox */
 .task-inbox-page {
-    min-height: calc(100vh - 150px);
+    min-height: 0;
 }
 
 .task-inbox-shell {
-    height: calc(100vh - 245px);
-    min-height: 620px;
+    height: auto;
+    max-height: calc(100vh - 245px);
+    min-height: 0;
     border: 1px solid var(--tf-border-soft);
     border-radius: 10px;
     background: var(--tf-surface);
@@ -12267,11 +12283,18 @@ body.dashboard-theme-dark .dashboard-profile-card {
     box-shadow: var(--tf-shadow-sm);
 }
 
+.task-inbox-shell.showing-detail {
+    height: calc(100vh - 105px);
+    max-height: calc(100vh - 105px);
+    min-height: 0;
+}
+
 .task-inbox-left {
-    height: 100%;
+    height: auto;
+    max-height: inherit;
     min-width: 0;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(0, auto) auto;
     background: #fbfdff;
     transition: opacity 180ms ease, transform 180ms ease;
 }
@@ -12401,6 +12424,7 @@ body.dashboard-theme-dark .dashboard-profile-card {
 
 .task-inbox-list {
     min-height: 0;
+    max-height: calc(100vh - 303px);
     padding: 8px;
     overflow-y: auto;
     outline: none;
@@ -12585,13 +12609,16 @@ body.dashboard-theme-dark .dashboard-profile-card {
 
 .task-inbox-shell.showing-detail .task-detail-panel {
     display: block;
+    height: 100%;
 }
 
 .task-detail-content {
     height: 100%;
+    max-height: 100%;
     padding: 18px;
     background: #ffffff;
     overflow-y: auto;
+    overflow-x: hidden;
     animation: taskDetailIn 180ms ease;
 }
 
@@ -13085,11 +13112,17 @@ body.dashboard-theme-dark .dashboard-profile-card {
 
 @media (max-width: 860px) {
     .task-inbox-shell {
-        min-height: 680px;
+        min-height: 0;
+        max-height: none;
+    }
+
+    .task-inbox-shell.showing-detail {
+        height: calc(100vh - 120px);
+        max-height: calc(100vh - 120px);
     }
 
     .task-detail-content {
-        min-height: 520px;
+        min-height: 0;
     }
 }
 
@@ -13105,7 +13138,7 @@ body.dashboard-theme-dark .dashboard-profile-card {
     }
 
     .task-inbox-left {
-        min-height: 640px;
+        min-height: 0;
     }
 
     .task-toolbar-primary,
