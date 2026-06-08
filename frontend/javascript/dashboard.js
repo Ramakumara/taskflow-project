@@ -38,11 +38,21 @@ const email = params.get("email");
 
 if (token) {
     sessionStorage.setItem("token", token);
-    sessionStorage.setItem("role", role || "user");
+    sessionStorage.setItem("role", String(role || "user").trim().toLowerCase());
     sessionStorage.setItem("username", username || "");
     sessionStorage.setItem("email", email || "");
+    if (params.get("team_id")) sessionStorage.setItem("team_id", params.get("team_id"));
+    if (params.get("admin_id")) sessionStorage.setItem("admin_id", params.get("admin_id"));
+    if (params.get("manager_id")) sessionStorage.setItem("manager_id", params.get("manager_id"));
 
     window.history.replaceState({}, document.title, "/dashboard-page");
+}
+
+if (sessionStorage.getItem("role") === "super_admin") {
+    window.location.replace("/super-admin");
+}
+if (sessionStorage.getItem("role") === "admin") {
+    window.location.replace("/admin-page");
 }
     
 function hideAllViews() {
@@ -4479,6 +4489,15 @@ async function initializeDashboardPage() {
     if (dashboardPageInitialized) {
         return;
     }
+    const currentRole = sessionStorage.getItem("role");
+    if (currentRole === "admin") {
+        window.location.replace("/admin-page");
+        return;
+    }
+    if (currentRole === "super_admin") {
+        window.location.replace("/super-admin");
+        return;
+    }
     dashboardPageInitialized = true;
 
     if (typeof applySettingsPreferences === "function") {
@@ -4674,14 +4693,18 @@ function renderNotifications() {
         const rawTime = notification.time || notification.created_at;
         const exactTime = formatNotificationTime(rawTime);
         const liveTime = formatNotificationTimeAgo(rawTime);
+        const isInvitation = String(notification.type || "").toLowerCase() === "invitation"
+            && String(notification.status || "pending").toLowerCase() === "pending"
+            && notification.invitation_id;
+        const icon = isInvitation ? "fa-envelope-open-text" : "fa-tasks";
 
         list.innerHTML += `
         
         <div class="notification-item ${notification.read ? "" : "unread"}"
-                onclick="markNotificationRead('${notification.id}')">
+                onclick="${isInvitation ? "" : `markNotificationRead('${notification.id}')`}">
 
-            <div class="notification-icon blue">
-                <i class="fas fa-tasks"></i>
+            <div class="notification-icon ${isInvitation ? "green" : "blue"}">
+                <i class="fas ${icon}"></i>
             </div>
 
             <div class="notification-content">
@@ -4689,6 +4712,18 @@ function renderNotifications() {
                 <h4>${notification.title}</h4>
 
                 <p>${notification.message}</p>
+
+                ${isInvitation ? `
+                    <p class="invitation-role-line">Role: ${escapeHtml(notification.role || "User")}</p>
+                    <div class="invitation-actions" onclick="event.stopPropagation()">
+                        <button type="button" class="invitation-accept-btn" onclick="respondToInvitation('${escapeHtml(notification.invitation_id)}', 'accept', event)">
+                            Accept
+                        </button>
+                        <button type="button" class="invitation-reject-btn" onclick="respondToInvitation('${escapeHtml(notification.invitation_id)}', 'reject', event)">
+                            Reject
+                        </button>
+                    </div>
+                ` : ""}
 
                 <small title="${exactTime}">
                     ${liveTime}
@@ -4699,6 +4734,36 @@ function renderNotifications() {
         </div>
         `;
     });
+}
+
+async function respondToInvitation(invitationId, action, event) {
+    if (event) event.stopPropagation();
+    const token = sessionStorage.getItem("token");
+    if (!token || !invitationId) return;
+
+    try {
+        const response = await fetch(`${BASE_URL}/api/invitations/${action}/${encodeURIComponent(invitationId)}`, {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || data.success === false) {
+            throw new Error(data.message || data.detail || `Unable to ${action} invitation.`);
+        }
+
+        showNotification(data.message || `Invitation ${action === "accept" ? "accepted" : "rejected"}.`, "success");
+        await refreshSessionUser();
+        await loadNotifications();
+        if (action === "accept") {
+            if (typeof loadAssignableUsers === "function") await loadAssignableUsers();
+            if (typeof loadTeamMembers === "function") await loadTeamMembers();
+            if (typeof loadProjects === "function") await loadProjects();
+        }
+    } catch (error) {
+        showNotification(error.message || `Unable to ${action} invitation.`, "error");
+    }
 }
 
 function setNotificationFilter(filter, event) {

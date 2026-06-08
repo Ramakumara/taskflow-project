@@ -5,6 +5,7 @@ from auth_utils import get_current_user
 
 
 class Role(str, Enum):
+    SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
     MANAGER = "manager"
     USER = "user"
@@ -22,9 +23,28 @@ class Permission(str, Enum):
     UPDATE_OWN_TASK_STATUS = "update_own_task_status"
     UPLOAD_FILES = "upload_files"
     VIEW_NOTIFICATIONS = "view_notifications"
+    MANAGE_PLATFORM_SETTINGS = "manage_platform_settings"
+    VIEW_SYSTEM_ANALYTICS = "view_system_analytics"
+    MANAGE_SUPER_ADMIN_MODULE = "manage_super_admin_module"
 
 
 ROLE_PERMISSIONS = {
+    Role.SUPER_ADMIN: {
+        Permission.MANAGE_USERS,
+        Permission.CHANGE_ROLES,
+        Permission.VIEW_ACTIVITY_LOGS,
+        Permission.VIEW_REPORTS,
+        Permission.MANAGE_PROJECTS,
+        Permission.ASSIGN_TASKS,
+        Permission.MANAGE_TEAM_TASKS,
+        Permission.VIEW_ASSIGNED_TASKS,
+        Permission.UPDATE_OWN_TASK_STATUS,
+        Permission.UPLOAD_FILES,
+        Permission.VIEW_NOTIFICATIONS,
+        Permission.MANAGE_PLATFORM_SETTINGS,
+        Permission.VIEW_SYSTEM_ANALYTICS,
+        Permission.MANAGE_SUPER_ADMIN_MODULE,
+    },
     Role.ADMIN: {
         Permission.MANAGE_USERS,
         Permission.CHANGE_ROLES,

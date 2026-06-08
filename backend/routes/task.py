@@ -2,25 +2,28 @@ from ml.predict import predict_days
 from datetime import datetime, timedelta
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 
 from auth_utils import get_current_user, send_reminder_email, send_task_email
 from database import db
 from models.tasks import TaskCommentCreate, TaskCreate, TaskUpdate
 from rbac import Permission, Role, require_permission
-from routes.activity import record_activity
+from routes.activity import record_activity, record_audit_log
 from taskflow_utils import (
     add_notification,
     calculate_overall_status,
     collect_task_recipients,
     ensure_task_assignments,
     get_visible_task_filter,
+    get_user_team_id,
+    normalize_email,
     normalize_assignment_emails,
     normalize_priority,
     normalize_task_status,
     safe_object_id,
     serialize_task,
+    tenant_notification_recipients,
     sync_task_status,
     utc_now_iso,
 )
@@ -40,11 +43,21 @@ def _project_for_task(project_id: str, current_user: dict) -> dict:
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if current_user.get("role") == Role.ADMIN.value:
+    role = current_user.get("role")
+    if role == Role.SUPER_ADMIN.value:
         return project
+    if role == Role.ADMIN.value:
+        team_id = get_user_team_id(current_user)
+        if team_id and project.get("team_id") == team_id:
+            return project
+        if normalize_email(project.get("created_by")) == normalize_email(current_user.get("email")):
+            return project
+        raise HTTPException(status_code=403, detail="Not allowed")
     current_email = str(current_user.get("email") or "").strip().lower()
     project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
     if project_manager != current_email:
+        raise HTTPException(status_code=403, detail="Not allowed")
+    if project.get("team_id") and project.get("team_id") != get_user_team_id(current_user):
         raise HTTPException(status_code=403, detail="Not allowed")
     return project
 
@@ -61,13 +74,20 @@ def _task_assignees(value: TaskCreate | TaskUpdate) -> list[str]:
     return normalize_assignment_emails(value.assigned_users or value.assigned_to or [])
 
 
-def _validate_assignees(emails: list[str]) -> list[dict]:
+def _validate_assignees(emails: list[str], current_user: dict, project: dict | None = None) -> list[dict]:
     if not emails:
         raise HTTPException(status_code=400, detail="At least one assignee is required")
 
     users = list(db.users.find({"email": {"$in": emails}}))
     if len(users) != len(emails):
         raise HTTPException(status_code=400, detail="One or more users not found")
+    if current_user.get("role") != Role.SUPER_ADMIN.value:
+        team_id = (project or {}).get("team_id") or get_user_team_id(current_user)
+        for user in users:
+            if user.get("role") != Role.USER.value:
+                raise HTTPException(status_code=403, detail="Assignees must be users inside your team")
+            if team_id and user.get("team_id") and user.get("team_id") != team_id:
+                raise HTTPException(status_code=403, detail="Assignees must be users inside your team")
     return users
 
 
@@ -97,12 +117,13 @@ async def _notify_task_assignment(users: list[dict], task_title: str, assigned_b
 @router.post("/tasks")
 async def create_task(
     task: TaskCreate,
+    request: Request,
     current_user: dict = Depends(require_permission(Permission.ASSIGN_TASKS)),
 ):
     project = _project_for_task(task.project_id, current_user)
     title = _task_title(task)
     assignees = _task_assignees(task)
-    users = _validate_assignees(assignees)
+    users = _validate_assignees(assignees, current_user, project)
 
     if not title:
         raise HTTPException(status_code=400, detail="Task title is required")
@@ -151,6 +172,10 @@ async def create_task(
         "title": title,
         "task_title": title,
         "project_id": project["_id"],
+        "team_id": project.get("team_id") or get_user_team_id(current_user),
+        "admin_id": project.get("admin_id") or current_user.get("admin_id"),
+        "manager_id": project.get("manager_id") or normalize_email(project.get("assigned_manager")),
+        "assigned_user_id": assignees[0] if assignees else None,
         "description": str(task.description or "").strip(),
         "deadline": _task_due_date(task),
         "due_date": due_date,
@@ -173,6 +198,7 @@ async def create_task(
         {
             "task_id": result.inserted_id,
             "user_id": user["email"],
+            "team_id": project.get("team_id"),
             "status": "Pending",
             "assigned_date": now,
             "completion_date": None,
@@ -182,7 +208,7 @@ async def create_task(
     db.task_assignments.insert_many(assignment_rows)
 
     await _notify_task_assignment(users, title, current_user.get("email"), document["due_date"])
-    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+    for admin_email in tenant_notification_recipients(current_user, include_super_admins=True):
         add_notification(
             admin_email,
             f"Task '{title}' was created in project '{project.get('project_name') or project.get('name')}'.",
@@ -195,6 +221,7 @@ async def create_task(
         f"Task: {title}",
         f"Project: {project.get('project_name') or project.get('name')}; assignees: {', '.join(assignees)}",
     )
+    record_audit_log(current_user, "Task Created", f"Task: {title}", request)
 
     saved = db.tasks.find_one({"_id": result.inserted_id})
     serialized_task = serialize_task(saved)
@@ -216,7 +243,12 @@ def get_tasks(current_user: dict = Depends(get_current_user)):
 
 
 @router.put("/tasks/{task_id}")
-def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(get_current_user)):
+def update_task(
+    task_id: str,
+    update: TaskUpdate,
+    request: Request,
+    current_user: dict = Depends(get_current_user),
+):
     object_id = safe_object_id(task_id)
     if not object_id:
         raise HTTPException(status_code=400, detail="Invalid task id")
@@ -260,7 +292,7 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
                     f"Task '{task.get('task_title') or task.get('title')}' was completed by {current_user['email']}.",
                     "Task Completed",
                 )
-            for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+            for admin_email in tenant_notification_recipients(current_user, include_super_admins=True):
                 add_notification(
                     admin_email,
                     f"Task '{task.get('task_title') or task.get('title')}' was completed by {current_user['email']}.",
@@ -272,6 +304,7 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
             f"Task: {task.get('task_title') or task.get('title')}",
             f"My status: {status}; overall: {overall_status}",
         )
+        record_audit_log(current_user, "Task Updated", f"Task: {task.get('task_title') or task.get('title')}", request)
         saved = db.tasks.find_one({"_id": object_id})
         serialized_task = serialize_task(saved)
         emit_realtime_event(
@@ -286,7 +319,7 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
                     project,
                     extra=[current_user.get("email")],
                 ),
-                *(db.users.distinct("email", {"role": "admin"}) or [])
+                *tenant_notification_recipients(current_user, include_super_admins=True)
             }),
         )
         return {"message": "Task updated", "task": serialized_task}
@@ -308,9 +341,10 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
 
     assignees = _task_assignees(update)
     if assignees:
-        users = _validate_assignees(assignees)
+        users = _validate_assignees(assignees, current_user, project)
         updates["assigned_to"] = assignees
         updates["assigned_users"] = assignees
+        updates["assigned_user_id"] = assignees[0] if assignees else None
         existing = {
             row["user_id"]: row
             for row in db.task_assignments.find({"task_id": object_id})
@@ -321,6 +355,7 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
                     {
                         "task_id": object_id,
                         "user_id": email,
+                        "team_id": project.get("team_id"),
                         "status": "Pending",
                         "assigned_date": utc_now_iso(),
                         "completion_date": None,
@@ -372,6 +407,7 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
         f"Task: {title or task.get('task_title') or task.get('title')}",
         f"Project: {project.get('project_name') or project.get('name')}",
     )
+    record_audit_log(current_user, "Task Updated", f"Task: {title or task.get('task_title') or task.get('title')}", request)
     saved = db.tasks.find_one({"_id": object_id})
     serialized_task = serialize_task(saved)
     if serialized_task.get("overall_status") == "Completed":
@@ -389,7 +425,7 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
                 project,
                 extra=[current_user.get("email")],
             ),
-            *(db.users.distinct("email", {"role": "admin"}) or [])
+            *tenant_notification_recipients(current_user, include_super_admins=True)
         }),
     )
     return {"message": "Task updated successfully", "task": serialized_task}
@@ -399,24 +435,27 @@ def update_task(task_id: str, update: TaskUpdate, current_user: dict = Depends(g
 def update_my_task_assignment(
     task_id: str,
     update: TaskUpdate,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
-    return update_task(task_id, update, current_user)
+    return update_task(task_id, update, request, current_user)
 
 
 @router.get("/manager/team-members")
 def get_manager_team_members(current_user: dict = Depends(require_permission(Permission.MANAGE_TEAM_TASKS))):
-    query = get_visible_task_filter(current_user)
-    tasks = list(db.tasks.find(query))
-    emails = set()
-    for task in tasks:
-        emails.update(normalize_assignment_emails(task.get("assigned_users") or task.get("assigned_to") or []))
-    users = list(db.users.find({"email": {"$in": list(emails)}})) if emails else []
+    team_id = get_user_team_id(current_user)
+    if current_user.get("role") == Role.SUPER_ADMIN.value:
+        users = list(db.users.find({"role": Role.USER.value}))
+    elif team_id:
+        users = list(db.users.find({"team_id": team_id, "role": Role.USER.value}))
+    else:
+        users = []
     return [
         {
             "email": user.get("email"),
             "username": user.get("username"),
             "role": user.get("role"),
+            "team_id": user.get("team_id"),
         }
         for user in users
     ]
@@ -517,6 +556,7 @@ async def upload_task_attachment(
             "owner_name": current_user.get("username") or current_user.get("email"),
             "owner_role": current_user.get("role"),
             "shared_with": normalize_assignment_emails(task.get("assigned_users") or task.get("assigned_to") or []),
+            "team_id": task.get("team_id"),
             "source": "task_attachment",
             "task_id": str(object_id),
             "task_title": task.get("task_title") or task.get("title"),
@@ -535,7 +575,7 @@ async def upload_task_attachment(
                 f"File '{file.filename}' was shared on task '{task.get('task_title') or task.get('title')}'.",
                 "File Shared",
             )
-    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+    for admin_email in tenant_notification_recipients(current_user, include_super_admins=True):
         add_notification(
             admin_email,
             f"File '{file.filename}' was uploaded to task '{task.get('task_title') or task.get('title')}'.",
@@ -600,6 +640,7 @@ def download_task_attachment(
 @router.delete("/tasks/{task_id}")
 def delete_task(
     task_id: str,
+    request: Request,
     current_user: dict = Depends(require_permission(Permission.MANAGE_TEAM_TASKS)),
 ):
     object_id = safe_object_id(task_id)
@@ -632,6 +673,7 @@ def delete_task(
         f"Task: {task.get('task_title') or task.get('title')}",
         "",
     )
+    record_audit_log(current_user, "Task Deleted", f"Task: {task.get('task_title') or task.get('title')}", request)
     emit_realtime_event(
         {
             "type": "task.deleted",

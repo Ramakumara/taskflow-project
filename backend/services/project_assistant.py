@@ -68,7 +68,7 @@ def _completion_percent(completed: int, total: int) -> int:
 
 
 def _scope_label(role: str) -> str:
-    if role == Role.ADMIN.value:
+    if role in {Role.SUPER_ADMIN.value, Role.ADMIN.value}:
         return "all TaskFlow projects and tasks"
     if role == Role.MANAGER.value:
         return "projects you manage and their team tasks"

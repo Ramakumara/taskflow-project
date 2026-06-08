@@ -10,6 +10,12 @@ const adminState = {
     currentSection: "dashboard",
     isUserModalOpen: false,
     isCreatingUser: false,
+    isInviteModalOpen: false,
+    isSendingInvitation: false,
+    inviteUserForm: {
+        email: "",
+        role: "User"
+    },
     isProjectModalOpen: false,
     isCreatingProject: false,
     isTaskModalOpen: false,
@@ -107,7 +113,11 @@ let adminFileAssigneePopoverBound = false;
 let activeAdminFileAssigneePreview = null;
 
 function getManagerUsers() {
-    return adminState.users.filter((user) => String(user.role || "").toLowerCase() === "manager");
+    const teamId = String(sessionStorage.getItem("team_id") || "").trim();
+    return adminState.users.filter((user) => {
+        const isManager = String(user.role || "").toLowerCase() === "manager";
+        return isManager && (!teamId || !user.team_id || String(user.team_id) === teamId);
+    });
 }
 
 function getTaskAssignments(task) {
@@ -2223,7 +2233,11 @@ function renderUsersView() {
                 header: renderCommonPageHeader(
                     "Users",
                     "Manage users, roles, and access permissions from one consistent workspace.",
-                    `
+                    `   
+                         <button class="btn btn-success" onclick="openInviteModal()">
+                            <i class="fas fa-envelope"></i>
+                            Invite User
+                        </button>
                         <button
                             class="action-btn common-action-btn admin-add-user-btn"
                             type="button"
@@ -2464,8 +2478,142 @@ function renderUsersView() {
                 ? renderAddUserModal()
                 : ""}
 
+            ${adminState.isInviteModalOpen
+                ? renderInviteUserModal()
+                : ""}
+
         </div>
     `;
+}
+
+function openInviteModal() {
+    adminState.isInviteModalOpen = true;
+    adminState.isSendingInvitation = false;
+    adminState.inviteUserForm = {
+        email: "",
+        role: "User"
+    };
+    renderUsersView();
+}
+
+function closeInviteModal() {
+    adminState.isInviteModalOpen = false;
+    adminState.isSendingInvitation = false;
+    adminState.inviteUserForm = {
+        email: "",
+        role: "User"
+    };
+    renderUsersView();
+}
+
+function handleInviteBackdrop(event) {
+    if (event.target.classList.contains("admin-modal-backdrop")) {
+        closeInviteModal();
+    }
+}
+
+function updateInviteField(field, value) {
+    adminState.inviteUserForm = {
+        ...adminState.inviteUserForm,
+        [field]: value
+    };
+}
+
+function renderInviteUserModal() {
+    const form = adminState.inviteUserForm;
+
+    return `
+        <div class="admin-modal-backdrop invite-user-backdrop" onclick="handleInviteBackdrop(event)">
+            <div class="admin-modal-card invite-user-card" role="dialog" aria-modal="true" aria-labelledby="admin-invite-user-title" onclick="event.stopPropagation()">
+                <div class="admin-modal-head">
+                    <div>
+                        <h3 id="admin-invite-user-title">Invite User</h3>
+                        <p>Invite an existing TaskFlow account into this workspace.</p>
+                    </div>
+                    <button class="admin-modal-close" type="button" aria-label="Close invite modal" onclick="closeInviteModal()">
+                        <i class="fas fa-xmark"></i>
+                    </button>
+                </div>
+                <form class="admin-user-form invite-user-form" onsubmit="sendInvitation(event)">
+                    <div class="admin-user-form-section">
+                        <h4>Invitation Details</h4>
+                        <label class="admin-form-field">
+                            <span>User Email <strong>*</strong></span>
+                            <input type="email" id="inviteEmail" placeholder="user@example.com" value="${escapeHtml(form.email)}" oninput="updateInviteField('email', this.value)" required>
+                        </label>
+                        <label class="admin-form-field">
+                            <span>Role <strong>*</strong></span>
+                            <select id="inviteRole" onchange="updateInviteField('role', this.value)" required>
+                                <option value="User" ${form.role === "User" ? "selected" : ""}>User</option>
+                                <option value="Manager" ${form.role === "Manager" ? "selected" : ""}>Manager</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="admin-modal-actions">
+                        <button class="action-btn secondary-btn" type="button" onclick="closeInviteModal()">Cancel</button>
+                        <button class="action-btn export-btn" id="sendInviteButton" type="submit" ${adminState.isSendingInvitation ? "disabled" : ""}>
+                            <i class="fas ${adminState.isSendingInvitation ? "fa-spinner fa-spin" : "fa-paper-plane"}"></i>
+                            <span>${adminState.isSendingInvitation ? "Sending..." : "Send Invitation"}</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+}
+
+async function sendInvitation(event) {
+    if (event) event.preventDefault();
+
+    const email = String(adminState.inviteUserForm.email || "").trim().toLowerCase();
+    const role = String(adminState.inviteUserForm.role || "User").trim();
+
+    const token = sessionStorage.getItem("token");
+    const requestUrl = `${BASE_URL}/api/invitations/send`;
+    const payload = {
+        email,
+        role
+    };
+
+    if (!token) {
+        showNotification("Session expired. Please login again.", "error");
+        return;
+    }
+
+    if (!email) {
+        showNotification("Enter the user's registered email.", "warning");
+        return;
+    }
+
+    adminState.isSendingInvitation = true;
+    renderUsersView();
+
+    try {
+        const response = await fetch(requestUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok || data.success === false) {
+            throw new Error(data.message || data.detail || "Failed to send invitation");
+        }
+
+        showNotification(data.message || "Invitation sent successfully.", "success");
+        await loadAdminNotifications();
+        closeInviteModal();
+
+    } catch (error) {
+        adminState.isSendingInvitation = false;
+        renderUsersView();
+        showNotification(error.message || "Unable to send invitation.", "error");
+        console.error(error);
+    }
 }
 
 function setAdminUserPage(page) {
@@ -5346,6 +5494,10 @@ function normalizeAdminNotification(notification, index, readOverrides = new Set
         relatedName,
         read: isRead,
         createdAt,
+        type: notification?.type,
+        invitationId: notification?.invitation_id,
+        invitationStatus: notification?.status,
+        invitationRole: notification?.role,
         target: buildAdminNotificationTarget(notification, category),
         dedupeKey: `${category}|${title}|${relatedName}|${formatDate(createdAt)}`
     };
@@ -5427,6 +5579,8 @@ function isAdminMonitoringNotification(notification, normalizedText) {
     const project = findProjectForNotification(notification, task);
 
     if (normalizedText.includes("project created")
+        || normalizedText.includes("workspace invitation")
+        || normalizedText.includes("invited to join the workspace")
         || normalizedText.includes("manager assignment")
         || normalizedText.includes("role updated")
         || normalizedText.includes("user registered")
@@ -5606,6 +5760,7 @@ function buildAdminNotificationTitle(notification, category, normalizedText) {
     }
 
     if (category === "users") {
+        if (normalizedText.includes("workspace invitation")) return "Workspace Invitation";
         if (normalizedText.includes("role")) return "User role updated";
         if (normalizedText.includes("registered")) return "New user registration";
         if (normalizedText.includes("created")) return "User created";
@@ -6277,6 +6432,11 @@ window.setAdminUserPage = setAdminUserPage;
 window.setAdminUserSearch = setAdminUserSearch;
 window.setAdminUserRoleFilter = setAdminUserRoleFilter;
 window.resetAdminUserFilters = resetAdminUserFilters;
+window.openInviteModal = openInviteModal;
+window.closeInviteModal = closeInviteModal;
+window.handleInviteBackdrop = handleInviteBackdrop;
+window.updateInviteField = updateInviteField;
+window.sendInvitation = sendInvitation;
 window.openAddUserModal = openAddUserModal;
 window.closeAddUserModal = closeAddUserModal;
 window.handleAddUserBackdrop = handleAddUserBackdrop;

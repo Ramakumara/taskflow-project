@@ -9,7 +9,7 @@ from datetime import datetime
 from auth_utils import get_current_user
 from database import db
 from routes.activity import record_activity
-from taskflow_utils import get_visible_task_filter, normalize_assignment_emails, add_notification
+from taskflow_utils import get_user_team_id, get_visible_task_filter, normalize_assignment_emails, add_notification, tenant_notification_recipients
 from websocket_manager import emit_realtime_event
 
 router = APIRouter()
@@ -51,11 +51,15 @@ def _is_file_owner(file, current_user):
 
 
 def _can_manage_file(file, current_user):
-    if current_user.get("role") == "admin":
+    if current_user.get("role") == "super_admin":
         return True
+    if current_user.get("role") == "admin":
+        return not file.get("team_id") or file.get("team_id") == get_user_team_id(current_user)
     if _is_file_owner(file, current_user):
         return True
     if current_user.get("role") != "manager":
+        return False
+    if file.get("team_id") and file.get("team_id") != get_user_team_id(current_user):
         return False
     file_owner_role = _normalize(file.get("owner_role"))
     if file_owner_role == "manager":
@@ -142,6 +146,8 @@ def _ensure_task_attachment_files(current_user: dict):
                 "assigned_users": 1,
                 "created_by": 1,
                 "assigned_by": 1,
+                "team_id": 1,
+                "admin_id": 1,
                 "updated_at": 1,
             },
         )
@@ -176,6 +182,8 @@ def _ensure_task_attachment_files(current_user: dict):
                         "owner_name": owner.get("username") if owner else owner_email,
                         "owner_role": owner.get("role") if owner else "manager",
                         "shared_with": shared_with,
+                        "team_id": task.get("team_id"),
+                        "admin_id": task.get("admin_id"),
                         "source": "task_attachment",
                         "task_id": task_id,
                         "task_title": task.get("task_title") or task.get("title"),
@@ -197,7 +205,7 @@ async def upload_file(
     shared_with: str = Form(None),
     current_user: dict = Depends(get_current_user),
 ):
-    if current_user.get("role") not in ("admin", "manager"):
+    if current_user.get("role") not in ("super_admin", "admin", "manager"):
         raise HTTPException(status_code=403, detail="Only admins and managers can upload files")
 
     assigned_users = []
@@ -215,6 +223,11 @@ async def upload_file(
             raise HTTPException(status_code=400, detail="shared_with must be a list")
 
     assigned_users = [str(item).strip() for item in assigned_users if str(item).strip()]
+    team_id = get_user_team_id(current_user)
+    if current_user.get("role") != "super_admin" and assigned_users:
+        valid_count = db.users.count_documents({"email": {"$in": assigned_users}, "team_id": team_id, "role": "user"})
+        if valid_count != len(set(assigned_users)):
+            raise HTTPException(status_code=403, detail="Files can be shared only with users inside your team")
     file_path = os.path.join(UPLOAD_DIR, file.filename)
 
     with open(file_path, "wb") as buffer:
@@ -231,6 +244,8 @@ async def upload_file(
             "owner_email": current_user.get("email"),
             "owner_name": current_user.get("username") or current_user.get("email"),
             "owner_role": current_user.get("role"),
+            "team_id": team_id,
+            "admin_id": current_user.get("admin_id"),
             "shared_with": assigned_users,
             "project_id": project_id,
             "project_name": project_name,
@@ -245,7 +260,7 @@ async def upload_file(
         f"File: {file.filename}",
         "",
     )
-    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+    for admin_email in tenant_notification_recipients(current_user, include_super_admins=True):
         add_notification(admin_email, f"File '{file.filename}' was uploaded.", "File Uploaded")
     for recipient in assigned_users:
         detail = f"File '{file.filename}' was shared with you."
@@ -266,7 +281,7 @@ async def upload_file(
                 "shared_with": assigned_users,
             },
         },
-        recipients=[current_user.get("email"), *(db.users.distinct("email", {"role": "admin"}) or []), *assigned_users],
+        recipients=[current_user.get("email"), *tenant_notification_recipients(current_user, include_super_admins=True), *assigned_users],
     )
     return {"message": "File uploaded successfully"}
 
@@ -275,8 +290,11 @@ async def upload_file(
 def list_files(current_user: dict = Depends(get_current_user)):
     _ensure_task_attachment_files(current_user)
     query = {}
-    if current_user.get("role") == "admin":
+    if current_user.get("role") == "super_admin":
         query = {}
+    elif current_user.get("role") == "admin":
+        team_id = get_user_team_id(current_user)
+        query = {"team_id": team_id} if team_id else {"owner_email": current_user.get("email")}
     else:
         query = {
             "$or": [
@@ -315,7 +333,9 @@ def download_file(filename: str, current_user: dict = Depends(get_current_user))
     if not file:
         raise HTTPException(status_code=404, detail="File not found")
 
-    if current_user.get("role") != "admin":
+    if current_user.get("role") == "admin" and file.get("team_id") and file.get("team_id") != get_user_team_id(current_user):
+        raise HTTPException(status_code=403, detail="Access denied")
+    if current_user.get("role") not in {"super_admin", "admin"}:
         allowed = file.get("owner_email") == current_user.get("email") or current_user.get("email") in file.get(
             "shared_with", []
         )
@@ -375,7 +395,7 @@ def share_file(filename: str, payload: dict, current_user: dict = Depends(get_cu
     if not file:
         raise HTTPException(status_code=404, detail="Not found")
 
-    if current_user.get("role") not in ("admin", "manager"):
+    if current_user.get("role") not in ("super_admin", "admin", "manager"):
         raise HTTPException(status_code=403, detail="Access denied")
 
     if current_user.get("role") == "manager":
@@ -393,6 +413,14 @@ def share_file(filename: str, payload: dict, current_user: dict = Depends(get_cu
         raise HTTPException(status_code=400, detail="shared_with must be a list or string")
 
     shared_with = [str(item).strip() for item in shared_with if str(item).strip()]
+    if current_user.get("role") != "super_admin":
+        team_id = get_user_team_id(current_user)
+        if file.get("team_id") and file.get("team_id") != team_id:
+            raise HTTPException(status_code=403, detail="Access denied")
+        if shared_with:
+            valid_count = db.users.count_documents({"email": {"$in": shared_with}, "team_id": team_id, "role": "user"})
+            if valid_count != len(set(shared_with)):
+                raise HTTPException(status_code=403, detail="Files can be shared only with users inside your team")
 
     db.files.update_one(
         {"_id": file["_id"]},

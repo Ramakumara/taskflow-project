@@ -39,6 +39,10 @@ def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def normalize_email(value: str | None) -> str:
+    return str(value or "").strip().lower()
+
+
 def ensure_utc_datetime(value):
     if not hasattr(value, "isoformat"):
         return value
@@ -78,6 +82,114 @@ def normalize_assignment_emails(values: Optional[Iterable[str]]) -> List[str]:
     return unique
 
 
+def serialize_team(team: dict | None) -> dict | None:
+    if not team:
+        return None
+    payload = dict(team)
+    payload["id"] = str(payload.pop("_id"))
+    payload["team_name"] = payload.get("team_name") or "TaskFlow Team"
+    payload["admin_id"] = normalize_email(payload.get("admin_id"))
+    payload["status"] = payload.get("status") or "active"
+    return payload
+
+
+def ensure_admin_team(admin_user: dict) -> dict | None:
+    if normalize_role(admin_user.get("role")) != Role.ADMIN.value:
+        return None
+
+    admin_email = normalize_email(admin_user.get("email"))
+    if not admin_email:
+        return None
+
+    existing_team_id = str(admin_user.get("team_id") or "").strip()
+    team = None
+    if existing_team_id:
+        team = db.teams.find_one({"_id": safe_object_id(existing_team_id)}) or db.teams.find_one({"team_id": existing_team_id})
+
+    if not team:
+        team = db.teams.find_one({"admin_id": admin_email})
+
+    if not team:
+        result = db.teams.insert_one({
+            "team_name": f"{admin_user.get('username') or admin_email}'s Team",
+            "admin_id": admin_email,
+            "created_at": utc_now_iso(),
+            "status": "active",
+        })
+        team = db.teams.find_one({"_id": result.inserted_id})
+
+    team_id = str(team["_id"])
+    updates = {
+        "team_id": team_id,
+        "admin_id": admin_email,
+        "manager_id": None,
+        "updated_at": utc_now_iso(),
+    }
+    if admin_user.get("team_id") != team_id or admin_user.get("admin_id") != admin_email:
+        db.users.update_one({"email": admin_email}, {"$set": updates})
+        admin_user.update(updates)
+
+    return team
+
+
+def get_user_team_id(user: dict | None) -> str | None:
+    if not user:
+        return None
+    if normalize_role(user.get("role")) == Role.ADMIN.value:
+        ensure_admin_team(user)
+    value = str(user.get("team_id") or "").strip()
+    return value or None
+
+
+def is_super_admin(user: dict | None) -> bool:
+    return normalize_role((user or {}).get("role")) == Role.SUPER_ADMIN.value
+
+
+def assert_same_team(current_user: dict, target: dict | None, detail: str = "Not allowed") -> None:
+    if is_super_admin(current_user):
+        return
+    if not target:
+        return
+    current_team = get_user_team_id(current_user)
+    target_team = str(target.get("team_id") or "").strip() or None
+    if current_team and target_team and current_team == target_team:
+        return
+    from fastapi import HTTPException
+    raise HTTPException(status_code=403, detail=detail)
+
+
+def scoped_user_query(current_user: dict, extra: Optional[dict] = None) -> dict:
+    query = dict(extra or {})
+    role = normalize_role(current_user.get("role"))
+    email = normalize_email(current_user.get("email"))
+    team_id = get_user_team_id(current_user)
+
+    if role == Role.SUPER_ADMIN.value:
+        return query
+    if role in {Role.ADMIN.value, Role.MANAGER.value}:
+        if not team_id:
+            return {"_id": {"$in": []}}
+        query["team_id"] = team_id
+        return query
+    query["email"] = email
+    return query
+
+
+def get_team_admin_emails(team_id: str | None, include_super_admins: bool = True) -> list[str]:
+    emails = set()
+    if team_id:
+        emails.update(normalize_assignment_emails(db.users.distinct("email", {"team_id": team_id, "role": Role.ADMIN.value})))
+    if include_super_admins:
+        emails.update(get_super_admin_emails())
+    return sorted(emails)
+
+
+def tenant_notification_recipients(current_user: dict, include_super_admins: bool = True) -> list[str]:
+    if is_super_admin(current_user):
+        return get_admin_emails()
+    return get_team_admin_emails(get_user_team_id(current_user), include_super_admins=include_super_admins)
+
+
 def email_match_filter(field: str, email: str) -> dict:
     normalized = str(email or "").strip().lower()
     if not normalized:
@@ -100,7 +212,11 @@ def get_user_emails_by_roles(*roles: str) -> list[str]:
 
 
 def get_admin_emails() -> list[str]:
-    return get_user_emails_by_roles(Role.ADMIN.value)
+    return get_user_emails_by_roles(Role.SUPER_ADMIN.value, Role.ADMIN.value)
+
+
+def get_super_admin_emails() -> list[str]:
+    return get_user_emails_by_roles(Role.SUPER_ADMIN.value)
 
 
 def get_manager_emails() -> list[str]:
@@ -126,6 +242,12 @@ def serialize_notification(doc: dict) -> dict:
         "message": doc.get("message") or "",
         "email": doc.get("email") or doc.get("user_id"),
         "user_id": doc.get("user_id") or doc.get("email"),
+        "type": doc.get("type"),
+        "category": doc.get("category"),
+        "invitation_id": doc.get("invitation_id"),
+        "workspace_id": doc.get("workspace_id"),
+        "role": doc.get("role"),
+        "status": doc.get("status"),
         "read": bool(doc.get("read", doc.get("is_read", False))),
         "time": time_value,
         "created_at": created_at or time_value,
@@ -342,16 +464,31 @@ def serialize_task(task: dict) -> dict:
 
 def get_visible_project_filter(current_user: dict) -> dict:
     role = normalize_role(current_user.get("role"))
-    email = str(current_user.get("email") or "").strip().lower()
+    email = normalize_email(current_user.get("email"))
+    team_id = get_user_team_id(current_user)
 
-    if role == "admin":
+    if role == "super_admin":
         return {}
-    if role == "manager":
+    if role == "admin":
+        if not team_id:
+            return {"_id": {"$in": []}}
         return {
             "$or": [
+                {"team_id": team_id},
+                email_match_filter("created_by", email),
+            ]
+        }
+    if role == "manager":
+        if not team_id:
+            return {"_id": {"$in": []}}
+        return {
+            "$or": [
+                {"team_id": team_id, "manager_id": email},
+                {"team_id": team_id, **email_match_filter("assigned_manager", email)},
+                {"team_id": team_id, **email_match_filter("owner_email", email)},
                 email_match_filter("assigned_manager", email),
                 email_match_filter("owner_email", email),
-            ]
+            ],
         }
 
     task_ids = db.task_assignments.distinct("task_id", {"user_id": email})
@@ -363,17 +500,40 @@ def get_visible_project_filter(current_user: dict) -> dict:
 
 def get_visible_task_filter(current_user: dict) -> dict:
     role = normalize_role(current_user.get("role"))
-    email = str(current_user.get("email") or "").strip().lower()
+    email = normalize_email(current_user.get("email"))
+    team_id = get_user_team_id(current_user)
 
-    if role == "admin":
+    if role == "super_admin":
         return {}
-    if role == "manager":
+    if role == "admin":
+        if not team_id:
+            return {"_id": {"$in": []}}
         project_ids = db.projects.distinct(
             "_id",
             {
                 "$or": [
+                    {"team_id": team_id},
+                    email_match_filter("created_by", email),
+                ]
+            },
+        )
+        return {
+            "$or": [
+                {"team_id": team_id},
+                {"project_id": {"$in": project_ids}},
+            ]
+        }
+    if role == "manager":
+        if not team_id:
+            return {"_id": {"$in": []}}
+        project_ids = db.projects.distinct(
+            "_id",
+            {
+                "team_id": team_id,
+                "$or": [
                     email_match_filter("assigned_manager", email),
                     email_match_filter("owner_email", email),
+                    {"manager_id": email},
                 ]
             },
         )
@@ -398,7 +558,7 @@ def collect_project_recipients(project: dict, extra: Optional[Iterable[str]] = N
             if isinstance(assignee, list):
                 recipients.update(normalize_assignment_emails(assignee))
 
-    recipients.update(get_admin_emails())
+    recipients.update(get_team_admin_emails(project.get("team_id")))
     return sorted(recipients)
 
 
@@ -429,9 +589,12 @@ def add_notification(user_id: Optional[str], message: str, title: str = "TaskFlo
         return None
 
     now = datetime.now(timezone.utc)
+    recipient = db.users.find_one({"email": user_id}, {"team_id": 1, "admin_id": 1})
     document = {
         "user_id": user_id,
         "email": user_id,
+        "team_id": recipient.get("team_id") if recipient else None,
+        "admin_id": recipient.get("admin_id") if recipient else None,
         "title": title,
         "message": message,
         "is_read": False,
@@ -462,9 +625,20 @@ def add_notification(user_id: Optional[str], message: str, title: str = "TaskFlo
 
 
 def build_admin_dashboard_stats() -> dict:
-    tasks = [serialize_task(item) for item in db.tasks.find({})]
-    projects = [serialize_project(item) for item in db.projects.find({})]
-    activities = list(db.activity_log.find().sort("timestamp", -1).limit(8))
+    return build_scoped_dashboard_stats({})
+
+
+def build_scoped_dashboard_stats(current_user: dict | None = None) -> dict:
+    current_user = current_user or {}
+    project_filter = get_visible_project_filter(current_user) if current_user else {}
+    task_filter = get_visible_task_filter(current_user) if current_user else {}
+    user_filter = scoped_user_query(current_user) if current_user else {}
+    team_id = get_user_team_id(current_user) if current_user else None
+
+    tasks = [serialize_task(item) for item in db.tasks.find(task_filter)]
+    projects = [serialize_project(item) for item in db.projects.find(project_filter)]
+    activity_query = {"team_id": team_id} if team_id else {}
+    activities = list(db.activity_log.find(activity_query).sort("timestamp", -1).limit(8))
 
     completed_tasks = [task for task in tasks if task.get("overall_status") == "Completed"]
     pending_tasks = [task for task in tasks if task.get("overall_status") == "Pending"]
@@ -487,8 +661,11 @@ def build_admin_dashboard_stats() -> dict:
         )
 
     return {
-        "total_users": db.users.count_documents({}),
+        "total_team_members": db.users.count_documents(user_filter) if current_user else db.users.count_documents({}),
+        "total_users": db.users.count_documents({**user_filter, "role": Role.USER.value}) if current_user else db.users.count_documents({}),
+        "total_managers": db.users.count_documents({**user_filter, "role": Role.MANAGER.value}) if current_user else db.users.count_documents({"role": Role.MANAGER.value}),
         "total_projects": len(projects),
+        "active_projects": len([p for p in projects if normalize_project_status(p.get("status")) != "Completed"]),
         "total_tasks": len(tasks),
         "completed_tasks": len(completed_tasks),
         "pending_tasks": len(pending_tasks),

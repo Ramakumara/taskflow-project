@@ -214,20 +214,67 @@
             </div>
         </div>
     </div>
+    <div id="inviteModal" class="modal-overlay hidden">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>Invite User</h3>
+            <button onclick="closeInviteModal()">✕</button>
+        </div>
 
+        <div class="modal-body">
+
+            <div class="form-group">
+                <label>Email</label>
+                <input
+                    type="email"
+                    id="inviteEmail"
+                    placeholder="Enter email">
+            </div>
+
+            <div class="form-group">
+                <label>Role</label>
+                <select id="inviteRole">
+                    <option value="user">User</option>
+                    <option value="manager">Manager</option>
+                </select>
+            </div>
+
+            <div class="form-actions">
+                <button class="btn btn-secondary"
+                        onclick="closeInviteModal()">
+                    Cancel
+                </button>
+
+                <button class="btn btn-success"
+                        id="sendInviteButton"
+                        type="button">
+                    Send Invite
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="/static/javascript/chat.js"></script>
     <script src="/static/javascript/api.js?v=20260521-assign-fix"></script>
-    <script src="/static/javascript/admin.js?v=20260528-file-upload-modal"></script>
+    <script src="/static/javascript/admin.js?v=20260606-invitation-route-fix"></script>
     <script>
-        const role = sessionStorage.getItem("role");
+        let role = String(sessionStorage.getItem("role") || "").trim().toLowerCase();
 
-        if (role !== "admin") {
+        async function startAdminPage() {
+            if (typeof refreshSessionUser === "function" && sessionStorage.getItem("token")) {
+                const freshUser = await refreshSessionUser();
+                role = String(freshUser?.role || role || "").trim().toLowerCase();
+            }
+
+            if (role !== "admin") {
             alert("Access denied");
             window.location.href = "/";
+                return;
         }
 
         const username = sessionStorage.getItem("username");
@@ -236,6 +283,9 @@
         }
 
         initializeAdminDashboard();
+        }
+
+        startAdminPage();
     </script>
     <div id="google_translate_element" class="hidden"></div>
 

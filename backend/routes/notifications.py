@@ -31,11 +31,16 @@ async def get_notifications(current_user: dict = Depends(get_current_user)):
             }
         ]
     }
-    if current_user.get("role") != "admin":
+    if current_user.get("role") != "super_admin":
+        current_owner_values = [
+            current_user["email"],
+            current_user.get("user_id"),
+        ]
+        current_owner_values = [value for value in current_owner_values if value]
         query = {
             "$and": [
                 query,
-                {"$or": [{"email": current_user["email"]}, {"user_id": current_user["email"]}]}
+                {"$or": [{"email": current_user["email"]}, {"user_id": {"$in": current_owner_values}}]}
             ]
         }
 
@@ -64,7 +69,11 @@ async def mark_notification_read(
         raise HTTPException(status_code=404, detail="Notification not found")
 
     owner = notification.get("email") or notification.get("user_id")
-    if current_user.get("role") != "admin" and owner != current_user.get("email"):
+    current_owner_values = {
+        current_user.get("email"),
+        current_user.get("user_id"),
+    }
+    if current_user.get("role") != "super_admin" and owner not in current_owner_values:
         raise HTTPException(status_code=403, detail="Access denied")
 
     read_at = datetime.utcnow()
@@ -106,8 +115,13 @@ async def mark_all_notifications_read(
     current_user: dict = Depends(get_current_user)
 ):
     query = {"read": False}
-    if current_user.get("role") != "admin":
-        query["$or"] = [{"email": current_user["email"]}, {"user_id": current_user["email"]}]
+    if current_user.get("role") != "super_admin":
+        current_owner_values = [
+            current_user["email"],
+            current_user.get("user_id"),
+        ]
+        current_owner_values = [value for value in current_owner_values if value]
+        query["$or"] = [{"email": current_user["email"]}, {"user_id": {"$in": current_owner_values}}]
 
     read_at = datetime.utcnow()
     expires_at = read_at + timedelta(minutes=60)
@@ -144,7 +158,7 @@ async def mark_all_notifications_read(
     }
 
 @router.delete("/notifications/cleanup")
-async def cleanup_notifications(current_user: dict = Depends(require_roles(Role.ADMIN))):
+async def cleanup_notifications(current_user: dict = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))):
     now = datetime.utcnow()
     legacy_cutoff = now - timedelta(minutes=60)
 

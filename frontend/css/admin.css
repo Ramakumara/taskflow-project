@@ -6832,3 +6832,53 @@ body {
     box-shadow: none !important;
 }
 
+.users-header-actions{
+    display:flex;
+    gap:12px;
+}
+
+.btn-success{
+    background:#16a34a;
+    color:white;
+    border:none;
+}
+
+.modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.5);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+}
+
+.hidden{
+    display:none;
+}
+
+.modal-card{
+    width:450px;
+    background:white;
+    border-radius:16px;
+    padding:24px;
+}
+
+.form-group{
+    margin-bottom:16px;
+}
+
+.form-group input,
+.form-group select{
+    width:100%;
+    padding:10px;
+}
+
+.invite-user-card {
+    width: min(500px, calc(100vw - 32px));
+}
+
+.invite-user-form .admin-form-field input,
+.invite-user-form .admin-form-field select {
+    min-height: 46px;
+}

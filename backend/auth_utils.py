@@ -50,6 +50,52 @@ def create_access_token(data: dict):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
+def _normalize_email(value: str | None) -> str:
+    return str(value or "").strip().lower()
+
+
+def _ensure_admin_team(user: dict) -> dict | None:
+    if str(user.get("role") or "").strip().lower() != "admin":
+        return None
+
+    admin_email = _normalize_email(user.get("email"))
+    if not admin_email:
+        return None
+
+    team = None
+    team_id = str(user.get("team_id") or "").strip()
+    if team_id:
+        try:
+            from bson import ObjectId
+            team = db.teams.find_one({"_id": ObjectId(team_id)})
+        except Exception:
+            team = None
+
+    if not team:
+        team = db.teams.find_one({"admin_id": admin_email})
+
+    if not team:
+        result = db.teams.insert_one({
+            "team_name": f"{user.get('username') or admin_email}'s Team",
+            "admin_id": admin_email,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "status": "active",
+        })
+        team = db.teams.find_one({"_id": result.inserted_id})
+
+    updates = {
+        "team_id": str(team["_id"]),
+        "admin_id": admin_email,
+        "manager_id": None,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    if user.get("team_id") != updates["team_id"] or user.get("admin_id") != admin_email:
+        db.users.update_one({"email": admin_email}, {"$set": updates})
+        user.update(updates)
+
+    return team
+
+
 def verify_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -74,13 +120,24 @@ def get_current_user(authorization: str = Header(None)):
 
     email = payload.get("email")
     if email:
-        user = db.users.find_one({"email": email}, {"_id": 0, "email": 1, "username": 1, "role": 1})
+        user = db.users.find_one(
+            {"email": email},
+            {"_id": 1, "email": 1, "username": 1, "role": 1, "status": 1, "team_id": 1, "admin_id": 1, "manager_id": 1}
+        )
         if not user:
             raise HTTPException(status_code=401, detail="User not found")
+        if str(user.get("status") or "active").lower() == "suspended":
+            raise HTTPException(status_code=403, detail="Account suspended")
+        _ensure_admin_team(user)
         payload.update({
             "email": user.get("email"),
             "username": user.get("username"),
-            "role": user.get("role") or "user"
+            "role": user.get("role") or "user",
+            "status": user.get("status") or "active",
+            "user_id": str(user.get("_id")),
+            "team_id": user.get("team_id"),
+            "admin_id": user.get("admin_id"),
+            "manager_id": user.get("manager_id")
         })
 
     return payload
@@ -619,5 +676,27 @@ async def send_account_creation_email(
         subtype="html"
     )
 
+    fm = FastMail(conf)
+    await fm.send_message(message)
+
+
+async def send_invitation_email(email: str, role: str, invite_link: str, team_name: str):
+    message = MessageSchema(
+        subject=f"You're invited to join {team_name} on TaskFlow",
+        recipients=[email],
+        body=f"""
+        <div style="font-family:Arial,sans-serif;padding:20px;color:#172033;">
+            <h2 style="color:#16a34a;margin:0 0 16px;">Join {team_name} on TaskFlow</h2>
+            <p>You have been invited as <b>{role}</b>.</p>
+            <p>Accept the invitation and create your password to join your team workspace.</p>
+            <a href="{invite_link}"
+               style="display:inline-block;background:#16a34a;color:white;padding:10px 16px;text-decoration:none;border-radius:8px;font-weight:700;">
+               Accept Invitation
+            </a>
+            <p style="margin-top:20px;font-size:12px;color:#667085;">This invitation is intended only for {email}.</p>
+        </div>
+        """,
+        subtype="html"
+    )
     fm = FastMail(conf)
     await fm.send_message(message)

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 import re
 from auth_utils import send_project_assignment_email
 
@@ -9,19 +9,23 @@ from auth_utils import get_current_user
 from database import db
 from models.projects import AssignManagerPayload, ProjectCreate, ProjectUpdate
 from rbac import Permission, Role, normalize_role, require_permission, require_roles
-from routes.activity import record_activity
+from routes.activity import record_activity, record_audit_log
 from taskflow_utils import (
     add_notification,
     build_admin_dashboard_stats,
+    build_scoped_dashboard_stats,
     collect_project_recipients,
     get_visible_project_filter,
     get_visible_task_filter,
+    get_user_team_id,
     emit_admin_dashboard_update,
+    normalize_email,
     normalize_assignment_emails,
     normalize_project_status,
     safe_object_id,
     serialize_project,
     serialize_task,
+    tenant_notification_recipients,
     utc_now_iso,
 )
 from websocket_manager import emit_realtime_event
@@ -34,7 +38,7 @@ def _resolve_project_name(payload: ProjectCreate | ProjectUpdate) -> str:
 
 
 def _normalize_manager_email(email: str | None) -> str | None:
-    value = str(email or "").strip().lower()
+    value = normalize_email(email)
     return value or None
 
 
@@ -48,7 +52,7 @@ def _requested_manager_email(
     )
 
 
-def _validate_manager(email: str | None) -> dict | None:
+def _validate_manager(email: str | None, current_user: dict | None = None) -> dict | None:
     normalized_email = _normalize_manager_email(email)
     if not normalized_email:
         return None
@@ -62,13 +66,32 @@ def _validate_manager(email: str | None) -> dict | None:
         raise HTTPException(status_code=404, detail="Manager not found")
     if normalize_role(manager.get("role")) != Role.MANAGER.value:
         raise HTTPException(status_code=400, detail="Assigned user must have manager role")
+    if current_user and normalize_role(current_user.get("role")) != Role.SUPER_ADMIN.value:
+        current_team_id = get_user_team_id(current_user)
+        if not current_team_id or manager.get("team_id") != current_team_id:
+            raise HTTPException(status_code=403, detail="Manager must belong to your team")
     manager["email"] = normalized_email
     return manager
+
+
+def _project_scope_or_403(project: dict, current_user: dict) -> None:
+    role = normalize_role(current_user.get("role"))
+    if role == Role.SUPER_ADMIN.value:
+        return
+    team_id = get_user_team_id(current_user)
+    if not team_id or project.get("team_id") != team_id:
+        current_email = normalize_email(current_user.get("email"))
+        if role == Role.ADMIN.value and normalize_email(project.get("created_by")) == current_email:
+            return
+        if role == Role.MANAGER.value and normalize_email(project.get("assigned_manager") or project.get("owner_email")) == current_email:
+            return
+        raise HTTPException(status_code=403, detail="Not allowed")
 
 
 @router.post("/projects")
 async def create_project(
     project: ProjectCreate,
+    request: Request,
     current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS)),
 ):
     current_role = normalize_role(current_user.get("role"))
@@ -91,7 +114,7 @@ async def create_project(
             detail="Assigned manager is required for admin-created projects"
         )
 
-    manager = _validate_manager(requested_manager)
+    manager = _validate_manager(requested_manager, current_user)
 
     assigned_manager = (
         str(manager.get("email")).strip().lower()
@@ -101,10 +124,23 @@ async def create_project(
         else None
     )
 
+    team_id = get_user_team_id(current_user)
+    admin_id = normalize_email(current_user.get("email")) if current_role == Role.ADMIN.value else current_user.get("admin_id")
+    if current_role == Role.MANAGER.value:
+        if not team_id:
+            raise HTTPException(status_code=403, detail="Your account is not attached to a team")
+        admin_id = current_user.get("admin_id")
+    if manager:
+        team_id = manager.get("team_id")
+        admin_id = manager.get("admin_id")
+
     document = {
         "name": project_name,
         "project_name": project_name,
         "description": str(project.description or "").strip(),
+        "team_id": team_id,
+        "admin_id": admin_id,
+        "manager_id": assigned_manager,
         "assigned_manager": assigned_manager,
         "owner_email": assigned_manager,
         "start_date": project.start_date,
@@ -137,7 +173,7 @@ async def create_project(
 
         # Admin notifications
         admin_emails = {
-            *(db.users.distinct("email", {"role": "admin"}) or []),
+            *tenant_notification_recipients(current_user, include_super_admins=True),
             str(current_user.get("email") or "").strip().lower(),
         }
 
@@ -159,6 +195,7 @@ async def create_project(
         f"Project: {project_name}",
         f"Manager: {assigned_manager or 'Unassigned'}",
     )
+    record_audit_log(current_user, "Project Created", f"Project: {project_name}", request)
 
     # Fetch saved project
     saved = db.projects.find_one(
@@ -267,10 +304,11 @@ def update_project(
     project = db.projects.find_one({"_id": object_id})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    _project_scope_or_403(project, current_user)
 
     current_email = str(current_user.get("email") or "").strip().lower()
     project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
-    if normalize_role(current_user.get("role")) != Role.ADMIN.value and project_manager != current_email:
+    if normalize_role(current_user.get("role")) not in {Role.SUPER_ADMIN.value, Role.ADMIN.value} and project_manager != current_email:
         raise HTTPException(status_code=403, detail="Not allowed")
 
     updates = {}
@@ -288,10 +326,11 @@ def update_project(
         updates["end_date"] = payload.end_date
     requested_manager = _requested_manager_email(payload)
     if requested_manager is not None:
-        manager = _validate_manager(requested_manager)
+        manager = _validate_manager(requested_manager, current_user)
         if manager:
             updates["assigned_manager"] = str(manager["email"]).strip().lower()
             updates["owner_email"] = str(manager["email"]).strip().lower()
+            updates["manager_id"] = str(manager["email"]).strip().lower()
 
     if not updates:
         raise HTTPException(status_code=400, detail="No project changes provided")
@@ -330,7 +369,7 @@ def update_project(
 async def assign_manager(
     project_id: str,
     payload: AssignManagerPayload,
-    current_user: dict = Depends(require_roles(Role.ADMIN)),
+    current_user: dict = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN)),
 ):
     object_id = safe_object_id(project_id)
     if not object_id:
@@ -339,8 +378,9 @@ async def assign_manager(
     project = db.projects.find_one({"_id": object_id})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    _project_scope_or_403(project, current_user)
 
-    manager = _validate_manager(_requested_manager_email(payload))
+    manager = _validate_manager(_requested_manager_email(payload), current_user)
 
     # Update project manager
     db.projects.update_one(
@@ -349,6 +389,7 @@ async def assign_manager(
             "$set": {
                 "assigned_manager": str(manager["email"]).strip().lower(),
                 "owner_email": str(manager["email"]).strip().lower(),
+                "manager_id": str(manager["email"]).strip().lower(),
                 "updated_at": utc_now_iso(),
             }
         },
@@ -362,7 +403,7 @@ async def assign_manager(
     )
 
     # Notification to admins
-    for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
+    for admin_email in tenant_notification_recipients(current_user, include_super_admins=True):
         add_notification(
             admin_email,
             f"Manager {manager['email']} was assigned to project '{project.get('project_name') or project.get('name')}'.",
@@ -409,7 +450,7 @@ async def assign_manager(
 @router.get("/projects/{project_id}/team")
 def get_project_team(
     project_id: str,
-    current_user: dict = Depends(require_roles(Role.ADMIN, Role.MANAGER)),
+    current_user: dict = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN, Role.MANAGER)),
 ):
     object_id = safe_object_id(project_id)
     if not object_id:
@@ -418,11 +459,12 @@ def get_project_team(
     project = db.projects.find_one({"_id": object_id})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    _project_scope_or_403(project, current_user)
     serialized_project = serialize_project(project)
 
     current_email = str(current_user.get("email") or "").strip().lower()
     project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
-    if normalize_role(current_user.get("role")) != Role.ADMIN.value and project_manager != current_email:
+    if normalize_role(current_user.get("role")) not in {Role.SUPER_ADMIN.value, Role.ADMIN.value} and project_manager != current_email:
         raise HTTPException(status_code=403, detail="Not allowed")
 
     member_emails = db.tasks.distinct("assigned_users", {"project_id": object_id})
@@ -437,20 +479,21 @@ def get_project_team(
 
 
 @router.get("/admin/dashboard-stats")
-def admin_dashboard_stats(current_user: dict = Depends(require_roles(Role.ADMIN))):
-    return build_admin_dashboard_stats()
+def admin_dashboard_stats(current_user: dict = Depends(require_roles(Role.SUPER_ADMIN, Role.ADMIN))):
+    return build_scoped_dashboard_stats(current_user)
 
 
 @router.get("/reports/summary")
 def report_summary(current_user: dict = Depends(get_current_user)):
     projects = [serialize_project(item) for item in db.projects.find(get_visible_project_filter(current_user))]
     tasks = [serialize_task(item) for item in db.tasks.find(get_visible_task_filter(current_user))]
-    if normalize_role(current_user.get("role")) != Role.ADMIN.value:
+    if normalize_role(current_user.get("role")) not in {Role.SUPER_ADMIN.value, Role.ADMIN.value}:
         for admin_email in db.users.distinct("email", {"role": "admin"}) or []:
             add_notification(admin_email, f"{current_user.get('email')} generated a report summary.", "Report Activity")
     emit_admin_dashboard_update("Admin dashboard updated after report activity.")
 
-    users = db.users.count_documents({})
+    user_query = {} if normalize_role(current_user.get("role")) == Role.SUPER_ADMIN.value else {"team_id": get_user_team_id(current_user)}
+    users = db.users.count_documents(user_query)
     completed = len([item for item in tasks if item.get("overall_status") == "Completed"])
     pending = len([item for item in tasks if item.get("overall_status") == "Pending"])
     progress = len([item for item in tasks if item.get("overall_status") == "In Progress"])
@@ -459,7 +502,7 @@ def report_summary(current_user: dict = Depends(get_current_user)):
         "generated_at": datetime.utcnow().isoformat(),
         "scope": current_user.get("role"),
         "summary": {
-            "users": users if normalize_role(current_user.get("role")) == Role.ADMIN.value else None,
+            "users": users if normalize_role(current_user.get("role")) in {Role.SUPER_ADMIN.value, Role.ADMIN.value} else None,
             "projects": len(projects),
             "tasks": len(tasks),
             "completed_tasks": completed,
@@ -474,6 +517,7 @@ def report_summary(current_user: dict = Depends(get_current_user)):
 @router.delete("/projects/{project_id}")
 def delete_project(
     project_id: str,
+    request: Request,
     current_user: dict = Depends(require_permission(Permission.MANAGE_PROJECTS)),
 ):
     object_id = safe_object_id(project_id)
@@ -483,10 +527,11 @@ def delete_project(
     project = db.projects.find_one({"_id": object_id})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+    _project_scope_or_403(project, current_user)
 
     current_email = str(current_user.get("email") or "").strip().lower()
     project_manager = str(project.get("assigned_manager") or project.get("owner_email") or "").strip().lower()
-    if normalize_role(current_user.get("role")) != Role.ADMIN.value and project_manager != current_email:
+    if normalize_role(current_user.get("role")) not in {Role.SUPER_ADMIN.value, Role.ADMIN.value} and project_manager != current_email:
         raise HTTPException(status_code=403, detail="Not allowed")
 
     task_ids = db.tasks.distinct("_id", {"project_id": object_id})
@@ -501,6 +546,7 @@ def delete_project(
         f"Project: {project.get('project_name') or project.get('name')}",
         "",
     )
+    record_audit_log(current_user, "Project Deleted", f"Project: {project.get('project_name') or project.get('name')}", request)
 
     serialized_project = serialize_project(project)
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, Response, Request
 from database import db
 from auth_utils import get_current_user
 from rbac import Permission, require_permission
@@ -7,7 +7,7 @@ from io import StringIO
 import csv
 from zoneinfo import ZoneInfo
 from websocket_manager import emit_realtime_event
-from taskflow_utils import emit_admin_dashboard_update, get_visible_project_filter, get_visible_task_filter
+from taskflow_utils import emit_admin_dashboard_update, get_user_team_id, get_visible_project_filter, get_visible_task_filter
 
 router = APIRouter()
 
@@ -17,7 +17,8 @@ def get_team_emails(current_user: dict):
     email = str(current_user.get("email") or "").strip().lower()
 
     if role == "admin":
-        return None
+        team_id = get_user_team_id(current_user)
+        return db.users.distinct("email", {"team_id": team_id}) if team_id else [email]
 
     if role == "manager":
         project_ids = [project["_id"] for project in db.projects.find({"assigned_manager": email}, {"_id": 1})]
@@ -100,8 +101,12 @@ def _get_scoped_activity_documents(current_user: dict) -> list[dict]:
     email = str(current_user.get("email") or "").strip().lower()
     team_emails = get_team_emails(current_user)
 
-    if team_emails is None:
+    if role == "super_admin":
         return list(db.activity_log.find().sort("timestamp", -1))
+
+    team_id = get_user_team_id(current_user)
+    if role == "admin" and team_id:
+        return list(db.activity_log.find({"team_id": team_id}).sort("timestamp", -1))
 
     documents = list(db.activity_log.find({"user_email": {"$in": team_emails}}).sort("timestamp", -1))
     if role != "manager":
@@ -122,6 +127,8 @@ def record_activity(user: dict, action: str, target: str = "", details: str = ""
         "user_email": user.get("email"),
         "username": user.get("username"),
         "role": user.get("role"),
+        "team_id": user.get("team_id"),
+        "admin_id": user.get("admin_id"),
         "action": action,
         "target": target,
         "details": details,
@@ -147,6 +154,65 @@ def record_activity(user: dict, action: str, target: str = "", details: str = ""
     return activity
 
 
+def record_audit_log(
+    user: dict,
+    action: str,
+    description: str = "",
+    request: Request | None = None,
+) -> dict:
+    if not user:
+        user = {}
+
+    document = {
+        "action": action,
+        "user": user.get("email") or user.get("username") or "system",
+        "user_email": user.get("email"),
+        "username": user.get("username"),
+        "role": user.get("role"),
+        "team_id": user.get("team_id"),
+        "admin_id": user.get("admin_id"),
+        "timestamp": datetime.now(timezone.utc),
+        "ip_address": request.client.host if request and request.client else "",
+        "description": description,
+    }
+
+    result = db.audit_logs.insert_one(document)
+    document["_id"] = result.inserted_id
+
+    emit_realtime_event(
+        {
+            "type": "audit.created",
+            "message": f"Audit event recorded: {action}",
+            "data": {
+                "id": str(result.inserted_id),
+                "action": action,
+                "user": document["user"],
+            },
+        }
+    )
+
+    return document
+
+
+def format_audit_log(doc: dict) -> dict:
+    timestamp = doc.get("timestamp")
+    if hasattr(timestamp, "isoformat"):
+        timestamp = timestamp.isoformat()
+    return {
+        "id": str(doc.get("_id")),
+        "action": doc.get("action"),
+        "user": doc.get("user") or doc.get("user_email"),
+        "user_email": doc.get("user_email"),
+        "username": doc.get("username"),
+        "role": doc.get("role"),
+        "team_id": doc.get("team_id"),
+        "admin_id": doc.get("admin_id"),
+        "timestamp": timestamp,
+        "ip_address": doc.get("ip_address") or "",
+        "description": doc.get("description") or "",
+    }
+
+
 def format_activity(doc: dict) -> dict:
     timestamp = doc.get("timestamp")
     if hasattr(timestamp, "isoformat"):
@@ -156,6 +222,8 @@ def format_activity(doc: dict) -> dict:
         "user_email": doc.get("user_email"),
         "username": doc.get("username"),
         "role": doc.get("role"),
+        "team_id": doc.get("team_id"),
+        "admin_id": doc.get("admin_id"),
         "action": doc.get("action"),
         "target": doc.get("target"),
         "details": doc.get("details"),

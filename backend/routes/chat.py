@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from auth_utils import get_current_user
 from services.gemini_service import ask_gemini
@@ -8,6 +8,7 @@ from services.project_assistant import (
     build_workspace_snapshot,
     summarize_workspace,
 )
+from routes.activity import record_audit_log
 
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
@@ -27,6 +28,7 @@ class ChatResponse(BaseModel):
 @router.post("/", response_model=ChatResponse)
 async def chat(
     payload: ChatRequest,
+    request: Request,
     current_user: dict = Depends(get_current_user),
 ):
     message = payload.message.strip()
@@ -38,6 +40,7 @@ async def chat(
     summary = summarize_workspace(snapshot)
 
     if assistant_answer["intent"] == "assistant":
+        record_audit_log(current_user, "AI Usage", f"AI query: {message[:120]}", request)
         gemini_answer = ask_gemini(
             "\n".join(
                 [

@@ -3,11 +3,21 @@ from fastapi.responses import RedirectResponse
 from auth.google_oauth import oauth
 from auth_utils import create_access_token
 from database import db
-from rbac import Role
+from rbac import Role, normalize_role
+from taskflow_utils import ensure_admin_team
 
 router = APIRouter()
 
-FRONTEND_URL = "http://localhost:8000/dashboard-page"
+FRONTEND_URL = "http://localhost:8000"
+
+
+def post_login_path(role: str) -> str:
+    normalized_role = normalize_role(role)
+    if normalized_role == Role.SUPER_ADMIN.value:
+        return "/super-admin"
+    if normalized_role == Role.ADMIN.value:
+        return "/admin-page"
+    return "/dashboard-page"
 
 @router.get("/login/google")
 async def login_google(request: Request):
@@ -42,17 +52,24 @@ async def auth_google(request: Request):
             })
             user_role = Role.USER.value
         else:
-            user_role = existing_user.get("role") or Role.USER.value
+            user_role = normalize_role(existing_user.get("role"))
             name = existing_user.get("username") or name
+            if user_role == Role.ADMIN.value:
+                ensure_admin_team(existing_user)
+                existing_user = db.users.find_one({"email": email}) or existing_user
 
         jwt_token = create_access_token({
             "email": email,
             "username": name,
-            "role": user_role
+            "role": user_role,
+            "user_id": str((existing_user or {}).get("_id", "")),
+            "team_id": (existing_user or {}).get("team_id"),
+            "admin_id": (existing_user or {}).get("admin_id"),
+            "manager_id": (existing_user or {}).get("manager_id"),
         })
 
         return RedirectResponse(
-            f"http://localhost:8000/dashboard-page?token={jwt_token}&username={name}&email={email}&role={user_role}"
+            f"{FRONTEND_URL}{post_login_path(user_role)}?token={jwt_token}&username={name}&email={email}&role={user_role}&team_id={(existing_user or {}).get('team_id') or ''}&admin_id={(existing_user or {}).get('admin_id') or ''}&manager_id={(existing_user or {}).get('manager_id') or ''}"
         )
 
     except Exception as e:

@@ -6472,6 +6472,39 @@ body.export-modal-open {
     color: #9ca3af;
 }
 
+.invitation-role-line {
+    margin-top: 4px !important;
+    color: #166534 !important;
+    font-weight: 700;
+}
+
+.invitation-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.invitation-actions button {
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.invitation-accept-btn {
+    border: 0;
+    background: #16a34a;
+    color: #ffffff;
+}
+
+.invitation-reject-btn {
+    border: 1px solid #d7dee9;
+    background: #ffffff;
+    color: #334155;
+}
+
 .notification-empty {
 
     padding: 40px 20px;

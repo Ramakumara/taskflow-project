@@ -1,9 +1,11 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, status, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
-from routes import user, project, task, file, activity
+from routes import user, project, task, file, activity, super_admin
 from auth_utils import router as auth_router
 from auth.google_oauth import init_oauth
 from routes.google_auth import router as google_router
@@ -15,6 +17,7 @@ from contextlib import asynccontextmanager
 import json
 import os
 from routes import chat
+from routes import invitations
 
 
 
@@ -60,6 +63,17 @@ app.include_router(auth_router)
 app.include_router(google_router)
 app.include_router(notification_router)
 app.include_router(chat.router)
+app.include_router(super_admin.router)
+app.include_router(invitations.router)
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith("/api/invitations"):
+        print("[Invitations] Validation failed before route handler:", exc.errors())
+    return JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors()},
+    )
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -138,6 +152,13 @@ def admin_page():
         os.path.join(BASE_DIR, "..", "frontend", "html", "admin.html")
     )
 
+@app.get("/super-admin")
+@app.get("/super-admin-page")
+def super_admin_page():
+    return FileResponse(
+        os.path.join(BASE_DIR, "..", "frontend", "html", "super_admin.html")
+    )
+
 @app.get("/forgot-page")
 def forgot_page():
     return FileResponse(
@@ -149,8 +170,6 @@ def reset_password_page(token: str):
     return FileResponse(
         os.path.join(BASE_DIR, "..", "frontend", "html", "reset.html")
     )
-
-from fastapi import Request
 
 @app.get("/test-session")
 def test_session(request: Request):

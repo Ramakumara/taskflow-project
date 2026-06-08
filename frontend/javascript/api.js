@@ -487,13 +487,21 @@ async function handleLogin() {
         }
 
         if (res.ok && data.message === "Login success") {
+            const normalizedRole = String(data.role || "user").trim().toLowerCase();
+
+            sessionStorage.clear();
             sessionStorage.setItem("token", data.access_token);
             sessionStorage.setItem("username", data.username || "");
             sessionStorage.setItem("email", data.email || email);
-            sessionStorage.setItem("role", data.role || "user");
+            sessionStorage.setItem("role", normalizedRole);
+            sessionStorage.setItem("team_id", data.team_id || "");
+            sessionStorage.setItem("admin_id", data.admin_id || "");
+            sessionStorage.setItem("manager_id", data.manager_id || "");
             connectRealtimeSocket();
 
-            if (data.role === "admin") {
+            if (normalizedRole === "super_admin") {
+                window.location.href = "/super-admin";
+            } else if (normalizedRole === "admin") {
                 window.location.href = "/admin-page";
             } else {
                 window.location.href = "/dashboard-page";
@@ -563,6 +571,31 @@ function logout() {
         sessionStorage.clear();
         window.location.href = "/";
     });
+}
+
+async function refreshSessionUser() {
+    const token = sessionStorage.getItem("token");
+    if (!token) return null;
+
+    try {
+        const response = await fetch(`${BASE_URL}/me`, {
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+        if (!response.ok) return null;
+        const user = await response.json();
+        const role = String(user.role || "").trim().toLowerCase();
+        if (role) sessionStorage.setItem("role", role);
+        if (user.username) sessionStorage.setItem("username", user.username);
+        if (user.email) sessionStorage.setItem("email", user.email);
+        sessionStorage.setItem("team_id", user.team_id || "");
+        sessionStorage.setItem("admin_id", user.admin_id || "");
+        sessionStorage.setItem("manager_id", user.manager_id || "");
+        return user;
+    } catch {
+        return null;
+    }
 }
 
 async function createProject() {
@@ -1408,14 +1441,29 @@ async function exportActivityLog() {
     }
 }
 
-window.onload = function () {
-    const role = sessionStorage.getItem("role");
+window.onload = async function () {
+    let role = String(sessionStorage.getItem("role") || "").trim().toLowerCase();
     const username = sessionStorage.getItem("username");
     const isDashboard = window.location.pathname.includes("dashboard-page");
 
     if (!role && isDashboard) {
         alert("Please login first");
         window.location.href = "/";
+        return;
+    }
+
+    if (isDashboard && sessionStorage.getItem("token")) {
+        const freshUser = await refreshSessionUser();
+        role = String(freshUser?.role || role || "").trim().toLowerCase();
+    }
+
+    if (isDashboard && role === "admin") {
+        window.location.replace("/admin-page");
+        return;
+    }
+
+    if (isDashboard && role === "super_admin") {
+        window.location.replace("/super-admin");
         return;
     }
 
