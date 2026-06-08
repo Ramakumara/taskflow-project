@@ -205,7 +205,7 @@ def _dashboard_payload() -> dict:
         "system_health": _system_health(),
         "generated_at": utc_now_iso(),
     }
-    db.platform_stats.insert_one(payload)
+    db.platform_stats.insert_one(payload.copy())
     return payload
 
 

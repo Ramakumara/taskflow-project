@@ -11,6 +11,14 @@ const superState = {
     auditLogs: [],
     settings: null,
     charts: {},
+    pageSize: 8,
+    pagination: {
+        users: 1,
+        admins: 1,
+        projects: 1,
+        tasks: 1,
+        audit: 1
+    },
     filters: {
         role: "all",
         status: "all",
@@ -57,6 +65,7 @@ function initializeSuperAdmin() {
 function setSuperView(view) {
     superState.view = view;
     superState.search = "";
+    resetSuperPage(view);
     const search = document.getElementById("superSearch");
     if (search) search.value = "";
     document.querySelectorAll(".super-nav-item").forEach(item => {
@@ -67,6 +76,7 @@ function setSuperView(view) {
 
 function handleSuperSearch(value) {
     superState.search = String(value || "").trim().toLowerCase();
+    resetSuperPage(superState.view);
     renderSuperView();
 }
 
@@ -208,6 +218,7 @@ function listPanel(title, content) {
 
 function renderUsers() {
     const users = filteredUsers();
+    const page = paginateSuperItems("users", users);
     document.getElementById("superContent").innerHTML = `
         ${pageHead("User Management", "Search, filter, promote, demote, suspend, reset, and delete platform users.")}
         <div class="toolbar">
@@ -226,7 +237,8 @@ function renderUsers() {
             </select>
         </div>
         <section class="super-panel table-wrap">
-            ${usersTable(users)}
+            ${usersTable(page.items)}
+            ${paginationFooter("users", users.length, "users")}
         </section>
     `;
 }
@@ -271,13 +283,14 @@ function userActions(user) {
 
 function renderAdmins() {
     const admins = filterBySearch(superState.admins, ["username", "email", "status"]);
+    const page = paginateSuperItems("admins", admins);
     document.getElementById("superContent").innerHTML = `
         ${pageHead("Admin Management", "Create admins, deactivate accounts, and review admin activity and performance.", `<button class="super-btn primary" onclick="openAdminModal()"><i class="fas fa-plus"></i>Create Admin</button>`)}
         <section class="super-panel table-wrap">
             <table class="super-table">
                 <thead><tr><th>Admin</th><th>Status</th><th>Projects Managed</th><th>Users Managed</th><th>Tasks Created</th><th>Last Login</th><th>Actions</th></tr></thead>
                 <tbody>
-                    ${admins.length ? admins.map(admin => `
+                    ${page.items.length ? page.items.map(admin => `
                         <tr>
                             <td>${userCell(admin)}<div>${escapeSuper(admin.email || "")}</div></td>
                             <td><span class="badge ${escapeSuper(admin.status || "active")}">${capitalize(admin.status || "active")}</span></td>
@@ -296,12 +309,14 @@ function renderAdmins() {
                     `).join("") : emptyRow(7, "No admins found.")}
                 </tbody>
             </table>
+            ${paginationFooter("admins", admins.length, "admins")}
         </section>
     `;
 }
 
 function renderProjects() {
     const projects = filteredProjects();
+    const page = paginateSuperItems("projects", projects);
     const managers = superState.users.filter(user => user.role === "manager");
     document.getElementById("superContent").innerHTML = `
         ${pageHead("Global Project Management", "View every project, archive, transfer ownership, reassign managers, and delete when needed.")}
@@ -319,7 +334,7 @@ function renderProjects() {
             <table class="super-table">
                 <thead><tr><th>Project Name</th><th>Manager</th><th>Team Size</th><th>Progress</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
                 <tbody>
-                    ${projects.length ? projects.map(project => `
+                    ${page.items.length ? page.items.map(project => `
                         <tr>
                             <td><strong>${escapeSuper(project.name || project.project_name || "Untitled")}</strong></td>
                             <td>${escapeSuper(project.assigned_manager || "Unassigned")}</td>
@@ -341,12 +356,14 @@ function renderProjects() {
                     `).join("") : emptyRow(7, "No projects found.")}
                 </tbody>
             </table>
+            ${paginationFooter("projects", projects.length, "projects")}
         </section>
     `;
 }
 
 function renderTasks() {
     const tasks = filteredTasks();
+    const page = paginateSuperItems("tasks", tasks);
     const managers = superState.users.filter(user => user.role === "manager");
     document.getElementById("superContent").innerHTML = `
         ${pageHead("Global Task Monitoring", "Monitor all work, filter by project, manager, status, and focus overdue tasks.")}
@@ -377,7 +394,7 @@ function renderTasks() {
             <table class="super-table">
                 <thead><tr><th>Task</th><th>Project</th><th>Manager</th><th>Status</th><th>Due Date</th><th>Assignees</th></tr></thead>
                 <tbody>
-                    ${tasks.length ? tasks.map(task => {
+                    ${page.items.length ? page.items.map(task => {
                         const project = projectFor(task.project_id);
                         return `
                             <tr>
@@ -392,6 +409,7 @@ function renderTasks() {
                     }).join("") : emptyRow(6, "No tasks found.")}
                 </tbody>
             </table>
+            ${paginationFooter("tasks", tasks.length, "tasks")}
         </section>
     `;
 }
@@ -425,6 +443,7 @@ function renderAnalytics() {
 
 function renderAuditLogs() {
     const logs = filteredAuditLogs();
+    const page = paginateSuperItems("audit", logs);
     const actions = [...new Set(superState.auditLogs.map(log => log.action).filter(Boolean))].sort();
     document.getElementById("superContent").innerHTML = `
         ${pageHead("Audit Logs", "Track user, project, task, AI, login, role, and settings events.")}
@@ -439,7 +458,7 @@ function renderAuditLogs() {
             <table class="super-table">
                 <thead><tr><th>Timestamp</th><th>Action</th><th>User</th><th>Role</th><th>IP Address</th><th>Description</th></tr></thead>
                 <tbody>
-                    ${logs.length ? logs.map(log => `
+                    ${page.items.length ? page.items.map(log => `
                         <tr>
                             <td>${formatDateTime(log.timestamp)}</td>
                             <td><span class="badge">${escapeSuper(log.action || "-")}</span></td>
@@ -451,6 +470,7 @@ function renderAuditLogs() {
                     `).join("") : emptyRow(6, "No audit logs found.")}
                 </tbody>
             </table>
+            ${paginationFooter("audit", logs.length, "audit logs")}
         </section>
     `;
 }
@@ -538,6 +558,62 @@ function filterBySearch(items, fields) {
 
 function setSuperFilter(key, value) {
     superState.filters[key] = value;
+    resetSuperPage(superState.view);
+    renderSuperView();
+}
+
+function resetSuperPage(view) {
+    const key = paginationKeyForView(view);
+    if (key) superState.pagination[key] = 1;
+}
+
+function paginationKeyForView(view) {
+    if (view === "users") return "users";
+    if (view === "admins") return "admins";
+    if (view === "projects") return "projects";
+    if (view === "tasks") return "tasks";
+    if (view === "audit") return "audit";
+    return "";
+}
+
+function paginateSuperItems(key, items) {
+    const total = items.length;
+    const pageSize = superState.pageSize;
+    const totalPages = Math.max(1, Math.ceil(total / pageSize));
+    const currentPage = Math.min(Math.max(Number(superState.pagination[key]) || 1, 1), totalPages);
+    superState.pagination[key] = currentPage;
+    const startIndex = (currentPage - 1) * pageSize;
+    return {
+        items: items.slice(startIndex, startIndex + pageSize),
+        currentPage,
+        totalPages,
+        start: total ? startIndex + 1 : 0,
+        end: Math.min(startIndex + pageSize, total)
+    };
+}
+
+function paginationFooter(key, total, label) {
+    const page = paginateSuperItems(key, Array.from({ length: total }));
+    const previousDisabled = page.currentPage <= 1 ? "disabled" : "";
+    const nextDisabled = page.currentPage >= page.totalPages ? "disabled" : "";
+    return `
+        <div class="super-pagination">
+            <p>Showing ${formatNumber(page.start)} to ${formatNumber(page.end)} of ${formatNumber(total)} ${escapeSuper(label)}</p>
+            <div class="super-pagination-controls" aria-label="${escapeSuper(label)} pagination">
+                <button type="button" class="super-page-btn" onclick="setSuperPage('${key}', ${page.currentPage - 1})" ${previousDisabled} aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" class="super-page-btn active" aria-current="page">${formatNumber(page.currentPage)}</button>
+                <button type="button" class="super-page-btn" onclick="setSuperPage('${key}', ${page.currentPage + 1})" ${nextDisabled} aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    `;
+}
+
+function setSuperPage(key, page) {
+    superState.pagination[key] = Math.max(1, Number(page) || 1);
     renderSuperView();
 }
 
