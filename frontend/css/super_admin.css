@@ -314,6 +314,7 @@ button {
     padding: 28px;
     display: grid;
     gap: 22px;
+    align-content: start;
     flex: 1;
     overflow-y: auto;
 }
@@ -429,6 +430,7 @@ button {
 }
 
 .table-wrap {
+    align-self: start;
     overflow-x: auto;
     border: 1px solid var(--panel-border);
     border-radius: 8px;
