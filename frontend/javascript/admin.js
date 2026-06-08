@@ -1267,7 +1267,6 @@ function renderAdminTaskReadPanel(task, project) {
 
             ${renderAdminTaskTimeline(task)}
             ${renderAdminTaskComments(task)}
-            ${renderAdminTaskHistory(task)}
         </div>
     `;
 }
@@ -1537,15 +1536,6 @@ function renderAdminTaskComments(task) {
     `;
 }
 
-function renderAdminTaskHistory(task) {
-    const history = Array.isArray(task.history) ? task.history : [];
-    return `
-        <section class="admin-task-detail-section">
-            <h3>Task History</h3>
-            ${history.length ? `<div class="admin-task-history-list">${history.map((item) => `<div>${escapeHtml(item.message || item.action || "")}<small>${escapeHtml(formatDateTime(item.created_at || item.timestamp))}</small></div>`).join("")}</div>` : `<p class="admin-task-muted">No detailed history available.</p>`}
-        </section>
-    `;
-}
 
 function enterAdminTaskEditMode() {
     adminTaskEditMode = true;

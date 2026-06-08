@@ -868,7 +868,6 @@ function renderTaskReadPanel(task, project, role) {
 
         ${renderTaskTimeline(task)}
         ${renderTaskComments(task)}
-        ${renderTaskHistory(task)}
     `;
 }
 
@@ -1179,19 +1178,6 @@ function renderTaskComments(task) {
     `;
 }
 
-function renderTaskHistory(task) {
-    const history = Array.isArray(task.history) ? task.history : [];
-    return `
-        <section class="task-detail-section">
-            <h3>Task History</h3>
-            ${history.length ? `
-                <div class="task-history-list">
-                    ${history.map(item => `<div>${escapeTeamHtml(item.message || item.action || "")}<small>${escapeTeamHtml(formatDateTime(item.created_at || item.timestamp))}</small></div>`).join("")}
-                </div>
-            ` : `<p class="task-muted">No detailed history available.</p>`}
-        </section>
-    `;
-}
 
 function enterDashboardTaskEditMode() {
     dashboardTaskEditMode = true;

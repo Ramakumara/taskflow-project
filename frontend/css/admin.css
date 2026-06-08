@@ -4108,10 +4108,41 @@ body {
     font-weight: 800;
 }
 
-.admin-task-timeline,
+.admin-task-timeline{
+    display: grid;
+    gap: 8px;
+}
+
 .admin-task-comments {
     display: grid;
     gap: 8px;
+
+    /* Scrollable comments area */
+    max-height: 350px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+
+    padding-right: 8px;
+}
+
+/* Custom scrollbar */
+.admin-task-comments::-webkit-scrollbar {
+    width: 6px;
+}
+
+.admin-task-comments::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.admin-task-comments::-webkit-scrollbar-thumb {
+    background: #16a34a;
+    border-radius: 10px;
+}
+
+.admin-task-comments::-webkit-scrollbar-thumb:hover {
+    background: #15803d;
 }
 
 .admin-task-timeline-item,

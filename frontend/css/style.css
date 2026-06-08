@@ -12835,6 +12835,32 @@ body.dashboard-theme-dark .dashboard-profile-card {
 .task-comments {
     display: grid;
     gap: 10px;
+
+    /* Scrollable comments area */
+    max-height: 350px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+    padding-right: 8px;
+}
+
+/* Custom scrollbar for user task comments */
+.task-comments::-webkit-scrollbar {
+    width: 6px;
+}
+
+.task-comments::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 10px;
+}
+
+.task-comments::-webkit-scrollbar-thumb {
+    background: #16a34a;
+    border-radius: 10px;
+}
+
+.task-comments::-webkit-scrollbar-thumb:hover {
+    background: #15803d;
 }
 
 .task-comment {
