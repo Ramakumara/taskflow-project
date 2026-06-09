@@ -527,7 +527,9 @@ function applyAdminSettingsPreferences() {
 
     document.body.classList.toggle("quiet-admin-notifications", quietNotifications);
     document.body.classList.toggle("admin-theme-dark", resolvedTheme === "dark");
+    document.body.classList.toggle("theme-dark", resolvedTheme === "dark");
     document.documentElement.dataset.adminTheme = resolvedTheme;
+    document.documentElement.dataset.theme = resolvedTheme;
 
     const notificationState = document.getElementById("admin-settings-notification-state");
     if (notificationState) {

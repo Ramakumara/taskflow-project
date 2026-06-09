@@ -30,6 +30,53 @@ const superState = {
     }
 };
 
+let superThemeMediaQuery = null;
+let superThemeMediaQueryHandlerBound = false;
+
+function applySuperThemePreferences() {
+    const theme = sessionStorage.getItem("settings.theme") || "light";
+    const resolvedTheme = getResolvedSuperTheme(theme);
+    document.body.classList.toggle("super-theme-dark", resolvedTheme === "dark");
+    document.body.classList.toggle("theme-dark", resolvedTheme === "dark");
+    document.documentElement.dataset.superTheme = resolvedTheme;
+    document.documentElement.dataset.theme = resolvedTheme;
+}
+
+function getResolvedSuperTheme(theme) {
+    if (theme === "system") {
+        return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    return theme;
+}
+
+function bindSuperThemePreference() {
+    if (!window.matchMedia) {
+        return;
+    }
+
+    if (!superThemeMediaQuery) {
+        superThemeMediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    }
+
+    if (superThemeMediaQueryHandlerBound) {
+        return;
+    }
+
+    const handleThemePreferenceChange = () => {
+        if ((sessionStorage.getItem("settings.theme") || "light") === "system") {
+            applySuperThemePreferences();
+        }
+    };
+
+    if (typeof superThemeMediaQuery.addEventListener === "function") {
+        superThemeMediaQuery.addEventListener("change", handleThemePreferenceChange);
+    } else if (typeof superThemeMediaQuery.addListener === "function") {
+        superThemeMediaQuery.addListener(handleThemePreferenceChange);
+    }
+
+    superThemeMediaQueryHandlerBound = true;
+}
+
 function superToken() {
     return sessionStorage.getItem("token") || "";
 }
@@ -59,6 +106,8 @@ function initializeSuperAdmin() {
     const username = sessionStorage.getItem("username") || "Super Admin";
     const welcome = document.getElementById("superWelcome");
     if (welcome) welcome.textContent = username;
+    applySuperThemePreferences();
+    bindSuperThemePreference();
     loadSuperView("dashboard");
 }
 

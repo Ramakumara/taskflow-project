@@ -97,14 +97,14 @@ body.admin-theme-dark .common-content-card,
 body.admin-theme-dark .settings-list-card,
 body.admin-theme-dark .admin-report-panel,
 body.admin-theme-dark .data-panel {
-    background: #182235;
-    border-color: #2d3a50;
-    color: #edf2f7;
+    background: #182235 !important;
+    border-color: #2d3a50 !important;
+    color: #edf2f7 !important;
 }
 
 body.admin-theme-dark .main-panel,
 body.admin-theme-dark .content-area {
-    background: #111827;
+    background: #111827 !important;
 }
 
 body.admin-theme-dark .search-box,
@@ -114,9 +114,9 @@ body.admin-theme-dark .profile-option,
 body.admin-theme-dark .common-search-box,
 body.admin-theme-dark .common-filter-select,
 body.admin-theme-dark .settings-select {
-    background: #111827;
-    border-color: #2d3a50;
-    color: #edf2f7;
+    background: #111827 !important;
+    border-color: #2d3a50 !important;
+    color: #edf2f7 !important;
 }
 
 body.admin-theme-dark .search-box input,
@@ -148,29 +148,113 @@ body.admin-theme-dark .profile-option span {
 
 body.admin-theme-dark .settings-row,
 body.admin-theme-dark .notification-dropdown-head,
-body.admin-theme-dark .notification-filter-row {
+body.dashboard-theme-dark .notification-dropdown-head,
+body.theme-dark .notification-dropdown-head,
+body.admin-theme-dark .notification-filter-row,
+body.dashboard-theme-dark .notification-filter-row,
+body.theme-dark .notification-filter-row {
     border-color: #2d3a50;
 }
 
 body.admin-theme-dark .notification-button:hover,
+body.dashboard-theme-dark .notification-button:hover,
+body.theme-dark .notification-button:hover,
 body.admin-theme-dark .notification-button.open,
+body.dashboard-theme-dark .notification-button.open,
+body.theme-dark .notification-button.open,
 body.admin-theme-dark .profile-wrap:hover,
+body.dashboard-theme-dark .profile-wrap:hover,
+body.theme-dark .profile-wrap:hover,
 body.admin-theme-dark .profile-wrap[aria-expanded="true"],
+body.dashboard-theme-dark .profile-wrap[aria-expanded="true"],
+body.theme-dark .profile-wrap[aria-expanded="true"],
 body.admin-theme-dark .profile-option:hover,
+body.dashboard-theme-dark .profile-option:hover,
+body.theme-dark .profile-option:hover,
 body.admin-theme-dark .common-search-box:focus-within,
-body.admin-theme-dark .settings-select:focus {
+body.dashboard-theme-dark .common-search-box:focus-within,
+body.theme-dark .common-search-box:focus-within,
+body.admin-theme-dark .settings-select:focus,
+body.dashboard-theme-dark .settings-select:focus,
+body.theme-dark .settings-select:focus {
     background: #0f172a;
     border-color: rgba(37, 194, 107, 0.45);
     box-shadow: 0 0 0 4px rgba(37, 194, 107, 0.12);
 }
 
-body.admin-theme-dark .notification-filter-chip {
+body.admin-theme-dark .common-page-header,
+body.dashboard-theme-dark .common-page-header,
+body.theme-dark .common-page-header,
+body.admin-theme-dark .common-toolbar,
+body.dashboard-theme-dark .common-toolbar,
+body.theme-dark .common-toolbar {
+    background: #182235 !important;
+    border-color: #2d3a50 !important;
+    color: #edf2f7 !important;
+}
+
+body.admin-theme-dark .common-page-header .common-page-title h1,
+body.dashboard-theme-dark .common-page-header .common-page-title h1,
+body.theme-dark .common-page-header .common-page-title h1,
+body.admin-theme-dark .common-page-header .common-page-title h2,
+body.dashboard-theme-dark .common-page-header .common-page-title h2,
+body.theme-dark .common-page-header .common-page-title h2,
+body.admin-theme-dark .common-page-header .common-page-title h3,
+body.dashboard-theme-dark .common-page-header .common-page-title h3,
+body.theme-dark .common-page-header .common-page-title h3,
+body.admin-theme-dark .common-page-header .common-page-title p,
+body.dashboard-theme-dark .common-page-header .common-page-title p,
+body.theme-dark .common-page-header .common-page-title p,
+body.admin-theme-dark .common-toolbar .team-search,
+body.dashboard-theme-dark .common-toolbar .team-search,
+body.theme-dark .common-toolbar .team-search,
+body.admin-theme-dark .common-page-header .team-search,
+body.dashboard-theme-dark .common-page-header .team-search,
+body.theme-dark .common-page-header .team-search,
+body.admin-theme-dark .common-toolbar .settings-select,
+body.dashboard-theme-dark .common-toolbar .settings-select,
+body.theme-dark .common-toolbar .settings-select,
+body.admin-theme-dark .common-page-header .settings-select,
+body.dashboard-theme-dark .common-page-header .settings-select,
+body.theme-dark .common-page-header .settings-select {
+    color: #edf2f7 !important;
+}
+
+body.admin-theme-dark .common-page-header .common-page-title p,
+body.dashboard-theme-dark .common-page-header .common-page-title p,
+body.theme-dark .common-page-header .common-page-title p {
+    color: #a8b3c7 !important;
+}
+
+body.admin-theme-dark .common-toolbar .settings-select,
+body.dashboard-theme-dark .common-toolbar .settings-select,
+body.theme-dark .common-toolbar .settings-select,
+body.admin-theme-dark .common-page-header .settings-select,
+body.dashboard-theme-dark .common-page-header .settings-select,
+body.theme-dark .common-page-header .settings-select,
+body.admin-theme-dark .common-toolbar .team-search,
+body.dashboard-theme-dark .common-toolbar .team-search,
+body.theme-dark .common-toolbar .team-search,
+body.admin-theme-dark .common-page-header .team-search,
+body.dashboard-theme-dark .common-page-header .team-search,
+body.theme-dark .common-page-header .team-search {
+    background: #111827 !important;
+    border-color: #2d3a50 !important;
+}
+
+body.admin-theme-dark .notification-filter-chip,
+body.dashboard-theme-dark .notification-filter-chip,
+body.theme-dark .notification-filter-chip {
     background: #0f172a;
     color: #cbd5e1;
 }
 
 body.admin-theme-dark .notification-filter-chip.active,
-body.admin-theme-dark .notification-filter-chip:hover {
+body.dashboard-theme-dark .notification-filter-chip.active,
+body.theme-dark .notification-filter-chip.active,
+body.admin-theme-dark .notification-filter-chip:hover,
+body.dashboard-theme-dark .notification-filter-chip:hover,
+body.theme-dark .notification-filter-chip:hover {
     background: rgba(37, 194, 107, 0.18);
     color: #dcfce7;
 }
@@ -196,9 +280,17 @@ body.admin-theme-dark .admin-kpi-card,
 body.admin-theme-dark .admin-project-stat-card,
 body.admin-theme-dark .admin-team-project-card,
 body.admin-theme-dark .admin-project-card,
+body.dashboard-theme-dark .admin-project-card,
+body.theme-dark .admin-project-card,
 body.admin-theme-dark .admin-project-create-card,
+body.dashboard-theme-dark .admin-project-create-card,
+body.theme-dark .admin-project-create-card,
 body.admin-theme-dark .project-empty-state,
-body.admin-theme-dark .common-table-wrapper {
+body.dashboard-theme-dark .project-empty-state,
+body.theme-dark .project-empty-state,
+body.admin-theme-dark .common-table-wrapper,
+body.dashboard-theme-dark .common-table-wrapper,
+body.theme-dark .common-table-wrapper {
     background: #182235 !important;
     border-color: #2d3a50 !important;
     color: #edf2f7 !important;
@@ -206,10 +298,20 @@ body.admin-theme-dark .common-table-wrapper {
 }
 
 body.admin-theme-dark .common-content-card,
+body.dashboard-theme-dark .common-content-card,
+body.theme-dark .common-content-card,
 body.admin-theme-dark .common-content-card.task-table-panel,
+body.dashboard-theme-dark .common-content-card.task-table-panel,
+body.theme-dark .common-content-card.task-table-panel,
 body.admin-theme-dark .common-content-card.admin-activity-log-panel,
+body.dashboard-theme-dark .common-content-card.admin-activity-log-panel,
+body.theme-dark .common-content-card.admin-activity-log-panel,
 body.admin-theme-dark .admin-files-page .common-content-card,
-body.admin-theme-dark .project-board-panel {
+body.dashboard-theme-dark .admin-files-page .common-content-card,
+body.theme-dark .admin-files-page .common-content-card,
+body.admin-theme-dark .project-board-panel,
+body.dashboard-theme-dark .project-board-panel,
+body.theme-dark .project-board-panel {
     background: #182235 !important;
     border-color: #2d3a50 !important;
 }

@@ -3747,12 +3747,277 @@ body.dashboard-theme-dark .dashboard {
 body.dashboard-theme-dark .dashboard-main,
 body.dashboard-theme-dark .dashboard .main-content { background: #111827; }
  
+body.theme-dark .dashboard .topbar,
 body.dashboard-theme-dark .dashboard .topbar,
+body.theme-dark .settings-list-card,
 body.dashboard-theme-dark .settings-list-card,
+body.theme-dark .dashboard-profile-card,
 body.dashboard-theme-dark .dashboard-profile-card,
+body.theme-dark .files-table-card,
 body.dashboard-theme-dark .files-table-card,
+body.theme-dark .common-content-card,
 body.dashboard-theme-dark .common-content-card { background: #182235; border-color: #2d3a50; }
  
+body.theme-dark .common-page-header,
+body.dashboard-theme-dark .common-page-header,
+body.theme-dark .common-toolbar,
+body.dashboard-theme-dark .common-toolbar {
+  background: #182235;
+  border-color: #2d3a50;
+  color: #edf2f7;
+  box-shadow: none;
+}
+
+body.theme-dark .common-page-header .common-page-title h1,
+body.dashboard-theme-dark .common-page-header .common-page-title h1,
+body.theme-dark .common-page-header .common-page-title h2,
+body.dashboard-theme-dark .common-page-header .common-page-title h2,
+body.theme-dark .common-page-header .common-page-title h3,
+body.dashboard-theme-dark .common-page-header .common-page-title h3,
+body.theme-dark .common-page-header .common-page-title p,
+body.dashboard-theme-dark .common-page-header .common-page-title p,
+body.theme-dark .common-toolbar .team-search,
+body.dashboard-theme-dark .common-toolbar .team-search,
+body.theme-dark .common-page-header .team-search,
+body.dashboard-theme-dark .common-page-header .team-search,
+body.theme-dark .common-toolbar .task-board-filter,
+body.dashboard-theme-dark .common-toolbar .task-board-filter,
+body.theme-dark .common-page-header .task-board-filter,
+body.dashboard-theme-dark .common-page-header .task-board-filter,
+body.theme-dark .common-toolbar .team-filter-select,
+body.dashboard-theme-dark .common-toolbar .team-filter-select,
+body.theme-dark .common-page-header .team-filter-select,
+body.dashboard-theme-dark .common-page-header .team-filter-select,
+body.theme-dark .common-toolbar .category-dropdown-btn,
+body.dashboard-theme-dark .common-toolbar .category-dropdown-btn,
+body.theme-dark .common-page-header .category-dropdown-btn,
+body.dashboard-theme-dark .common-page-header .category-dropdown-btn,
+body.theme-dark .common-toolbar .storage-dropdown-btn,
+body.dashboard-theme-dark .common-toolbar .storage-dropdown-btn,
+body.theme-dark .common-page-header .storage-dropdown-btn,
+body.dashboard-theme-dark .common-page-header .storage-dropdown-btn,
+body.theme-dark .common-toolbar .files-sort,
+body.dashboard-theme-dark .common-toolbar .files-sort,
+body.theme-dark .common-page-header .files-sort,
+body.dashboard-theme-dark .common-page-header .files-sort,
+body.theme-dark .common-toolbar .activity-log-date-btn,
+body.dashboard-theme-dark .common-toolbar .activity-log-date-btn,
+body.theme-dark .common-page-header .activity-log-date-btn,
+body.dashboard-theme-dark .common-page-header .activity-log-date-btn,
+body.theme-dark .common-toolbar .report-date-btn,
+body.dashboard-theme-dark .common-toolbar .report-date-btn,
+body.theme-dark .common-page-header .report-date-btn,
+body.dashboard-theme-dark .common-page-header .report-date-btn,
+body.theme-dark .common-toolbar .settings-select,
+body.dashboard-theme-dark .common-toolbar .settings-select,
+body.theme-dark .common-page-header .settings-select,
+body.dashboard-theme-dark .common-page-header .settings-select,
+body.theme-dark .common-toolbar .calendar-year-select,
+body.dashboard-theme-dark .common-toolbar .calendar-year-select,
+body.theme-dark .common-page-header .calendar-year-select,
+body.dashboard-theme-dark .common-page-header .calendar-year-select {
+  color: #edf2f7;
+}
+
+body.theme-dark .common-page-header .common-page-title p,
+body.dashboard-theme-dark .common-page-header .common-page-title p {
+  color: #a8b3c7;
+}
+
+body.theme-dark .common-toolbar .settings-select,
+body.dashboard-theme-dark .common-toolbar .settings-select,
+body.theme-dark .common-page-header .settings-select,
+body.dashboard-theme-dark .common-page-header .settings-select,
+body.theme-dark .common-toolbar .team-search,
+body.dashboard-theme-dark .common-toolbar .team-search,
+body.theme-dark .common-page-header .team-search,
+body.dashboard-theme-dark .common-page-header .team-search,
+body.theme-dark .common-toolbar .task-board-filter,
+body.dashboard-theme-dark .common-toolbar .task-board-filter,
+body.theme-dark .common-page-header .task-board-filter,
+body.dashboard-theme-dark .common-page-header .task-board-filter,
+body.theme-dark .common-toolbar .team-filter-select,
+body.dashboard-theme-dark .common-toolbar .team-filter-select,
+body.theme-dark .common-page-header .team-filter-select,
+body.dashboard-theme-dark .common-page-header .team-filter-select,
+body.theme-dark .common-toolbar .category-dropdown-btn,
+body.dashboard-theme-dark .common-toolbar .category-dropdown-btn,
+body.theme-dark .common-page-header .category-dropdown-btn,
+body.dashboard-theme-dark .common-page-header .category-dropdown-btn,
+body.theme-dark .common-toolbar .storage-dropdown-btn,
+body.dashboard-theme-dark .common-toolbar .storage-dropdown-btn,
+body.theme-dark .common-page-header .storage-dropdown-btn,
+body.dashboard-theme-dark .common-page-header .storage-dropdown-btn,
+body.theme-dark .common-toolbar .files-sort,
+body.dashboard-theme-dark .common-toolbar .files-sort,
+body.theme-dark .common-page-header .files-sort,
+body.dashboard-theme-dark .common-page-header .files-sort,
+body.theme-dark .common-toolbar .activity-log-date-btn,
+body.dashboard-theme-dark .common-toolbar .activity-log-date-btn,
+body.theme-dark .common-page-header .activity-log-date-btn,
+body.dashboard-theme-dark .common-page-header .activity-log-date-btn,
+body.theme-dark .common-toolbar .report-date-btn,
+body.dashboard-theme-dark .common-toolbar .report-date-btn,
+body.theme-dark .common-page-header .report-date-btn,
+body.dashboard-theme-dark .common-page-header .report-date-btn,
+body.theme-dark .common-toolbar .calendar-year-select,
+body.dashboard-theme-dark .common-toolbar .calendar-year-select,
+body.theme-dark .common-page-header .calendar-year-select,
+body.dashboard-theme-dark .common-page-header .calendar-year-select {
+  background: #111827 !important;
+  border-color: #2d3a50 !important;
+}
+
+body.theme-dark .common-toolbar .settings-select option,
+body.dashboard-theme-dark .common-toolbar .settings-select option,
+body.theme-dark .common-page-header .settings-select option,
+body.dashboard-theme-dark .common-page-header .settings-select option {
+  background: #111827;
+  color: #edf2f7;
+}
+
+body.theme-dark .dashboard .search-box,
+body.dashboard-theme-dark .dashboard .search-box,
+body.theme-dark .dashboard .topbar-task-add-btn,
+body.dashboard-theme-dark .dashboard .topbar-task-add-btn {
+  background: #111827;
+  border-color: #2d3a50;
+}
+
+body.theme-dark .dashboard .search-box i,
+body.dashboard-theme-dark .dashboard .search-box i,
+body.theme-dark .dashboard .search-box input,
+body.dashboard-theme-dark .dashboard .search-box input {
+  color: #edf2f7;
+}
+
+body.theme-dark .dashboard .search-box:focus-within,
+body.dashboard-theme-dark .dashboard .search-box:focus-within {
+  border-color: rgba(37, 194, 107, 0.55);
+  box-shadow: 0 0 0 4px rgba(37, 194, 107, 0.12);
+}
+
+body.theme-dark .dashboard .topbar-task-add-btn,
+body.dashboard-theme-dark .dashboard .topbar-task-add-btn {
+  color: #f8fafc;
+}
+
+body.theme-dark .dashboard .task-board-filter,
+body.dashboard-theme-dark .dashboard .task-board-filter,
+body.theme-dark .dashboard .team-filter-select,
+body.dashboard-theme-dark .dashboard .team-filter-select,
+body.theme-dark .dashboard .category-dropdown-btn,
+body.dashboard-theme-dark .dashboard .category-dropdown-btn,
+body.theme-dark .dashboard .storage-dropdown-btn,
+body.dashboard-theme-dark .dashboard .storage-dropdown-btn,
+body.theme-dark .dashboard .files-sort,
+body.dashboard-theme-dark .dashboard .files-sort,
+body.theme-dark .dashboard .activity-log-date-btn,
+body.dashboard-theme-dark .dashboard .activity-log-date-btn,
+body.theme-dark .dashboard .report-date-btn,
+body.dashboard-theme-dark .dashboard .report-date-btn,
+body.theme-dark .dashboard .calendar-year-select,
+body.dashboard-theme-dark .dashboard .calendar-year-select {
+  background: #111827 !important;
+  border-color: #2d3a50 !important;
+  color: #edf2f7 !important;
+}
+
+body.theme-dark .dashboard .task-board-filter option,
+body.dashboard-theme-dark .dashboard .task-board-filter option,
+body.theme-dark .dashboard .team-filter-select option,
+body.dashboard-theme-dark .dashboard .team-filter-select option,
+body.theme-dark .dashboard .category-dropdown-btn option,
+body.dashboard-theme-dark .dashboard .category-dropdown-btn option,
+body.theme-dark .dashboard .storage-dropdown-btn option,
+body.dashboard-theme-dark .dashboard .storage-dropdown-btn option,
+body.theme-dark .dashboard .files-sort option,
+body.dashboard-theme-dark .dashboard .files-sort option,
+body.theme-dark .dashboard .activity-log-date-btn option,
+body.dashboard-theme-dark .dashboard .activity-log-date-btn option,
+body.theme-dark .dashboard .report-date-btn option,
+body.dashboard-theme-dark .dashboard .report-date-btn option,
+body.theme-dark .dashboard .calendar-year-select option,
+body.dashboard-theme-dark .dashboard .calendar-year-select option {
+  background: #111827;
+  color: #edf2f7;
+}
+
+body.theme-dark .dashboard .task-inbox-shell,
+body.dashboard-theme-dark .dashboard .task-inbox-shell,
+body.theme-dark .dashboard .task-inbox-left,
+body.dashboard-theme-dark .dashboard .task-inbox-left,
+body.theme-dark .dashboard .task-inbox-toolbar,
+body.dashboard-theme-dark .dashboard .task-inbox-toolbar,
+body.theme-dark .dashboard .task-detail-panel,
+body.dashboard-theme-dark .dashboard .task-detail-panel,
+body.theme-dark .dashboard .task-detail-content,
+body.dashboard-theme-dark .dashboard .task-detail-content {
+  background: #111827;
+  border-color: #2d3a50;
+  color: #edf2f7;
+}
+
+body.theme-dark .dashboard .task-inbox-shell,
+body.dashboard-theme-dark .dashboard .task-inbox-shell {
+  box-shadow: none;
+}
+
+body.theme-dark .dashboard .task-inbox-toolbar,
+body.dashboard-theme-dark .dashboard .task-inbox-toolbar {
+  background: rgba(17,24,39,.94);
+}
+
+body.theme-dark .dashboard .task-inbox-list,
+body.theme-dark .dashboard .task-inbox-list,
+body.dashboard-theme-dark .dashboard .task-inbox-list {
+  padding: 8px;
+}
+
+body.theme-dark .dashboard .task-list-item,
+body.dashboard-theme-dark .dashboard .task-list-item {
+  background: #141b2e;
+  border-color: #1f2937;
+}
+
+body.theme-dark .dashboard .task-list-item:hover,
+body.dashboard-theme-dark .dashboard .task-list-item:hover {
+  border-color: #2d3a50;
+  background: #182235;
+}
+
+body.theme-dark .dashboard .task-list-item.selected,
+body.dashboard-theme-dark .dashboard .task-list-item.selected {
+  border-color: rgba(37, 194, 107, 0.45);
+  background: #0f1726;
+  box-shadow: inset 3px 0 0 var(--tf-primary);
+}
+
+body.theme-dark .dashboard .task-list-main p,
+body.dashboard-theme-dark .dashboard .task-list-main p,
+body.theme-dark .dashboard .task-page-meta,
+body.dashboard-theme-dark .dashboard .task-page-meta,
+body.theme-dark .dashboard .task-list-date,
+body.dashboard-theme-dark .dashboard .task-list-date {
+  color: #cbd5e1;
+}
+
+body.dashboard-theme-dark .dashboard .task-detail-panel,
+body.dashboard-theme-dark .dashboard .task-detail-content {
+  color: #e2e8f0;
+}
+
+body.theme-dark .dashboard .task-comments,
+body.dashboard-theme-dark .dashboard .task-comments,
+body.theme-dark .dashboard .task-comment strong,
+body.dashboard-theme-dark .dashboard .task-comment strong,
+body.theme-dark .dashboard .task-comment small,
+body.dashboard-theme-dark .dashboard .task-comment small,
+body.theme-dark .dashboard .task-comment p,
+body.dashboard-theme-dark .dashboard .task-comment p {
+  color: #cbd5e1;
+}
+
 body.dashboard-theme-dark .workspace-table th,
 body.dashboard-theme-dark .files-table th { background: #0f172a !important; color: #cbd5e1 !important; }
  

@@ -389,7 +389,9 @@ function applySettingsPreferences() {
     document.body.classList.toggle("compact-dashboard-tables", compactTables);
     document.body.classList.toggle("quiet-dashboard-notifications", quietNotifications);
     document.body.classList.toggle("dashboard-theme-dark", resolvedTheme === "dark");
+    document.body.classList.toggle("theme-dark", resolvedTheme === "dark");
     document.documentElement.dataset.dashboardTheme = resolvedTheme;
+    document.documentElement.dataset.theme = resolvedTheme;
 
     const notificationState = document.getElementById("settings-notification-state");
     if (notificationState) {
