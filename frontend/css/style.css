@@ -131,6 +131,57 @@ button {
   border-bottom: 1px solid #eef2f6;
 }
  
+
+/* Dashboard: separate header and content into distinct cards (manager-style) */
+.dashboard .common-page-card {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  gap: 18px;
+}
+
+.dashboard .common-page-card > .common-page-header {
+  background: rgba(255,255,255,0.98);
+  border: 1px solid #e3ebf5;
+  border-radius: 22px;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+  padding: 20px 22px;
+  align-items: center;
+}
+
+.dashboard .common-page-card > .common-page-header .common-page-header-actions {
+  align-items: center;
+}
+
+.dashboard .common-page-card .task-inbox-shell,
+.dashboard .common-page-card .project-section,
+.dashboard .common-page-card .team-page,
+.dashboard .common-page-card .common-content-card {
+  background: rgba(255,255,255,0.96);
+  border: 1px solid #e3ebf5;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px rgba(19, 33, 61, 0.06);
+  padding: 18px;
+  margin-top: 6px;
+}
+
+/* Files page manager override */
+.dashboard .files-page .common-page-header {
+  padding: 22px 24px;
+}
+
+.dashboard .files-page .common-page-header-actions {
+  gap: 16px;
+}
+
+.dashboard .files-page .files-toolbar-right {
+  justify-content: flex-end;
+}
+
+.dashboard .files-page .common-content-card {
+  padding: 20px;
+}
 .auth-logo {
   display: inline-flex;
   align-items: center;
@@ -693,10 +744,27 @@ body:has(.dashboard) .dashboard { height: calc(100vh / 0.9); min-height: 0; }
  
 .common-page-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
+  padding: 20px 22px;
+  border: 1px solid rgba(216,225,238,.9);
+  border-radius: var(--common-card-radius);
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(15,23,42,.08);
+}
+
+.common-page-header .common-page-title {
+  min-width: 0;
+}
+
+.common-page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
  
 .common-page-title { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
@@ -746,15 +814,25 @@ body:has(.dashboard) .dashboard { height: calc(100vh / 0.9); min-height: 0; }
  
 /* Shared control sizing inside toolbars */
 .common-toolbar .team-search,
+.common-page-header .team-search,
 .common-toolbar .task-board-filter,
+.common-page-header .task-board-filter,
 .common-toolbar .team-filter-select,
+.common-page-header .team-filter-select,
 .common-toolbar .category-dropdown-btn,
+.common-page-header .category-dropdown-btn,
 .common-toolbar .storage-dropdown-btn,
+.common-page-header .storage-dropdown-btn,
 .common-toolbar .files-sort,
+.common-page-header .files-sort,
 .common-toolbar .activity-log-date-btn,
+.common-page-header .activity-log-date-btn,
 .common-toolbar .report-date-btn,
+.common-page-header .report-date-btn,
 .common-toolbar .settings-select,
-.common-toolbar .calendar-year-select {
+.common-page-header .settings-select,
+.common-toolbar .calendar-year-select,
+.common-page-header .calendar-year-select {
   width: 180px !important;
   min-width: 180px !important;
   max-width: 180px !important;
@@ -772,7 +850,8 @@ body:has(.dashboard) .dashboard { height: calc(100vh / 0.9); min-height: 0; }
   outline: none;
 }
  
-.common-toolbar .team-search {
+.common-toolbar .team-search,
+.common-page-header .team-search {
   min-width: 240px !important;
   width: min(360px, 100%) !important;
   max-width: none !important;
@@ -2354,6 +2433,24 @@ body:has(.dashboard) .dashboard { height: calc(100vh / 0.9); min-height: 0; }
   box-shadow: var(--tf-shadow);
 }
  
+.dashboard .calendar-page .common-page-header {
+  align-items: center;
+}
+
+.dashboard .calendar-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  width: 100%;
+}
+
+.dashboard .calendar-nav-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+ 
 .dashboard .calendar-head {
   display: flex;
   align-items: center;
@@ -2371,10 +2468,10 @@ body:has(.dashboard) .dashboard { height: calc(100vh / 0.9); min-height: 0; }
 }
  
 .dashboard .calendar-nav-btn {
-  width: 38px; height: 38px;
+  width: 42px; height: 42px;
   padding: 0;
   border: 1px solid var(--tf-border);
-  border-radius: var(--tf-radius);
+  border-radius: 14px;
   background: var(--tf-primary);
   color: #fff;
   cursor: pointer;
@@ -2386,12 +2483,12 @@ body:has(.dashboard) .dashboard { height: calc(100vh / 0.9); min-height: 0; }
 .dashboard .calendar-nav-btn:hover { background: var(--tf-primary-dark); }
  
 .dashboard .calendar-year-select {
-  height: 38px;
-  width: 96px;
+  height: 42px;
+  width: 112px;
   border: 1px solid var(--tf-border);
-  border-radius: var(--tf-radius);
+  border-radius: 14px;
   background: #fff;
-  padding: 0 10px;
+  padding: 0 14px;
   font-size: 14px;
   cursor: pointer;
   outline: none;

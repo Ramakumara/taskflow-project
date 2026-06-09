@@ -273,9 +273,7 @@
                             <h1>My Tasks</h1>
                             <p>Track assignments, due dates, and progress across your workspace.</p>
                         </div>
-                    </div>
-                    <div id="taskToolbar" class="common-toolbar">
-                        <div class="task-toolbar-filters common-toolbar-actions">
+                        <div id="taskToolbar" class="common-page-header-actions task-toolbar-filters common-toolbar-actions">
                             <select id="taskProjectFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by project">
                                 <option value="all">All Projects</option>
                             </select>
@@ -318,9 +316,7 @@
                             <h1>My Team</h1>
                             <p>See who is involved in each project and keep collaboration aligned.</p>
                         </div>
-                    </div>
-                    <div class="common-toolbar">
-                        <div class="task-toolbar-filters common-toolbar-actions">
+                        <div class="common-page-header-actions task-toolbar-filters common-toolbar-actions">
                             <select id="teamProjectFilter" class="team-filter-select" onchange="renderTeamWorkspace()" aria-label="Filter team projects">
                                 <option value="all">All Projects</option>
                             </select>
@@ -339,19 +335,19 @@
                             <h1>Calendar</h1>
                             <p>Review deadlines and scheduled work across the month.</p>
                         </div>
-                    </div>
-                    <div class="common-toolbar">
-                        <div class="calendar-top-row">
-                            <div class="calendar-nav-group">
-                                <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(-1)">
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                                <div class="calendar-nav-title" id="calendar-month-year"></div>
-                                <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(1)">
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
+                        <div class="common-page-header-actions common-toolbar-actions">
+                            <div class="calendar-top-row">
+                                <div class="calendar-nav-group">
+                                    <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(-1)">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </button>
+                                    <div class="calendar-nav-title" id="calendar-month-year"></div>
+                                    <button class="calendar-nav-btn" type="button" onclick="changeCalendarMonth(1)">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </button>
+                                </div>
+                                <select id="calendar-year-select" class="calendar-year-select" onchange="onCalendarYearChange(event)" aria-label="Select calendar year"></select>
                             </div>
-                            <select id="calendar-year-select" class="calendar-year-select" onchange="onCalendarYearChange(event)" aria-label="Select calendar year"></select>
                         </div>
                     </div>
                     <div class="common-content-card">
@@ -369,10 +365,7 @@
                             <h1>Team Activity Log</h1>
                             <p>Review recent activity for your team members.</p>
                         </div>
-
-                    </div>
-                    <div class="common-toolbar">
-                        <div class="common-toolbar-actions">
+                        <div class="common-page-header-actions common-toolbar-actions">
                             <div class="activity-log-date-control">
                                 <button class="activity-log-date-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
                                     <i class="fas fa-calendar-day"></i>
@@ -490,9 +483,7 @@
                             <h1>Reports</h1>
                             <p>Monitor project health, team output, and delivery trends in one place.</p>
                         </div>
-                    </div>
-                    <div class="common-toolbar">
-                        <div class="common-toolbar-actions">
+                        <div class="common-page-header-actions common-toolbar-actions">
                             <div class="report-date-control">
                                 <button class="report-date-btn" type="button" onclick="toggleReportDatePicker(event)">
                                     <i class="fas fa-calendar-day"></i>
@@ -736,50 +727,49 @@
                             <p>Upload, organize, and review shared workspace files.</p>
                         </div>
                         <input id="file-input" type="file" class="hidden" multiple onchange="handleFileUpload(event)">
+                        <div class="common-page-header-actions files-toolbar-right common-toolbar-actions">
+                            
+                            <div class="files-toolbar-right">
+                                <div class="files-category-dropdown">
+                                    <button class="category-dropdown-btn" type="button" onclick="toggleCategoryDropdown()">
+                                        Categories: <span id="selected-category-label">All Files</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                    <div class="category-dropdown-menu hidden" id="files-category-dropdown-menu">
+                                        <div id="category-list" class="category-list">
+                                            <button class="category-item active" type="button" data-category="all" onclick="setFilesCategory('all')"><span><i class="fas fa-folder-open"></i>All Files</span><strong>0</strong></button>
+                                            <button class="category-item" type="button" data-category="documents" onclick="setFilesCategory('documents')"><span><i class="far fa-file-lines"></i>Documents</span><strong>0</strong></button>
+                                            <button class="category-item" type="button" data-category="images" onclick="setFilesCategory('images')"><span><i class="far fa-image"></i>Images</span><strong>0</strong></button>
+                                            <button class="category-item" type="button" data-category="videos" onclick="setFilesCategory('videos')"><span><i class="far fa-circle-play"></i>Videos</span><strong>0</strong></button>
+                                            <button class="category-item" type="button" data-category="archives" onclick="setFilesCategory('archives')"><span><i class="far fa-archive"></i>Archives</span><strong>0</strong></button>
+                                            <button class="category-item" type="button" data-category="others" onclick="setFilesCategory('others')"><span><i class="far fa-folder"></i>Others</span><strong>0</strong></button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="sort-container">
+                                    <button class="files-sort" type="button" onclick="toggleFilesSort()">
+                                        <span>Sort by: Name (A-Z)</span>
+                                        <i class="fas fa-chevron-down"></i>
+                                    </button>
+                                    <div class="sort-options" id="sortOptions">
+                                        <div onclick="setSort('name-asc')">Name (A-Z)</div>
+                                        <div onclick="setSort('name-desc')">Name (Z-A)</div>
+                                        <div onclick="setSort('date-desc')">Date (Newest)</div>
+                                    </div>
+                                </div>
+                                <button id="uploadBtn" class="files-action-btn primary common-page-action" type="button" onclick="openFileUploadModal()">
+                                    <i class="fas fa-upload"></i>
+                                    <span>Upload File</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="common-toolbar">
                         <div class="files-tabs">
                             <button class="files-tab active" type="button" data-files-tab="all" onclick="setFilesTab('all')"><i class="fas fa-folder"></i>All Files</button>
                             <button class="files-tab" type="button" data-files-tab="my" onclick="setFilesTab('my')"><i class="fas fa-user"></i>My Files</button>
                             <button class="files-tab" type="button" data-files-tab="shared" onclick="setFilesTab('shared')"><i class="fas fa-users"></i>Shared with Me</button>
                         </div>
-                        <div class="common-toolbar-actions files-toolbar-right">
-                            <div class="files-category-dropdown">
-                                <button class="category-dropdown-btn" type="button" onclick="toggleCategoryDropdown()">
-                                    Categories: <span id="selected-category-label">All Files</span>
-                                    <i class="fas fa-chevron-down"></i>
-                                </button>
-                                <div class="category-dropdown-menu hidden" id="files-category-dropdown-menu">
-                                    <div id="category-list" class="category-list">
-                                        <button class="category-item active" type="button" data-category="all" onclick="setFilesCategory('all')"><span><i class="fas fa-folder-open"></i>All Files</span><strong>0</strong></button>
-                                        <button class="category-item" type="button" data-category="documents" onclick="setFilesCategory('documents')"><span><i class="far fa-file-lines"></i>Documents</span><strong>0</strong></button>
-                                        <button class="category-item" type="button" data-category="images" onclick="setFilesCategory('images')"><span><i class="far fa-image"></i>Images</span><strong>0</strong></button>
-                                        <button class="category-item" type="button" data-category="videos" onclick="setFilesCategory('videos')"><span><i class="far fa-circle-play"></i>Videos</span><strong>0</strong></button>
-                                        <button class="category-item" type="button" data-category="archives" onclick="setFilesCategory('archives')"><span><i class="far fa-archive"></i>Archives</span><strong>0</strong></button>
-                                        <button class="category-item" type="button" data-category="others" onclick="setFilesCategory('others')"><span><i class="far fa-folder"></i>Others</span><strong>0</strong></button>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                                
-                            <div class="sort-container">
-                                <button class="files-sort" type="button" onclick="toggleFilesSort()">
-                                    <span>Sort by: Name (A-Z)</span>
-                                    <i class="fas fa-chevron-down"></i>
-                                </button>
-                                <div class="sort-options" id="sortOptions">
-                                    <div onclick="setSort('name-asc')">Name (A-Z)</div>
-                                    <div onclick="setSort('name-desc')">Name (Z-A)</div>
-                                    <div onclick="setSort('date-desc')">Date (Newest)</div>
-                                </div>
-                            </div>
-                            <button id="uploadBtn" class="files-action-btn primary common-page-action" type="button" onclick="openFileUploadModal()">
-                                <i class="fas fa-upload"></i>
-                                <span>Upload File</span>
-                            </button>
-                        </div>
-                    </div>
 
                     <section class="common-content-card files-table-card">
                         <div class="files-table-scroll">
@@ -884,7 +874,7 @@
 
             <div id="profile-view" class="hidden">
                 <section class="common-page-card dashboard-profile-page">
-                    <div class="common-page-head">
+                    <div class="common-page-header">
                         <div class="common-page-title">
                             <h1 class="profile-page-title">My Profile</h1>
                             <p>View the account details used across your TaskFlow workspace.</p>
@@ -970,10 +960,6 @@
                             <p data-settings-text="subtitle">Manage your account and preferences.</p>
                         </div>
                     </div>
-
-                    <div class="common-toolbar common-toolbar-settings">
-                        
-                    
 
                     <section class="common-content-card settings-list-card">
                         <button class="settings-row" type="button" onclick="goToProfile()">

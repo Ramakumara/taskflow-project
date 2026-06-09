@@ -141,14 +141,14 @@ function showSuperError(message) {
     notifySuper(message, "error");
 }
 
-function pageHead(title, subtitle, action = "") {
+function pageHead(title, subtitle, action = "", toolbar = "") {
     return `
-        <header class="page-head">
-            <div class="page-title">
+        <header class="common-page-header">
+            <div class="common-page-title">
                 <h1>${escapeSuper(title)}</h1>
                 <p>${escapeSuper(subtitle)}</p>
             </div>
-            ${action ? `<div class="action-row">${action}</div>` : ""}
+            ${action || toolbar ? `<div class="common-page-header-actions">${toolbar}${action}</div>` : ""}
         </header>
     `;
 }
@@ -210,21 +210,27 @@ function renderUsers() {
     const users = filteredUsers();
     const page = paginateSuperItems("users", users);
     document.getElementById("superContent").innerHTML = `
-        ${pageHead("User Management", "Search, filter, promote, demote, suspend, reset, and delete platform users.")}
-        <div class="toolbar">
-            <select onchange="setSuperFilter('role', this.value)">
-                ${option("all", "All roles", superState.filters.role)}
-                ${option("user", "Users", superState.filters.role)}
-                ${option("manager", "Managers", superState.filters.role)}
-                ${option("admin", "Admins", superState.filters.role)}
-                ${option("super_admin", "Super Admins", superState.filters.role)}
-            </select>
-            <select onchange="setSuperFilter('status', this.value)">
-                ${option("all", "All status", superState.filters.status)}
-                ${option("active", "Active", superState.filters.status)}
-                ${option("suspended", "Suspended", superState.filters.status)}
-            </select>
-        </div>
+        ${pageHead(
+            "User Management",
+            "Search, filter, promote, demote, suspend, reset, and delete platform users.",
+            "",
+            `
+                <div class="toolbar">
+                    <select onchange="setSuperFilter('role', this.value)">
+                        ${option("all", "All roles", superState.filters.role)}
+                        ${option("user", "Users", superState.filters.role)}
+                        ${option("manager", "Managers", superState.filters.role)}
+                        ${option("admin", "Admins", superState.filters.role)}
+                        ${option("super_admin", "Super Admins", superState.filters.role)}
+                    </select>
+                    <select onchange="setSuperFilter('status', this.value)">
+                        ${option("all", "All status", superState.filters.status)}
+                        ${option("active", "Active", superState.filters.status)}
+                        ${option("suspended", "Suspended", superState.filters.status)}
+                    </select>
+                </div>
+            `
+        )}
         <section class="super-panel table-wrap">
             ${usersTable(page.items)}
             ${paginationFooter("users", users.length, "users")}
@@ -306,16 +312,22 @@ function renderProjects() {
     const page = paginateSuperItems("projects", projects);
     const managers = superState.users.filter(user => user.role === "manager");
     document.getElementById("superContent").innerHTML = `
-        ${pageHead("Global Project Management", "View every project, archive, transfer ownership, reassign managers, and delete when needed.")}
-        <div class="toolbar">
-            <select onchange="setSuperFilter('projectStatus', this.value)">
-                ${option("all", "All status", superState.filters.projectStatus)}
-                ${option("Planning", "Planning", superState.filters.projectStatus)}
-                ${option("Active", "Active", superState.filters.projectStatus)}
-                ${option("Completed", "Completed", superState.filters.projectStatus)}
-                ${option("On Hold", "On Hold", superState.filters.projectStatus)}
-            </select>
-        </div>
+        ${pageHead(
+            "Global Project Management",
+            "View every project, archive, transfer ownership, reassign managers, and delete when needed.",
+            "",
+            `
+                <div class="toolbar">
+                    <select onchange="setSuperFilter('projectStatus', this.value)">
+                        ${option("all", "All status", superState.filters.projectStatus)}
+                        ${option("Planning", "Planning", superState.filters.projectStatus)}
+                        ${option("Active", "Active", superState.filters.projectStatus)}
+                        ${option("Completed", "Completed", superState.filters.projectStatus)}
+                        ${option("On Hold", "On Hold", superState.filters.projectStatus)}
+                    </select>
+                </div>
+            `
+        )}
         <section class="super-panel table-wrap">
             <table class="super-table">
                 <thead><tr><th>Project Name</th><th>Manager</th><th>Team Size</th><th>Progress</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
@@ -348,30 +360,36 @@ function renderTasks() {
     const page = paginateSuperItems("tasks", tasks);
     const managers = superState.users.filter(user => user.role === "manager");
     document.getElementById("superContent").innerHTML = `
-        ${pageHead("Global Task Monitoring", "Monitor all work, filter by project, manager, status, and focus overdue tasks.")}
+        ${pageHead(
+            "Global Task Monitoring",
+            "Monitor all work, filter by project, manager, status, and focus overdue tasks.",
+            "",
+            `
+                <div class="toolbar">
+                    <select onchange="setSuperFilter('taskProject', this.value)">
+                        ${option("all", "All projects", superState.filters.taskProject)}
+                        ${superState.projects.map(project => option(project.id, project.name || project.project_name, superState.filters.taskProject)).join("")}
+                    </select>
+                    <select onchange="setSuperFilter('taskManager', this.value)">
+                        ${option("all", "All managers", superState.filters.taskManager)}
+                        ${managers.map(manager => option(manager.email, manager.username || manager.email, superState.filters.taskManager)).join("")}
+                    </select>
+                    <select onchange="setSuperFilter('taskStatus', this.value)">
+                        ${option("all", "All status", superState.filters.taskStatus)}
+                        ${option("Pending", "Pending", superState.filters.taskStatus)}
+                        ${option("In Progress", "In Progress", superState.filters.taskStatus)}
+                        ${option("Completed", "Completed", superState.filters.taskStatus)}
+                        ${option("overdue", "Overdue only", superState.filters.taskStatus)}
+                    </select>
+                </div>
+            `
+        )}
         <section class="stat-grid">
             ${statCard("Total Tasks", superState.taskAnalytics?.total_tasks || superState.tasks.length, "fa-list-check")}
             ${statCard("Completed", superState.taskAnalytics?.completed_tasks || 0, "fa-circle-check")}
             ${statCard("Pending", superState.taskAnalytics?.pending_tasks || 0, "fa-hourglass-half")}
             ${statCard("Overdue", superState.taskAnalytics?.overdue_tasks || 0, "fa-triangle-exclamation")}
         </section>
-        <div class="toolbar">
-            <select onchange="setSuperFilter('taskProject', this.value)">
-                ${option("all", "All projects", superState.filters.taskProject)}
-                ${superState.projects.map(project => option(project.id, project.name || project.project_name, superState.filters.taskProject)).join("")}
-            </select>
-            <select onchange="setSuperFilter('taskManager', this.value)">
-                ${option("all", "All managers", superState.filters.taskManager)}
-                ${managers.map(manager => option(manager.email, manager.username || manager.email, superState.filters.taskManager)).join("")}
-            </select>
-            <select onchange="setSuperFilter('taskStatus', this.value)">
-                ${option("all", "All status", superState.filters.taskStatus)}
-                ${option("Pending", "Pending", superState.filters.taskStatus)}
-                ${option("In Progress", "In Progress", superState.filters.taskStatus)}
-                ${option("Completed", "Completed", superState.filters.taskStatus)}
-                ${option("overdue", "Overdue only", superState.filters.taskStatus)}
-            </select>
-        </div>
         <section class="super-panel table-wrap">
             <table class="super-table">
                 <thead><tr><th>Task</th><th>Project</th><th>Manager</th><th>Status</th><th>Due Date</th><th>Assignees</th></tr></thead>
@@ -399,7 +417,14 @@ function renderTasks() {
 function renderAnalytics() {
     const data = superState.analytics || {};
     document.getElementById("superContent").innerHTML = `
-        ${pageHead("Platform Analytics", "Growth, completion rate, active users, login activity, and AI usage statistics.")}
+        ${pageHead(
+            "Platform Analytics",
+            "Growth, completion rate, active users, login activity, and AI usage statistics.",
+            "",
+            `
+                <div class="toolbar"></div>
+            `
+        )}
         <section class="stat-grid">
             ${statCard("Completion Rate", `${data.completion_rate || 0}%`, "fa-percent")}
             ${statCard("Active Users", data.active_users || 0, "fa-user-check")}
@@ -426,14 +451,20 @@ function renderAuditLogs() {
     const page = paginateSuperItems("audit", logs);
     const actions = [...new Set(superState.auditLogs.map(log => log.action).filter(Boolean))].sort();
     document.getElementById("superContent").innerHTML = `
-        ${pageHead("Audit Logs", "Track user, project, task, AI, login, role, and settings events.")}
-        <div class="toolbar">
-            <input type="search" placeholder="Search actor or description..." value="${escapeSuper(superState.search)}" oninput="handleSuperSearch(this.value)">
-            <select onchange="setSuperFilter('auditAction', this.value)">
-                ${option("all", "All actions", superState.filters.auditAction)}
-                ${actions.map(action => option(action, action, superState.filters.auditAction)).join("")}
-            </select>
-        </div>
+        ${pageHead(
+            "Audit Logs",
+            "Track user, project, task, AI, login, role, and settings events.",
+            "",
+            `
+                <div class="toolbar">
+                    <input type="search" placeholder="Search actor or description..." value="${escapeSuper(superState.search)}" oninput="handleSuperSearch(this.value)">
+                    <select onchange="setSuperFilter('auditAction', this.value)">
+                        ${option("all", "All actions", superState.filters.auditAction)}
+                        ${actions.map(action => option(action, action, superState.filters.auditAction)).join("")}
+                    </select>
+                </div>
+            `
+        )}
         <section class="super-panel table-wrap">
             <table class="super-table">
                 <thead><tr><th>Timestamp</th><th>Action</th><th>User</th><th>Role</th><th>IP Address</th><th>Description</th></tr></thead>
@@ -458,7 +489,11 @@ function renderAuditLogs() {
 function renderSettings() {
     const settings = superState.settings || {};
     document.getElementById("superContent").innerHTML = `
-        ${pageHead("System Settings", "Manage general, email, Gemini AI, notification, and security configuration.", `<button class="super-btn primary" onclick="saveSystemSettings()"><i class="fas fa-floppy-disk"></i>Save Settings</button>`)}
+        ${pageHead(
+            "System Settings",
+            "Manage general, email, Gemini AI, notification, and security configuration.",
+            `<button class="super-btn primary" onclick="saveSystemSettings()"><i class="fas fa-floppy-disk"></i>Save Settings</button>`
+        )}
         <section class="settings-grid">
             ${settingsPanel("General Settings", [["system_name", "System Name"], ["logo", "Logo URL"]], settings.general)}
             ${settingsPanel("Email Settings", [["smtp_host", "SMTP Host"], ["smtp_port", "SMTP Port"], ["smtp_user", "SMTP User"], ["smtp_password", "SMTP Password"]], settings.email)}

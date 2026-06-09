@@ -388,14 +388,14 @@ function renderCommonPageLayout({ pageClass = "", header, toolbar = "", content 
     `;
 }
 
-function renderCommonPageHeader(title, subtitle, actionHtml = "") {
+function renderCommonPageHeader(title, subtitle, actionHtml = "", toolbarHtml = "") {
     return `
         <header class="common-page-header">
             <div class="common-page-title">
                 <h1>${escapeHtml(title)}</h1>
                 ${subtitle ? `<p>${escapeHtml(subtitle)}</p>` : ""}
             </div>
-            ${actionHtml ? `<div class="common-page-header-actions">${actionHtml}</div>` : ""}
+            ${actionHtml || toolbarHtml ? `<div class="common-page-header-actions">${toolbarHtml}${actionHtml}</div>` : ""}
         </header>
     `;
 }
@@ -1017,35 +1017,36 @@ function renderTasksView() {
                 pageClass: "admin-module-page admin-tasks-page",
                 header: renderCommonPageHeader(
                     "Tasks",
-                    "Assign work, monitor progress, and review delivery status across every project."
+                    "Track assignments, due dates, and progress across your workspace.",
+                    "",
+                    adminTaskDetailOpen ? "" : `
+                        <div class="common-toolbar">
+                            <select class="admin-task-filter common-filter-select" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
+                                <option value="all">All Projects</option>
+                                ${projectOptions}
+                            </select>
+                            <select class="admin-task-filter common-filter-select" onchange="setAdminTaskStatusFilter(this.value)" aria-label="Filter tasks by status">
+                                <option value="all" ${adminTaskFilters.status === "all" ? "selected" : ""}>All Status</option>
+                                <option value="Pending" ${adminTaskFilters.status === "Pending" ? "selected" : ""}>Pending</option>
+                                <option value="In Progress" ${adminTaskFilters.status === "In Progress" ? "selected" : ""}>In Progress</option>
+                                <option value="Completed" ${adminTaskFilters.status === "Completed" ? "selected" : ""}>Completed</option>
+                                <option value="On Hold" ${adminTaskFilters.status === "On Hold" ? "selected" : ""}>On Hold</option>
+                                <option value="Planning" ${adminTaskFilters.status === "Planning" ? "selected" : ""}>Planning</option>
+                            </select>
+                            <select class="admin-task-filter common-filter-select" onchange="setAdminTaskDueFilter(this.value)" aria-label="Filter tasks by due date">
+                                <option value="all" ${adminTaskFilters.due === "all" ? "selected" : ""}>Any Due Date</option>
+                                <option value="overdue" ${adminTaskFilters.due === "overdue" ? "selected" : ""}>Overdue</option>
+                                <option value="today" ${adminTaskFilters.due === "today" ? "selected" : ""}>Due Today</option>
+                                <option value="week" ${adminTaskFilters.due === "week" ? "selected" : ""}>Due This Week</option>
+                                <option value="none" ${adminTaskFilters.due === "none" ? "selected" : ""}>No Due Date</option>
+                            </select>
+                            <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
+                                <i class="fas fa-plus"></i>
+                                Add Task
+                            </button>
+                        </div>
+                    `
                 ),
-                toolbar: adminTaskDetailOpen ? "" : `
-                    <div class="common-toolbar">
-                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
-                            <option value="all">All Projects</option>
-                            ${projectOptions}
-                        </select>
-                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskStatusFilter(this.value)" aria-label="Filter tasks by status">
-                            <option value="all" ${adminTaskFilters.status === "all" ? "selected" : ""}>All Status</option>
-                            <option value="Pending" ${adminTaskFilters.status === "Pending" ? "selected" : ""}>Pending</option>
-                            <option value="In Progress" ${adminTaskFilters.status === "In Progress" ? "selected" : ""}>In Progress</option>
-                            <option value="Completed" ${adminTaskFilters.status === "Completed" ? "selected" : ""}>Completed</option>
-                            <option value="On Hold" ${adminTaskFilters.status === "On Hold" ? "selected" : ""}>On Hold</option>
-                            <option value="Planning" ${adminTaskFilters.status === "Planning" ? "selected" : ""}>Planning</option>
-                        </select>
-                        <select class="admin-task-filter common-filter-select" onchange="setAdminTaskDueFilter(this.value)" aria-label="Filter tasks by due date">
-                            <option value="all" ${adminTaskFilters.due === "all" ? "selected" : ""}>Any Due Date</option>
-                            <option value="overdue" ${adminTaskFilters.due === "overdue" ? "selected" : ""}>Overdue</option>
-                            <option value="today" ${adminTaskFilters.due === "today" ? "selected" : ""}>Due Today</option>
-                            <option value="week" ${adminTaskFilters.due === "week" ? "selected" : ""}>Due This Week</option>
-                            <option value="none" ${adminTaskFilters.due === "none" ? "selected" : ""}>No Due Date</option>
-                        </select>
-                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
-                            <i class="fas fa-plus"></i>
-                            Add Task
-                        </button>
-                    </div>
-                `,
                 content: renderCommonContentCard(`
                     <div class="admin-task-inbox-shell ${adminTaskDetailOpen ? "showing-detail" : ""}">
                         <div class="admin-task-inbox-left">
@@ -1749,16 +1750,17 @@ function renderTeamView() {
                 pageClass: "admin-module-page admin-team-page",
                 header: renderCommonPageHeader(
                     "Team",
-                    "Review team members by project with the same structured layout used across admin modules."
+                    "Review team members by project with the same structured layout used across admin modules.",
+                    "",
+                    `
+                        <div class="common-toolbar">
+                            <select class="admin-team-filter common-filter-select" onchange="setAdminTeamProjectFilter(this.value)" aria-label="Filter team projects">
+                                <option value="all">All Projects</option>
+                                ${projectOptions}
+                            </select>
+                        </div>
+                    `
                 ),
-                toolbar: `
-                    <div class="common-toolbar">
-                        <select class="admin-team-filter common-filter-select" onchange="setAdminTeamProjectFilter(this.value)" aria-label="Filter team projects">
-                            <option value="all">All Projects</option>
-                            ${projectOptions}
-                        </select>
-                    </div>
-                `,
                 content: renderCommonContentCard(`
                     <div class="admin-team-project-list">
                         ${visibleProjects.length ? visibleProjects.map((project, index) => renderAdminTeamProject(project, projectMap, userMap, index)).join("") : `<div class="empty-state">${adminState.searchTerm ? "No results found" : "No team members found."}</div>`}
@@ -2134,59 +2136,52 @@ function renderUsersView() {
 
                 header: renderCommonPageHeader(
                     "Users",
-                    "Manage users, roles, and access permissions from one consistent workspace."
+                    "Manage users, roles, and access permissions from one consistent workspace.",
+                    "",
+                    `
+                        <div class="common-toolbar">
+                            <select
+                                class="common-filter-select"
+                                onchange="setAdminUserRoleFilter(this.value)">
+
+                                <option value="all"
+                                    ${adminUserFilters.role === "all" ? "selected" : ""}>
+                                    All Roles
+                                </option>
+
+                                <option value="user"
+                                    ${adminUserFilters.role === "user" ? "selected" : ""}>
+                                    User
+                                </option>
+
+                                <option value="manager"
+                                    ${adminUserFilters.role === "manager" ? "selected" : ""}>
+                                    Manager
+                                </option>
+
+                                <option value="admin"
+                                    ${adminUserFilters.role === "admin" ? "selected" : ""}>
+                                    Admin
+                                </option>
+                            </select>
+
+                            
+                            <button class="action-btn common-action-btn admin-add-user-btn" onclick="openInviteModal()">
+                                <i class="fas fa-envelope"></i>
+                                Invite User
+                            </button>
+                            <button
+                                class="action-btn common-action-btn admin-add-user-btn"
+                                type="button"
+                                onclick="openAddUserModal()">
+
+                                <i class="fas fa-plus"></i>
+                                Add User
+                            </button>
+
+                        </div>
+                    `
                 ),
-
-                toolbar: `
-                    <div class="common-toolbar">
-                        <select
-                            class="common-filter-select"
-                            onchange="setAdminUserRoleFilter(this.value)">
-
-                            <option value="all"
-                                ${adminUserFilters.role === "all" ? "selected" : ""}>
-                                All Roles
-                            </option>
-
-                            <option value="user"
-                                ${adminUserFilters.role === "user" ? "selected" : ""}>
-                                User
-                            </option>
-
-                            <option value="manager"
-                                ${adminUserFilters.role === "manager" ? "selected" : ""}>
-                                Manager
-                            </option>
-
-                            <option value="admin"
-                                ${adminUserFilters.role === "admin" ? "selected" : ""}>
-                                Admin
-                            </option>
-                        </select>
-
-                        <button
-                            class="action-btn common-action-btn secondary-btn"
-                            type="button"
-                            onclick="resetAdminUserFilters()">
-
-                            <i class="fas fa-rotate-left"></i>
-                            Reset
-                        </button>
-                        <button class="action-btn common-action-btn admin-add-user-btn" onclick="openInviteModal()">
-                            <i class="fas fa-envelope"></i>
-                            Invite User
-                        </button>
-                        <button
-                            class="action-btn common-action-btn admin-add-user-btn"
-                            type="button"
-                            onclick="openAddUserModal()">
-
-                            <i class="fas fa-plus"></i>
-                            Add User
-                        </button>
-
-                    </div>
-                `,
 
                 content: renderCommonContentCard(`
 
@@ -2730,38 +2725,39 @@ function renderReportsView() {
                 pageClass: "admin-module-page admin-reports-page",
                 header: renderCommonPageHeader(
                     "Reports",
-                    "Filter task and project performance by deadline date."
-                ),
-                toolbar: `
-                    <div class="common-toolbar admin-report-toolbar">
-                        <label class="admin-date-field" for="admin-report-start-date">
-                            <span>Start</span>
-                            <input id="admin-report-start-date" type="date" value="${escapeHtml(adminReportState.startDate)}" onchange="setAdminReportDateRange()">
-                        </label>
-                        <label class="admin-date-field" for="admin-report-end-date">
-                            <span>End</span>
-                            <input id="admin-report-end-date" type="date" value="${escapeHtml(adminReportState.endDate)}" onchange="setAdminReportDateRange()">
-                        </label>
-                        <button class="action-btn common-action-btn secondary-btn" type="button" onclick="clearAdminReportDateRange()">
-                            <i class="fas fa-rotate-left"></i>
-                            Clear
-                        </button>
-                        <div class="admin-export-group">
-                            <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('excel')">
-                                <i class="fas fa-file-excel"></i>
-                                Excel
+                    "Filter task and project performance by deadline date.",
+                    "",
+                    `
+                        <div class="common-toolbar admin-report-toolbar">
+                            <label class="admin-date-field" for="admin-report-start-date">
+                                <span>Start</span>
+                                <input id="admin-report-start-date" type="date" value="${escapeHtml(adminReportState.startDate)}" onchange="setAdminReportDateRange()">
+                            </label>
+                            <label class="admin-date-field" for="admin-report-end-date">
+                                <span>End</span>
+                                <input id="admin-report-end-date" type="date" value="${escapeHtml(adminReportState.endDate)}" onchange="setAdminReportDateRange()">
+                            </label>
+                            <button class="action-btn common-action-btn secondary-btn" type="button" onclick="clearAdminReportDateRange()">
+                                <i class="fas fa-rotate-left"></i>
+                                Clear
                             </button>
-                            <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('pdf')">
-                                <i class="fas fa-file-pdf"></i>
-                                PDF
-                            </button>
-                            <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('csv')">
-                                <i class="fas fa-file-csv"></i>
-                                CSV
-                            </button>
+                            <div class="admin-export-group">
+                                <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('excel')">
+                                    <i class="fas fa-file-excel"></i>
+                                    Excel
+                                </button>
+                                <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('pdf')">
+                                    <i class="fas fa-file-pdf"></i>
+                                    PDF
+                                </button>
+                                <button class="action-btn common-action-btn export-btn" type="button" onclick="exportAdminReport('csv')">
+                                    <i class="fas fa-file-csv"></i>
+                                    CSV
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                `,
+                    `
+                ),
                 content: `
                     <section class="admin-report-kpis">
                         ${renderAdminReportKpi("Total Users", adminState.users.length, "fas fa-users", "blue", "All registered users")}
@@ -3642,43 +3638,38 @@ function renderActivityLogView() {
                 pageClass: "admin-module-page admin-activity-page",
                 header: renderCommonPageHeader(
                     "Activity Log",
-                    "Review workspace activity across users, projects, tasks, and files."
-                ),
-                toolbar: `
-                    <div class="common-toolbar admin-activity-log-toolbar">
-                        <select id="activityLogUserFilter" class="admin-filter-select common-filter-select" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by user">
-                        <option value="all">All Users</option>
-                        </select>
+                    "Review workspace activity across users, projects, tasks, and files.",
+                    "",
+                    `
+                        
 
-                        <div class="admin-activity-date-control activity-log-date-control">
-                            <button class="action-btn common-action-btn secondary-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
-                            <i class="far fa-calendar"></i>
-                            <span id="activity-log-date-label">All dates</span>
-                            <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div class="admin-activity-date-popover hidden" id="activity-log-date-popover">
-                                <label>
-                                    <span>From</span>
-                                    <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
-                                </label>
-                                <label>
-                                    <span>To</span>
-                                    <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
-                                </label>
-                                <button class="action-btn common-action-btn secondary-btn" type="button" onclick="clearActivityLogDateRange()">Clear dates</button>
+                            <div class="admin-activity-date-control activity-log-date-control">
+                                <button class="action-btn common-action-btn secondary-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
+                                <i class="far fa-calendar"></i>
+                                <span id="activity-log-date-label">All dates</span>
+                                <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div class="admin-activity-date-popover hidden" id="activity-log-date-popover">
+                                    <label>
+                                        <span>From</span>
+                                        <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
+                                    </label>
+                                    <label>
+                                        <span>To</span>
+                                        <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
+                                    </label>
+                                    <button class="action-btn common-action-btn secondary-btn" type="button" onclick="clearActivityLogDateRange()">Clear dates</button>
+                                </div>
                             </div>
-                        </div>
 
-                        <button class="action-btn common-action-btn secondary-btn" type="button" onclick="resetActivityLogFilters()">
-                            <i class="fas fa-rotate-left"></i>
-                            Reset
-                        </button>
-                        <button class="action-btn common-action-btn export-btn" type="button" onclick="exportActivityLog()">
-                            <i class="fas fa-file-export"></i>
-                            Export
-                        </button>
-                    </div>
-                `,
+                            
+                            <button class="action-btn common-action-btn export-btn" type="button" onclick="exportActivityLog()">
+                                <i class="fas fa-file-export"></i>
+                                Export
+                            </button>
+                        </div>
+                    `
+                ),
                 content: renderCommonContentCard(`
                     <div class="admin-activity-log-meta">
                         <span id="activity-log-filter-summary">Loading activity records...</span>
@@ -3752,34 +3743,32 @@ async function renderFilesView() {
                 pageClass: "admin-module-page admin-files-page",
                 header: renderCommonPageHeader(
                     "Files",
-                    "Upload, sort, and manage shared files with the same reusable admin layout system."
+                    "Upload, sort, and manage shared files with the same reusable admin layout system.",
+                    "",
+                    `
+                        <div class="common-toolbar">
+                            <select class="common-filter-select" onchange="setAdminFileCategoryFilter(this.value)" aria-label="Filter files by category">
+                                <option value="all" ${adminFileFilters.category === "all" ? "selected" : ""}>All Categories</option>
+                                <option value="documents" ${adminFileFilters.category === "documents" ? "selected" : ""}>Documents</option>
+                                <option value="images" ${adminFileFilters.category === "images" ? "selected" : ""}>Images</option>
+                                <option value="videos" ${adminFileFilters.category === "videos" ? "selected" : ""}>Videos</option>
+                                <option value="archives" ${adminFileFilters.category === "archives" ? "selected" : ""}>Archives</option>
+                                <option value="others" ${adminFileFilters.category === "others" ? "selected" : ""}>Others</option>
+                            </select>
+                            <select class="common-filter-select" onchange="setAdminFileSort(this.value)" aria-label="Sort files">
+                                <option value="date-desc" ${adminFileFilters.sort === "date-desc" ? "selected" : ""}>Newest First</option>
+                                <option value="date-asc" ${adminFileFilters.sort === "date-asc" ? "selected" : ""}>Oldest First</option>
+                                <option value="name-asc" ${adminFileFilters.sort === "name-asc" ? "selected" : ""}>Name A-Z</option>
+                                <option value="name-desc" ${adminFileFilters.sort === "name-desc" ? "selected" : ""}>Name Z-A</option>
+                            </select>
+                            
+                            <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="triggerAdminFileUpload()">
+                                <i class="fas fa-upload"></i>
+                                Upload File
+                            </button>
+                        </div>
+                    `
                 ),
-                toolbar: `
-                    <div class="common-toolbar">
-                        <select class="common-filter-select" onchange="setAdminFileCategoryFilter(this.value)" aria-label="Filter files by category">
-                            <option value="all" ${adminFileFilters.category === "all" ? "selected" : ""}>All Categories</option>
-                            <option value="documents" ${adminFileFilters.category === "documents" ? "selected" : ""}>Documents</option>
-                            <option value="images" ${adminFileFilters.category === "images" ? "selected" : ""}>Images</option>
-                            <option value="videos" ${adminFileFilters.category === "videos" ? "selected" : ""}>Videos</option>
-                            <option value="archives" ${adminFileFilters.category === "archives" ? "selected" : ""}>Archives</option>
-                            <option value="others" ${adminFileFilters.category === "others" ? "selected" : ""}>Others</option>
-                        </select>
-                        <select class="common-filter-select" onchange="setAdminFileSort(this.value)" aria-label="Sort files">
-                            <option value="date-desc" ${adminFileFilters.sort === "date-desc" ? "selected" : ""}>Newest First</option>
-                            <option value="date-asc" ${adminFileFilters.sort === "date-asc" ? "selected" : ""}>Oldest First</option>
-                            <option value="name-asc" ${adminFileFilters.sort === "name-asc" ? "selected" : ""}>Name A-Z</option>
-                            <option value="name-desc" ${adminFileFilters.sort === "name-desc" ? "selected" : ""}>Name Z-A</option>
-                        </select>
-                        <button class="action-btn common-action-btn secondary-btn" type="button" onclick="resetAdminFileFilters()">
-                            <i class="fas fa-rotate-left"></i>
-                            Reset
-                        </button>
-                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="triggerAdminFileUpload()">
-                            <i class="fas fa-upload"></i>
-                            Upload File
-                        </button>
-                    </div>
-                `,
                 content: renderCommonContentCard(`
                     <div class="data-table-wrap common-table-wrapper">
                         <table class="admin-table admin-files-table">

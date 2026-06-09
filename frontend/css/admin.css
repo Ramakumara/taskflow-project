@@ -5360,6 +5360,10 @@ body.admin-theme-dark .admin-task-comment p {
     display: flex;
     flex-direction: column;
     gap: var(--admin-page-gap);
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
 }
 
 .common-page-header {
@@ -5368,6 +5372,28 @@ body.admin-theme-dark .admin-task-comment p {
     justify-content: space-between;
     gap: 18px;
     flex-wrap: wrap;
+}
+
+/* Header card (separate visual like manager) */
+.common-page-header {
+    background: rgba(255,255,255,0.98);
+    border: 1px solid #e3ebf5;
+    border-radius: var(--admin-card-radius);
+    box-shadow: var(--admin-shadow-soft);
+    padding: calc(var(--admin-card-padding) - 6px);
+}
+
+/* Content area card under the header */
+.common-page-card .common-content-card,
+.common-page-card .task-inbox-shell,
+.common-page-card .project-section,
+.common-page-card .team-page {
+    background: rgba(255,255,255,0.96);
+    border: 1px solid #e3ebf5;
+    border-radius: 18px;
+    box-shadow: 0 2px 8px rgba(19, 33, 61, 0.06);
+    padding: var(--admin-card-padding);
+    margin-top: 8px;
 }
 
 .common-page-title {

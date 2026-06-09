@@ -1578,17 +1578,21 @@ function formatDeadlineDate(value) {
 }
 
 function setAvatar() {
-    const email = sessionStorage.getItem("email");
+    const username = sessionStorage.getItem("username") || "";
+    const email = sessionStorage.getItem("email") || "";
+    const nameSource = username.trim() || email.trim();
 
-    if (email) {
-        const firstLetter = email.charAt(0).toUpperCase();
+    if (nameSource) {
+        const firstLetter = nameSource.charAt(0).toUpperCase();
         const colors = ["#0c974a", "#0c974a", "#0c974a", "#0c974a"];
 
         const color = colors[Math.floor(Math.random() * colors.length)];
 
         const avatar = document.getElementById("avatar");
-        avatar.innerText = firstLetter;
-        avatar.style.background = color;
+        if (avatar) {
+            avatar.innerText = firstLetter;
+            avatar.style.background = color;
+        }
     }
 }
 

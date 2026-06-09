@@ -329,6 +329,7 @@ button {
 }
 
 .page-head,
+.common-page-header,
 .section-head,
 .toolbar,
 .panel-head {
@@ -339,13 +340,15 @@ button {
 }
 
 .page-title h1,
+.common-page-title h1,
 .section-head h2,
 .panel-head h3 {
     margin: 0;
     color: var(--heading);
 }
 
-.page-title h1 {
+.page-title h1,
+.common-page-title h1 {
     font-size: 20px;
     line-height: 1.2;
 }
@@ -359,10 +362,86 @@ button {
 }
 
 .page-title p,
+.common-page-title p,
 .section-head p,
 .panel-head p {
     margin: 5px 0 0;
     color: var(--muted-text);
+}
+
+.common-page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Common page card and content to match admin/dashboard layout */
+.common-page-card {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    background: rgba(255,255,255,0.98);
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    padding: 20px;
+}
+
+.common-content-card {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    box-shadow: var(--panel-shadow);
+    padding: 20px;
+    overflow: hidden;
+}
+
+/* Make header a separate card and content a secondary card (manager-style) */
+.common-page-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+.common-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    background: rgba(255,255,255,0.98);
+    border: 1px solid var(--panel-border);
+    border-radius: 22px;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+    padding: 20px;
+}
+
+.common-page-card .common-content-card,
+.common-page-card .task-inbox-shell,
+.common-page-card .project-section,
+.common-page-card .team-page {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    box-shadow: var(--panel-shadow);
+    padding: 18px;
+    margin-top: 8px;
+}
+
+.common-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.common-filter-select,
+.common-action-btn,
+.common-search-box {
+    min-height: 46px;
+    border-radius: 14px;
 }
 
 .stat-grid {
