@@ -1751,7 +1751,7 @@ function loadProjectPage() {
                         `
                         : `
                         <td>
-                            <span class="status ${statusClass}">${normalizeTaskStatus(t.status)}</span>
+                            <span class="status-pill ${statusClass}">${normalizeTaskStatus(t.status)}</span>
                         </td>
                         `
                     }

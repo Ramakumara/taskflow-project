@@ -1,0 +1,81 @@
+Analyze the entire TaskFlow project.
+
+The Manager Dashboard UI has been rebuilt, but it does not match the Admin Dashboard UI. The layout, spacing, cards, typography, and overall appearance are different from the Admin Dashboard.
+
+Task:
+
+Use the Admin Dashboard as the exact UI reference and redesign the Manager Dashboard to match it completely.
+
+Requirements:
+
+- Do not change any functionality.
+- Do not change API calls.
+- Do not change routing.
+- Do not change permissions.
+- Do not change business logic.
+- Do not change database operations.
+
+Only update the HTML structure and CSS styling.
+
+Manager Dashboard must match Admin Dashboard in:
+
+1. Sidebar
+   - Same width
+   - Same spacing
+   - Same menu alignment
+   - Same active menu style
+   - Same hover effects
+   - Same icon size
+   - Same typography
+
+2. Top Navigation
+   - Same search bar design
+   - Same button styling
+   - Same notification icon styling
+   - Same profile section styling
+   - Same height and spacing
+
+3. Dashboard Cards
+   - Same card design
+   - Same height
+   - Same padding
+   - Same shadows
+   - Same border radius
+   - Same typography
+
+4. Content Area
+   - Same container width
+   - Same spacing between sections
+   - Same responsive layout
+   - Remove excessive empty spaces
+
+5. Tables
+   - Same table styling as Admin Dashboard
+   - Same header design
+   - Same row spacing
+   - Same pagination design
+
+6. Filters
+   - Same filter toolbar layout
+   - Same search field design
+   - Same dropdown styling
+   - Same button styling
+
+7. Typography
+   - Use exactly the same font family
+   - Same font sizes
+   - Same font weights
+   - Same text colors
+
+8. Colors
+   - Use the Admin Dashboard color palette only.
+   - Do not introduce new colors.
+
+9. CSS
+   - Reuse Admin Dashboard CSS classes wherever possible.
+   - Remove Manager-specific styles that conflict with Admin styles.
+   - Ensure Manager Dashboard inherits the Admin Dashboard design system.
+
+Expected Result:
+
+The Manager Dashboard should look visually identical to the Admin Dashboard. Only the Manager-specific data and functionality should differ. A user should feel that both dashboards belong to the same application and use the same design system.

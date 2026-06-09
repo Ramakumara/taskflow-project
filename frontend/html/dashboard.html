@@ -6,6 +6,7 @@
     <title>Dashboard</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230c974a'/%3E%3Cpath d='M18 34h12v12H18zm16-16h12v28H34z' fill='white'/%3E%3C/svg%3E">
     <link rel="stylesheet" href="/static/css/style.css?v=20260528-file-upload-modal">
+    <link rel="stylesheet" href="/static/css/admin.css?v=20260528-file-upload-modal">
     <link rel="stylesheet" href="/static/css/chat.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/tom-select/dist/css/tom-select.css" rel="stylesheet">
@@ -13,52 +14,52 @@
 </head>
 <body>
 <div id="toast-container"></div>
-<div class="dashboard">
-    <aside class="dashboard-sidebar">
-        <div class="dashboard-brand" aria-hidden="true">
+<div class="dashboard dashboard-shell">
+    <aside class="dashboard-sidebar sidebar">
+        <div class="dashboard-brand brand-mark" aria-hidden="true">
             <span class="brand-piece brand-piece-wide"></span>
             <span class="brand-piece brand-piece-mid"></span>
             <span class="brand-piece brand-piece-thin"></span>
         </div>
 
-        <nav class="dashboard-nav">
-            <button class="menu-item" type="button" data-sidebar="dashboard" onclick="dashboard()">
+        <nav class="dashboard-nav sidebar-nav">
+            <button class="menu-item nav-item" type="button" data-sidebar="dashboard" onclick="dashboard()">
                 <i class="fas fa-house menu-icon"></i>
                 <span>Dashboard</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="tasks" onclick="setProjectTab('tasks')">
+            <button class="menu-item nav-item" type="button" data-sidebar="tasks" onclick="setProjectTab('tasks')">
                 <i class="fas fa-square-check menu-icon"></i>
                 <span>Tasks</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="team" onclick="setProjectTab('team')">
+            <button class="menu-item nav-item" type="button" data-sidebar="team" onclick="setProjectTab('team')">
                 <i class="fas fa-users menu-icon"></i>
                 <span>My Team</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
+            <button class="menu-item nav-item" type="button" data-sidebar="files" onclick="setProjectTab('files')">
                 <i class="far fa-folder-open menu-icon"></i>
                 <span>Files</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="activity-log" onclick="setProjectTab('activity-log')">
+            <button class="menu-item nav-item" type="button" data-sidebar="activity-log" onclick="setProjectTab('activity-log')">
                 <i class="fas fa-clock-rotate-left menu-icon"></i>
                 <span>Activity Log</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="report" onclick="setProjectTab('report')">
+            <button class="menu-item nav-item" type="button" data-sidebar="report" onclick="setProjectTab('report')">
                 <i class="fas fa-chart-pie menu-icon"></i>
                 <span>Reports</span>
             </button>
             
-            <button class="menu-item" type="button" data-sidebar="calendar" onclick="setProjectTab('calendar')">
+            <button class="menu-item nav-item" type="button" data-sidebar="calendar" onclick="setProjectTab('calendar')">
                 <i class="fas fa-chart-column menu-icon"></i>
                 <span>Calendar</span>
             </button>
-            <button class="menu-item" type="button" data-sidebar="settings" onclick="goToSettings()">
+            <button class="menu-item nav-item" type="button" data-sidebar="settings" onclick="goToSettings()">
                 <i class="fas fa-gear menu-icon"></i>
                 <span>Settings</span>
             </button>
         </nav>
     </aside>
 
-    <main class="dashboard-main">
+    <main class="dashboard-main main-panel">
         <header class="topbar">
             <div class="topbar-left">
                 <div class="topbar-search-group">
@@ -73,24 +74,24 @@
                 </div>
             </div>
 
-            <div class="topbar-right">
+            <div class="topbar-right topbar-actions">
                 <div class="notification-wrap">
 
-                    <div class="notification-bell"
+                    <button class="notification-bell notification-button" type="button"
                         onclick="toggleNotifications(event)">
 
-                        <i class="fas fa-bell"></i>
+                        <i class="fas fa-bell notification"></i>
 
-                        <span class="notification-count"
+                        <span class="notification-count notification-badge"
                             id="notification-count">3</span>
 
-                    </div>
+                    </button>
 
                     <div id="notification-dropdown"
                             class="notification-dropdown"
                             onclick="event.stopPropagation()">
 
-                        <div class="notification-header">
+                        <div class="notification-header notification-dropdown-head">
 
                             <h3>Notifications</h3>
 
@@ -102,20 +103,22 @@
 
                         </div>
 
-                        <div class="notification-tabs">
+                        <div class="notification-tabs notification-filter-row">
 
                             <button type="button"
-                                    class="active-tab"
+                                    class="active-tab notification-filter-chip"
                                     onclick="setNotificationFilter('all', event)">
                                 All
                             </button>
 
                             <button type="button"
+                                    class="notification-filter-chip"
                                     onclick="setNotificationFilter('unread', event)">
                                 Unread
                             </button>
 
                             <button type="button"
+                                    class="notification-filter-chip"
                                     onclick="setNotificationFilter('mentions', event)">
                                 Mentions
                             </button>
@@ -134,15 +137,15 @@
                 </div>
 
                 <div class="profile-menu">
-                    <button id="profile-trigger" class="profile-trigger" type="button" onclick="toggleMenu()">
-                        <div id="avatar">R</div>
+                    <button id="profile-trigger" class="profile-trigger profile-wrap" type="button" onclick="toggleMenu()" aria-haspopup="true" aria-expanded="false">
+                        <div id="avatar" class="profile-avatar"></div>
                         <span id="welcome-user"></span>
-                        <span class="profile-caret"><i class="fas fa-chevron-down"></i></span>
+                        <i class="fas fa-chevron-down"></i>
                     </button>
 
-                    <div id="dropdown-menu" class="dropdown hidden">
-                        <button type="button" class="dropdown-item" onclick="goToProfile()">
-                            <i class="fas fa-user dropdown-icon"></i>
+                    <div id="dropdown-menu" class="dropdown hidden profile-dropdown">
+                        <button type="button" class="profile-option" onclick="goToProfile()">
+                            <i class="fas fa-user"></i>
                             <span>My Profile</span>
                         </button>
                         <button type="button" class="dropdown-item" onclick="goToSettings()">
@@ -158,7 +161,7 @@
             </div>
         </header>
 
-        <section class="main-content" id="mainContent">
+        <section class="main-content content-area" id="mainContent">
             <div id="dashboard-view">
                 <section class="dashboard-summary">
                     <article class="summary-card blue-card">

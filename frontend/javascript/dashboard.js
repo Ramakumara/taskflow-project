@@ -826,48 +826,50 @@ function renderTaskReadPanel(task, project, role) {
     const assignedByName = getUserDisplayName(assignedBy, dashboardTaskCache.users);
 
     return `
-        <div class="task-detail-header">
-            <div class="task-detail-title-group">
-                <span class="task-detail-kicker">Task Details</span>
-                <h2>${escapeTeamHtml(task.title || "Untitled Task")}</h2>
-                <p><i class="fas fa-folder"></i>${escapeTeamHtml(project?.name || "Unknown Project")}</p>
+        <div class="admin-task-detail-content">
+            <div class="admin-task-detail-header">
+                <div class="admin-task-detail-title-group">
+                    <span class="admin-task-detail-kicker">Task Details</span>
+                    <h2>${escapeTeamHtml(task.title || "Untitled Task")}</h2>
+                    <p><i class="fas fa-folder"></i>${escapeTeamHtml(project?.name || "Unknown Project")}</p>
+                </div>
+
+                <div class="admin-task-detail-actions">
+                    <button class="admin-task-detail-back" type="button" onclick="clearDashboardTaskSelection()" aria-label="Back to task list">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Back</span>
+                    </button>
+                    ${canManage ? `<button type="button" onclick="enterDashboardTaskEditMode()"><i class="fas fa-pen"></i>Edit</button>` : ""}
+                    ${canManage ? `<button class="danger" type="button" onclick="deleteTask('${escapeTeamHtml(task.id)}')"><i class="fas fa-trash"></i>Delete</button>` : ""}
+                </div>
             </div>
 
-            <div class="task-detail-actions">
-                <button class="task-detail-back" type="button" onclick="clearDashboardTaskSelection()" aria-label="Back to task list">
-                    <i class="fas fa-arrow-left"></i>
-                    <span>Back</span>
-                </button>
-                ${canManage ? `<button type="button" onclick="enterDashboardTaskEditMode()"><i class="fas fa-pen"></i>Edit</button>` : ""}
-                ${canManage ? `<button class="danger" type="button" onclick="deleteTask('${escapeTeamHtml(task.id)}')"><i class="fas fa-trash"></i>Delete</button>` : ""}
-            </div>
+            <section class="admin-task-detail-grid">
+                <div><span>Project</span><strong>${escapeTeamHtml(project?.name || "Unknown")}</strong></div>
+                <div><span>Assigned by</span><strong title="${escapeTeamHtml(assignedBy)}">${escapeTeamHtml(assignedByName || assignedBy)}</strong></div>
+                <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></strong></div>
+                <div><span>Status</span><strong>${renderDashboardStatusControl(task, role, statusClass)}</strong></div>
+                <div><span>Due date</span><strong>${escapeTeamHtml(formatDeadlineDate(task.deadline || task.due_date))}</strong></div>
+            </section>
+
+            <section class="admin-task-detail-section">
+                <h3>Description</h3>
+                <p class="admin-task-detail-description">${escapeTeamHtml(task.description || "No description added.")}</p>
+            </section>
+
+            <section class="admin-task-detail-section">
+                <h3>Assigned Members</h3>
+                ${renderTaskDetailAssignees(task)}
+            </section>
+
+            <section class="admin-task-detail-section">
+                <h3>Attachments</h3>
+                ${renderTaskAttachments(task) || `<p class="task-muted">No attachments.</p>`}
+            </section>
+
+            ${renderTaskTimeline(task)}
+            ${renderTaskComments(task)}
         </div>
-
-        <section class="task-detail-grid">
-            <div><span>Project</span><strong>${escapeTeamHtml(project?.name || "Unknown")}</strong></div>
-            <div><span>Assigned by</span><strong title="${escapeTeamHtml(assignedBy)}">${escapeTeamHtml(assignedByName || assignedBy)}</strong></div>
-            <div><span>Priority</span><strong><span class="task-priority-pill ${priorityClass}">${escapeTeamHtml(priority)}</span></strong></div>
-            <div><span>Status</span><strong>${renderDashboardStatusControl(task, role, statusClass)}</strong></div>
-            <div><span>Due date</span><strong>${escapeTeamHtml(formatDeadlineDate(task.deadline || task.due_date))}</strong></div>
-        </section>
-
-        <section class="task-detail-section">
-            <h3>Description</h3>
-            <p class="task-detail-description">${escapeTeamHtml(task.description || "No description added.")}</p>
-        </section>
-
-        <section class="task-detail-section">
-            <h3>Assigned Members</h3>
-            ${renderTaskDetailAssignees(task)}
-        </section>
-
-        <section class="task-detail-section">
-            <h3>Attachments</h3>
-            ${renderTaskAttachments(task) || `<p class="task-muted">No attachments.</p>`}
-        </section>
-
-        ${renderTaskTimeline(task)}
-        ${renderTaskComments(task)}
     `;
 }
 
@@ -875,9 +877,9 @@ function renderTaskEditPanel(task, project) {
     const priority = normalizeDashboardTaskPriority(task.priority);
     const status = normalizeMemberStatus(task.status);
     return `
-        <form class="task-edit-panel" onsubmit="saveDashboardTaskEdit(event, '${escapeTeamHtml(task.id)}')">
-            <div class="task-detail-header">
-                <button class="task-detail-back" type="button" onclick="exitDashboardTaskEditMode()" aria-label="Cancel edit">
+        <form class="admin-task-detail-content admin-task-edit-panel" onsubmit="saveDashboardTaskEdit(event, '${escapeTeamHtml(task.id)}')">
+            <div class="admin-task-detail-header">
+                <button class="admin-task-detail-back" type="button" onclick="exitDashboardTaskEditMode()" aria-label="Cancel edit">
                     <i class="fas fa-arrow-left"></i>
                 </button>
                 <div>
@@ -1102,8 +1104,7 @@ function renderDashboardStatusControl(task, role, statusClass) {
     }
 
     return `
-        
-        <span class="status-pill ${statusClass} task-detail-status-label">${escapeTeamHtml(status)}</span>
+        <span class="status-pill ${statusClass} admin-task-detail-status-label">${escapeTeamHtml(status)}</span>
     `;
 }
 
@@ -1111,13 +1112,13 @@ function renderTaskDetailAssignees(task) {
     const assignments = getTaskAssignments(task);
     if (!assignments.length) return `<p class="task-muted">Unassigned.</p>`;
     return `
-        <div class="task-detail-assignees">
+        <div class="admin-task-detail-assignees">
             ${assignments.map(assignment => {
                 const email = String(assignment.user_id || "Unassigned");
                 const name = getUserDisplayName(email, dashboardTaskCache.users);
                 const status = normalizeMemberStatus(assignment.status);
                 return `
-                    <div class="task-detail-assignee">
+                    <div class="admin-task-detail-assignee">
                         <span class="task-avatar-mini">${escapeTeamHtml(getAvatarInitial(name || email))}</span>
                         <div>
                             <strong>${escapeTeamHtml(name)}</strong>
@@ -1139,7 +1140,7 @@ function renderTaskTimeline(task) {
     ].filter(Boolean);
 
     return `
-        <section class="task-detail-section">
+        <section class="admin-task-detail-section">
             <h3>Activity Timeline</h3>
             <div class="task-timeline">
                 ${items.length ? items.map(item => `
@@ -1156,7 +1157,7 @@ function renderTaskTimeline(task) {
 function renderTaskComments(task) {
     const comments = Array.isArray(task.comments) ? task.comments : [];
     return `
-        <section class="task-detail-section">
+        <section class="admin-task-detail-section">
             <h3>Comments</h3>
             <div class="task-comments">
                 ${comments.length ? comments.map(comment => `
