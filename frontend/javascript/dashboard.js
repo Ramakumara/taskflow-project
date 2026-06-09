@@ -636,7 +636,7 @@ function populateDashboardTaskFilters(projects) {
 }
 
 function getFilteredDashboardTasks() {
-    const query = (document.getElementById("taskSearchInput")?.value || "").trim().toLowerCase();
+    const query = typeof getDashboardGlobalSearchTerm === "function" ? getDashboardGlobalSearchTerm() : "";
     const projectId = document.getElementById("taskProjectFilter")?.value || "all";
     const priorityFilter = document.getElementById("taskPriorityFilter")?.value || "all";
     const status = document.getElementById("taskStatusFilter")?.value || "all";
@@ -697,7 +697,7 @@ function renderDashboardTaskBoard() {
             <div class="task-inbox-empty-list">
                 <i class="fas fa-magnifying-glass"></i>
                 <strong>No tasks found</strong>
-                <span>Adjust the search or filters to see more tasks.</span>
+                <span>No results found</span>
             </div>
         `;
         renderDashboardTaskPagination(0, 0, 0, 1, 1);
@@ -1449,7 +1449,7 @@ function renderTeamWorkspace() {
         newProjectBtn.style.display = role === "manager" || role === "admin" ? "" : "none";
     }
 
-    const query = (document.getElementById("teamSearchInput")?.value || "").trim().toLowerCase();
+    const query = typeof getDashboardGlobalSearchTerm === "function" ? getDashboardGlobalSearchTerm() : "";
     const selectedProject = document.getElementById("teamProjectFilter")?.value || "all";
     const { projects, tasks, users } = teamWorkspaceCache;
 
@@ -1864,14 +1864,29 @@ async function loadProjectWorkspace() {
             assignedHeader.textContent = role === "user" ? "Assigned By" : "Assigned Users & Status";
         }
 
+        const searchTerm = typeof getDashboardGlobalSearchTerm === "function" ? getDashboardGlobalSearchTerm() : "";
         const projectTasks = tasks.filter(t =>
             String(t.project_id) === String(projectId)
-        );
+        ).filter(t => {
+            if (!searchTerm) return true;
+            return [
+                t.title,
+                t.description,
+                t.status,
+                t.priority,
+                t.deadline,
+                getTaskAssignedBy(t, project),
+                ...getTaskAssignments(t).flatMap(assignment => [
+                    assignment.user_id,
+                    normalizeMemberStatus(assignment.status)
+                ])
+            ].some(value => String(value || "").toLowerCase().includes(searchTerm));
+        });
 
         if (projectTasks.length === 0) {
             list.innerHTML = `
                 <tr>
-                    <td colspan="6">No tasks available</td>
+                    <td colspan="6">${searchTerm ? "No results found" : "No tasks available"}</td>
                 </tr>
             `;
             renderProjectWorkspacePagination(0, 0, 0, 1, 1);
@@ -3660,6 +3675,7 @@ function renderFiles() {
     }
 
     let items = [...filesCache];
+    const searchTerm = typeof getDashboardGlobalSearchTerm === "function" ? getDashboardGlobalSearchTerm() : "";
 
     updateCategoryCounts();
 
@@ -3676,6 +3692,19 @@ function renderFiles() {
 
     if (filesCategory !== "all") {
         items = items.filter(file => getFileCategory(file) === filesCategory);
+    }
+
+    if (searchTerm) {
+        items = items.filter(file => [
+            file.name,
+            file.owner_name,
+            file.owner_email,
+            file.extension,
+            file.project_name || getDashboardFileProjectName(file),
+            file.task_title || getDashboardFileTaskTitle(file),
+            file.source,
+            Array.isArray(file.shared_with) ? file.shared_with.join(" ") : ""
+        ].some(value => String(value || "").toLowerCase().includes(searchTerm)));
     }
 
     if (filesSort === "name-desc") {
@@ -3701,7 +3730,7 @@ function renderFiles() {
     }
 
     if (!pageItems.length) {
-        tbody.innerHTML = `<tr><td colspan="${getFilesTableColumnCount(role)}" class="empty-table">No files uploaded yet</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${getFilesTableColumnCount(role)}" class="empty-table">${searchTerm ? "No results found" : "No files uploaded yet"}</td></tr>`;
         return;
     }
 

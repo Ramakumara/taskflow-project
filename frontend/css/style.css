@@ -10410,7 +10410,7 @@ workspace-table td,
     padding: 14px 16px;
     border: var(--common-card-border);
     border-radius: 18px;
-    background: rgba(255, 255, 255, 0.88);
+    background: transparent;
     box-shadow: 0 10px 26px rgba(148, 163, 184, 0.08);
     backdrop-filter: blur(12px);
 }
@@ -10857,7 +10857,62 @@ workspace-table td,
     background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
-.common-toolbar-profile {
+.common-toolbar {
+    justify-content: flex-end;
+}
+
+.common-toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.common-toolbar .task-board-filter,
+.common-toolbar .team-filter-select,
+.common-toolbar .calendar-year-select,
+.common-toolbar .category-dropdown-btn,
+.common-toolbar .storage-dropdown-btn,
+.common-toolbar .files-sort,
+.common-toolbar .activity-log-date-btn,
+.common-toolbar .report-date-btn {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    min-height: var(--common-control-height);
+    height: var(--common-control-height);
+    margin: 0 !important;
+    padding: 0 14px !important;
+    border-radius: var(--common-control-radius) !important;
+    border: 1px solid #d8e1ee !important;
+    background-color: #ffffff;
+    color: #172033;
+    font-size: 14px;
+    font-weight: 700;
+    box-sizing: border-box;
+}
+
+.common-toolbar .activity-log-date-btn,
+.common-toolbar .report-date-btn,
+.common-toolbar .category-dropdown-btn,
+.common-toolbar .storage-dropdown-btn,
+.common-toolbar .files-sort {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    white-space: nowrap;
+}
+
+.common-toolbar .calendar-top-row {
+    width: 100%;
+    justify-content: flex-end;
+}
+
+.common-toolbar-profile,
+.common-toolbar-settings {
     justify-content: flex-start;
 }
 
@@ -10885,10 +10940,6 @@ workspace-table td,
 
 .settings-page .settings-row {
     min-height: 82px;
-}
-
-.common-toolbar-settings {
-    justify-content: flex-start;
 }
 
 .common-toolbar-settings .profile-action-btn {
@@ -10975,6 +11026,7 @@ body.dashboard-theme-dark .dashboard-profile-card {
     .common-toolbar-actions,
     .files-toolbar-right {
         width: 100%;
+        margin-left: 0;
     }
 
     .dashboard-profile-grid {
@@ -11009,6 +11061,8 @@ body.dashboard-theme-dark .dashboard-profile-card {
     .files-toolbar-right,
     .files-page .files-tabs {
         width: 100%;
+        max-width: none !important;
+        min-width: 0 !important;
     }
 
     .common-page-action,
@@ -13195,21 +13249,12 @@ body.dashboard-theme-dark .dashboard-profile-card {
 #taskToolbar .task-toolbar-filters {
     display: flex;
     gap: 12px;
-    margin-left: auto;   /* moves filters to right */
+    margin-left: auto;
 }
 
 #taskToolbar .team-search {
     flex: 1;
     max-width: 420px;
-}
-
-#taskToolbar .task-board-filter,
-#taskToolbar select {
-    width: 180px !important;
-    min-width: 180px !important;
-    max-width: 180px !important;
-    height: 44px !important;
-    box-sizing: border-box;
 }
 
 #taskToolbar .team-search {

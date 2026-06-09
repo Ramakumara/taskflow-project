@@ -235,10 +235,6 @@
                                 </label>
                                 <div class="dashboard-task-field">
                                     <span>Assign users <strong>*</strong></span>
-                                    <label class="team-search" for="assigned-user-search">
-                                        <i class="fas fa-search"></i>
-                                        <input id="assigned-user-search" type="text" placeholder="Search users by name or email..." oninput="filterDashboardTaskAssignees(this.value)">
-                                    </label>
                                     <div id="assigned-to-list" class="dashboard-task-user-list"></div>
                                 </div>
                                 <label class="dashboard-task-field" for="task-attachments">
@@ -274,36 +270,31 @@
                             <h1>My Tasks</h1>
                             <p>Track assignments, due dates, and progress across your workspace.</p>
                         </div>
-                        <button id="taskAddButton" class="task-add-btn common-page-action" type="button" onclick="openDashboardTaskCreate()">
-                            <i class="fas fa-plus"></i>
-                            <span>Add Task</span>
-                        </button>
                     </div>
-                            <div class="common-toolbar" id="taskToolbar">
-                                <label class="team-search" for="taskSearchInput">
-                                    <i class="fas fa-search"></i>
-                                    <input id="taskSearchInput" type="text" placeholder="Search tasks, projects, users..." oninput="handleDashboardTaskFiltersChange()">
-                                </label>
-                                <div class="task-toolbar-filters">
-                                    <select id="taskProjectFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by project">
-                                        <option value="all">All Projects</option>
-                                    </select>
-                                    <select id="taskStatusFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by status">
-                                        <option value="all">All Status</option>
-                                        <option value="Pending">Pending</option>
-                                        <option value="In Progress">In Progress</option>
-                                        <option value="Completed">Completed</option>
-                                    </select>
-                                    <select id="taskDueFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by due date">
-                                        <option value="all">Any Due Date</option>
-                                        <option value="overdue">Overdue</option>
-                                        <option value="today">Due Today</option>
-                                        <option value="week">Due This Week</option>
-                                        <option value="none">No Due Date</option>
-                                    </select>
-    
-                                </div>
-                            </div>
+                    <div id="taskToolbar" class="common-toolbar">
+                        <div class="task-toolbar-filters common-toolbar-actions">
+                            <select id="taskProjectFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by project">
+                                <option value="all">All Projects</option>
+                            </select>
+                            <select id="taskStatusFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by status">
+                                <option value="all">All Status</option>
+                                <option value="Pending">Pending</option>
+                                <option value="In Progress">In Progress</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                            <select id="taskDueFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by due date">
+                                <option value="all">Any Due Date</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="today">Due Today</option>
+                                <option value="week">Due This Week</option>
+                                <option value="none">No Due Date</option>
+                            </select>
+                            <button id="taskAddButton" class="task-add-btn common-page-action" type="button" onclick="openDashboardTaskCreate()">
+                                <i class="fas fa-plus"></i>
+                                <span>Add Task</span>
+                            </button>
+                        </div>
+                    </div>
                     <div class="task-inbox-shell">
                         <div class="task-inbox-left" id="taskInboxPanel">
                             <div id="all-tasks-list" class="task-inbox-list" tabindex="0" aria-label="Task inbox"></div>
@@ -326,11 +317,7 @@
                         </div>
                     </div>
                     <div class="common-toolbar">
-                        <label class="team-search" for="teamSearchInput">
-                            <i class="fas fa-search"></i>
-                            <input id="teamSearchInput" type="text" placeholder="Search projects or members..." oninput="renderTeamWorkspace()">
-                        </label>
-                        <div class="common-toolbar-actions">
+                        <div class="task-toolbar-filters common-toolbar-actions">
                             <select id="teamProjectFilter" class="team-filter-select" onchange="renderTeamWorkspace()" aria-label="Filter team projects">
                                 <option value="all">All Projects</option>
                             </select>
@@ -379,39 +366,35 @@
                             <h1>Team Activity Log</h1>
                             <p>Review recent activity for your team members.</p>
                         </div>
-                        <button class="files-action-btn primary common-page-action activity-export-trigger" type="button" onclick="exportActivityLog()">
-                            <i class="fas fa-download"></i>
-                            Export
-                        </button>
+
                     </div>
                     <div class="common-toolbar">
-                        <label class="team-search activity-log-search" for="activityLogSearch">
-                            <i class="fas fa-search"></i>
-                            <input id="activityLogSearch" type="text" placeholder="Search user, action, target, details..." oninput="handleActivityLogFiltersChange()" aria-label="Search activity log">
-                        </label>
-                        <div class="activity-log-date-control">
-                            <button class="activity-log-date-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
-                                <i class="fas fa-calendar-day"></i>
-                                <span id="activity-log-date-label">All dates</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div id="activity-log-date-popover" class="activity-log-date-popover hidden" onclick="event.stopPropagation()">
-                                <label>
-                                    <span>Start date</span>
-                                    <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
-                                </label>
-                                <label>
-                                    <span>End date</span>
-                                    <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
-                                </label>
-                                <button type="button" onclick="clearActivityLogDateRange()">Clear</button>
+                        <div class="common-toolbar-actions">
+                            <div class="activity-log-date-control">
+                                <button class="activity-log-date-btn" type="button" onclick="toggleActivityLogDatePicker(event)">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <span id="activity-log-date-label">All dates</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div id="activity-log-date-popover" class="activity-log-date-popover hidden" onclick="event.stopPropagation()">
+                                    <label>
+                                        <span>Start date</span>
+                                        <input id="activityLogStartDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log from date">
+                                    </label>
+                                    <label>
+                                        <span>End date</span>
+                                        <input id="activityLogEndDate" type="date" onchange="onActivityLogDateChange()" aria-label="Filter activity log to date">
+                                    </label>
+                                    <button type="button" onclick="clearActivityLogDateRange()">Clear</button>
+                                </div>
                             </div>
+                            <button class="files-action-btn primary common-page-action activity-export-trigger" type="button" onclick="exportActivityLog()">
+                                <i class="fas fa-download"></i>
+                                Export
+                            </button>
                         </div>
-                        <button class="activity-log-control-btn activity-log-reset-btn" type="button" onclick="resetActivityLogFilters()">
-                            <i class="fas fa-rotate-left"></i>
-                            Reset
-                        </button>
                     </div>
+                    
                     <div class="common-content-card">
                         <div class="workspace-table-wrap">
                             <table class="workspace-table">
@@ -504,29 +487,32 @@
                             <h1>Reports</h1>
                             <p>Monitor project health, team output, and delivery trends in one place.</p>
                         </div>
-                        <div class="report-date-control">
-                            <button class="report-date-btn" type="button" onclick="toggleReportDatePicker(event)">
-                                <i class="fas fa-calendar-day"></i>
-                                <span id="report-date-label">All dates</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
+                    </div>
+                    <div class="common-toolbar">
+                        <div class="common-toolbar-actions">
+                            <div class="report-date-control">
+                                <button class="report-date-btn" type="button" onclick="toggleReportDatePicker(event)">
+                                    <i class="fas fa-calendar-day"></i>
+                                    <span id="report-date-label">All dates</span>
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                                <div id="report-date-popover" class="report-date-popover hidden" onclick="event.stopPropagation()">
+                                    <label>
+                                        <span>Start date</span>
+                                        <input id="report-start-date" type="date" onchange="onReportDateChange()" aria-label="Report start date">
+                                    </label>
+                                    <label>
+                                        <span>End date</span>
+                                        <input id="report-end-date" type="date" onchange="onReportDateChange()" aria-label="Report end date">
+                                    </label>
+                                    <button type="button" onclick="clearReportDateRange()">Clear</button>
+                                </div>
+                            </div>
                             <button class="report-export-btn common-page-action" type="button" onclick="openExportModal()">
                                 <i class="fas fa-download"></i>
                                 Export
                             </button>
-                            <div id="report-date-popover" class="report-date-popover hidden" onclick="event.stopPropagation()">
-                                <label>
-                                    <span>Start date</span>
-                                    <input id="report-start-date" type="date" onchange="onReportDateChange()" aria-label="Report start date">
-                                </label>
-                                <label>
-                                    <span>End date</span>
-                                    <input id="report-end-date" type="date" onchange="onReportDateChange()" aria-label="Report end date">
-                                </label>
-                                <button type="button" onclick="clearReportDateRange()">Clear</button>
-                            </div>
                         </div>
-                        
                     </div>
                     
                     <div >
@@ -746,13 +732,7 @@
                             <h1 class="files-title">Files</h1>
                             <p>Upload, organize, and review shared workspace files.</p>
                         </div>
-                        <div class="files-actions">
-                            <button id="uploadBtn" class="files-action-btn primary common-page-action" type="button" onclick="openFileUploadModal()">
-                                <i class="fas fa-upload"></i>
-                                <span>Upload File</span>
-                            </button>
-                            <input id="file-input" type="file" class="hidden" multiple onchange="handleFileUpload(event)">
-                        </div>
+                        <input id="file-input" type="file" class="hidden" multiple onchange="handleFileUpload(event)">
                     </div>
 
                     <div class="common-toolbar">
@@ -778,24 +758,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="files-storage-dropdown">
-                                <button class="storage-dropdown-btn" type="button" onclick="toggleStorageDropdown()">
-                                    Storage Usage
-                                    <i class="fas fa-chevron-down"></i>
-                                </button>
-                                <div class="storage-dropdown-menu hidden" id="storage-dropdown-menu">
-                                    <div class="storage-summary-dropdown-card">
-                                        <h3>Storage Usage</h3>
-                                        <p class="storage-copy" id="storage-copy">Loading storage...</p>
-                                        <div class="storage-meter">
-                                            <div class="storage-meter-fill" id="storage-meter-fill"></div>
-                                        </div>
-                                        <div class="storage-row">
-                                            <span id="storage-percent">0%</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            
+                                
                             <div class="sort-container">
                                 <button class="files-sort" type="button" onclick="toggleFilesSort()">
                                     <span>Sort by: Name (A-Z)</span>
@@ -807,6 +771,10 @@
                                     <div onclick="setSort('date-desc')">Date (Newest)</div>
                                 </div>
                             </div>
+                            <button id="uploadBtn" class="files-action-btn primary common-page-action" type="button" onclick="openFileUploadModal()">
+                                <i class="fas fa-upload"></i>
+                                <span>Upload File</span>
+                            </button>
                         </div>
                     </div>
 
@@ -889,7 +857,6 @@
                                     <i class="fas fa-chevron-down"></i>
                                 </button>
                                 <div id="file-assignee-menu" class="file-assignee-menu hidden">
-                                    <input id="file-assignee-search" type="text" placeholder="Search users..." oninput="renderFileAssigneeOptions()">
                                     <div id="file-assignee-options" class="file-assignee-options"></div>
                                 </div>
                             </div>

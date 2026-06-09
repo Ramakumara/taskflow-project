@@ -64,10 +64,7 @@ function initializeSuperAdmin() {
 
 function setSuperView(view) {
     superState.view = view;
-    superState.search = "";
     resetSuperPage(view);
-    const search = document.getElementById("superSearch");
-    if (search) search.value = "";
     document.querySelectorAll(".super-nav-item").forEach(item => {
         item.classList.toggle("active", item.dataset.view === view);
     });
@@ -215,7 +212,6 @@ function renderUsers() {
     document.getElementById("superContent").innerHTML = `
         ${pageHead("User Management", "Search, filter, promote, demote, suspend, reset, and delete platform users.")}
         <div class="toolbar">
-            <input type="search" placeholder="Search users..." value="${escapeSuper(superState.search)}" oninput="handleSuperSearch(this.value)">
             <select onchange="setSuperFilter('role', this.value)">
                 ${option("all", "All roles", superState.filters.role)}
                 ${option("user", "Users", superState.filters.role)}
@@ -312,7 +308,6 @@ function renderProjects() {
     document.getElementById("superContent").innerHTML = `
         ${pageHead("Global Project Management", "View every project, archive, transfer ownership, reassign managers, and delete when needed.")}
         <div class="toolbar">
-            <input type="search" placeholder="Search projects..." value="${escapeSuper(superState.search)}" oninput="handleSuperSearch(this.value)">
             <select onchange="setSuperFilter('projectStatus', this.value)">
                 ${option("all", "All status", superState.filters.projectStatus)}
                 ${option("Planning", "Planning", superState.filters.projectStatus)}

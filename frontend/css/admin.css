@@ -6383,6 +6383,114 @@ body.admin-theme-dark .file-assignee-popover p {
     border-radius: 10px !important;
 }
 
+/* Shared module action bars: filters and actions align to the top-right across admin views. */
+.admin-module-page .common-toolbar,
+.admin-report-toolbar,
+.admin-activity-log-toolbar {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+    flex-wrap: wrap !important;
+}
+
+.admin-module-page .common-filter-select,
+.admin-module-page .admin-filter-select,
+.admin-module-page .admin-task-filter,
+.admin-module-page .admin-team-filter,
+.admin-module-page .admin-user-filter,
+.admin-module-page .admin-report-select {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    min-height: var(--admin-control-height) !important;
+    height: var(--admin-control-height) !important;
+    margin: 0 !important;
+    padding: 0 14px !important;
+    border-radius: 10px !important;
+    border: 1px solid #dbe4ef !important;
+    background: #ffffff;
+    color: #172033;
+    font-size: 14px;
+    font-weight: 700;
+    box-sizing: border-box;
+}
+
+.admin-module-page .common-action-btn,
+.admin-module-page .admin-activity-date-control .action-btn,
+.admin-report-toolbar .admin-date-field input {
+    min-height: var(--admin-control-height) !important;
+    height: var(--admin-control-height);
+    margin: 0 !important;
+    border-radius: 10px !important;
+    box-sizing: border-box;
+}
+
+.admin-report-toolbar .admin-date-field {
+    margin: 0;
+}
+
+.admin-report-toolbar .admin-date-field span {
+    display: none;
+}
+
+.admin-report-toolbar .admin-date-field input,
+.admin-module-page .admin-activity-date-control .action-btn {
+    width: 180px !important;
+    min-width: 180px !important;
+    max-width: 180px !important;
+    padding: 0 14px !important;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.admin-report-toolbar .admin-export-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 0;
+    flex-wrap: wrap;
+}
+
+.admin-activity-log-toolbar .admin-activity-date-control {
+    width: auto;
+}
+
+body.admin-theme-dark .admin-module-page .common-filter-select,
+body.admin-theme-dark .admin-module-page .admin-filter-select,
+body.admin-theme-dark .admin-module-page .admin-task-filter,
+body.admin-theme-dark .admin-module-page .admin-team-filter,
+body.admin-theme-dark .admin-module-page .admin-user-filter {
+    background: #111827;
+    border-color: #2d3a50 !important;
+    color: #edf2f7;
+}
+
+@media (max-width: 760px) {
+    .admin-module-page .common-toolbar,
+    .admin-report-toolbar,
+    .admin-activity-log-toolbar {
+        align-items: stretch !important;
+        justify-content: flex-start !important;
+    }
+
+    .admin-module-page .common-filter-select,
+    .admin-module-page .admin-filter-select,
+    .admin-module-page .admin-task-filter,
+    .admin-module-page .admin-team-filter,
+    .admin-module-page .admin-user-filter,
+    .admin-module-page .common-action-btn,
+    .admin-module-page .admin-activity-date-control,
+    .admin-module-page .admin-activity-date-control .action-btn,
+    .admin-report-toolbar .admin-date-field,
+    .admin-report-toolbar .admin-date-field input,
+    .admin-report-toolbar .admin-export-group {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+}
+
 .admin-file-upload-modal {
     position: fixed;
     inset: 0;

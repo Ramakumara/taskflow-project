@@ -91,15 +91,12 @@ const selectedAdminTaskIds = new Set();
 const adminUserFilters = {
     page: 1,
     pageSize: 5,
-    searchTerm: "",
     role: "all"
 };
 const adminTeamFilters = {
-    searchTerm: "",
     projectId: "all"
 };
 const adminFileFilters = {
-    searchTerm: "",
     category: "all",
     sort: "date-desc",
     page: 1,
@@ -272,21 +269,11 @@ function setProfileAvatar() {
 }
 
 function handleAdminSearch(event) {
-    adminState.searchTerm = (event.target.value || "").toLowerCase();
-
-    if (adminState.currentSection === "tasks") {
-        renderTasksView();
-    } else if (adminState.currentSection === "projects") {
-        renderProjectsView();
-    }
-
-    setTimeout(() => {
-        const input = document.getElementById("adminTasksPageSearch");
-        if (input) {
-            input.focus();
-            input.setSelectionRange(input.value.length, input.value.length);
-        }
-    }, 0);
+    adminState.searchTerm = String(event?.target?.value || "").trim().toLowerCase();
+    adminTaskFilters.page = 1;
+    adminUserFilters.page = 1;
+    adminFileFilters.page = 1;
+    renderCurrentSection();
 }
 
 function setActiveNav(section) {
@@ -410,22 +397,6 @@ function renderCommonPageHeader(title, subtitle, actionHtml = "") {
             </div>
             ${actionHtml ? `<div class="common-page-header-actions">${actionHtml}</div>` : ""}
         </header>
-    `;
-}
-
-function renderCommonSearchBox({ id, placeholder, value = "", oninput, ariaLabel = "" }) {
-    return `
-        <label class="common-search-box" for="${escapeHtml(id)}">
-            <i class="fas fa-search"></i>
-            <input
-                id="${escapeHtml(id)}"
-                type="text"
-                placeholder="${escapeHtml(placeholder)}"
-                value="${escapeHtml(value)}"
-                oninput="${escapeHtml(oninput)}"
-                ${ariaLabel ? `aria-label="${escapeHtml(ariaLabel)}"` : ""}
-            >
-        </label>
     `;
 }
 
@@ -638,7 +609,7 @@ function renderDashboardView() {
                             </div>
                         </div>
                         <div class="admin-project-grid">
-                            ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
+                            ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">${adminState.searchTerm ? "No results found" : "No projects found."}</div>`}
                             <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
                                 <span>+ Create Project</span>
                             </button>
@@ -687,7 +658,7 @@ function renderProjectsView() {
                             </div>
                         </div>
                         <div class="admin-project-grid">
-                            ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">No projects found.</div>`}
+                            ${filteredProjects.length ? filteredProjects.map((project) => renderProjectCard(project)).join("") : `<div class="project-empty-state">${adminState.searchTerm ? "No results found" : "No projects found."}</div>`}
                             <button class="admin-project-create-card" type="button" onclick="openAdminProjectModal()">
                                 <span>+ Create Project</span>
                             </button>
@@ -790,15 +761,6 @@ function renderAdminProjectModal() {
                             <!-- Manager -->
                             <label class="admin-form-field">
                                 <span>Assign manager <strong>*</strong></span>
-
-                                <label class="admin-task-search-field admin-project-manager-search" for="adminProjectManagerSearch">
-                                    <i class="fas fa-search"></i>
-                                    <input
-                                        id="adminProjectManagerSearch"
-                                        type="text"
-                                        placeholder="Search users by name or email..."
-                                        oninput="filterAdminProjectManagers(this.value)">
-                                </label>
 
                                 <div class="admin-task-user-list admin-project-manager-list" id="adminProjectManagerList">
                                     ${managers.length ? managers.map((manager) => {
@@ -1055,23 +1017,9 @@ function renderTasksView() {
                 pageClass: "admin-module-page admin-tasks-page",
                 header: renderCommonPageHeader(
                     "Tasks",
-                    "Assign work, monitor progress, and review delivery status across every project.",
-                    `
-                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
-                            <i class="fas fa-plus"></i>
-                            Add Task
-                        </button>
-                    `
+                    "Assign work, monitor progress, and review delivery status across every project."
                 ),
                 toolbar: adminTaskDetailOpen ? "" : `
-                    <div class="common-toolbar">
-                        ${renderCommonSearchBox({
-                            id: "adminTasksPageSearch",
-                            placeholder: "Search tasks, users, statuses, or projects...",
-                            value: adminState.searchTerm,
-                            oninput: "handleAdminSearch(event)",
-                            ariaLabel: "Search tasks"
-                        })}
                     <div class="common-toolbar">
                         <select class="admin-task-filter common-filter-select" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
                             <option value="all">All Projects</option>
@@ -1092,8 +1040,11 @@ function renderTasksView() {
                             <option value="week" ${adminTaskFilters.due === "week" ? "selected" : ""}>Due This Week</option>
                             <option value="none" ${adminTaskFilters.due === "none" ? "selected" : ""}>No Due Date</option>
                         </select>
+                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
+                            <i class="fas fa-plus"></i>
+                            Add Task
+                        </button>
                     </div>
-                </div>
                 `,
                 content: renderCommonContentCard(`
                     <div class="admin-task-inbox-shell ${adminTaskDetailOpen ? "showing-detail" : ""}">
@@ -1202,8 +1153,8 @@ function renderAdminTaskEmptyList() {
     return `
         <div class="admin-task-empty-list">
             <i class="fas fa-magnifying-glass"></i>
-            <strong>No tasks found</strong>
-            <span>Adjust search or filters to see more tasks.</span>
+            <strong>${adminState.searchTerm ? "No results found" : "No tasks found"}</strong>
+            <span>Adjust filters to see more tasks.</span>
         </div>
     `;
 }
@@ -1727,10 +1678,6 @@ function renderAdminTaskModal(projects) {
 
                         <div class="admin-form-field">
                             <span>Assign users <strong>*</strong></span>
-                            <label class="admin-task-search-field" for="adminTaskAssigneeSearch">
-                                <i class="fas fa-search"></i>
-                                <input id="adminTaskAssigneeSearch" type="text" placeholder="Search users by name or email..." oninput="filterAdminTaskAssignees(this.value)">
-                            </label>
                             <div class="admin-task-user-list">
                                 ${assignableUsers.length ? assignableUsers.map((user) => {
                                     const checked = adminState.newTaskForm.assignedTo.includes(user.email);
@@ -1767,7 +1714,7 @@ function renderTeamView() {
     const userMap = new Map(
         adminState.users.map((user) => [String(user.email || "").trim().toLowerCase(), user])
     );
-    const searchValue = String(adminTeamFilters.searchTerm || "").trim().toLowerCase();
+    const searchValue = String(adminState.searchTerm || "").trim().toLowerCase();
 
     const visibleProjects = adminState.projects.filter((project) => {
         if (adminTeamFilters.projectId !== "all" && String(project.id) !== String(adminTeamFilters.projectId)) {
@@ -1806,13 +1753,6 @@ function renderTeamView() {
                 ),
                 toolbar: `
                     <div class="common-toolbar">
-                        ${renderCommonSearchBox({
-                            id: "adminTeamSearch",
-                            placeholder: "Search projects or members...",
-                            value: adminTeamFilters.searchTerm,
-                            oninput: "setAdminTeamSearch(this.value)",
-                            ariaLabel: "Search team members"
-                        })}
                         <select class="admin-team-filter common-filter-select" onchange="setAdminTeamProjectFilter(this.value)" aria-label="Filter team projects">
                             <option value="all">All Projects</option>
                             ${projectOptions}
@@ -1821,7 +1761,7 @@ function renderTeamView() {
                 `,
                 content: renderCommonContentCard(`
                     <div class="admin-team-project-list">
-                        ${visibleProjects.length ? visibleProjects.map((project, index) => renderAdminTeamProject(project, projectMap, userMap, index)).join("") : `<div class="empty-state">No team members found.</div>`}
+                        ${visibleProjects.length ? visibleProjects.map((project, index) => renderAdminTeamProject(project, projectMap, userMap, index)).join("") : `<div class="empty-state">${adminState.searchTerm ? "No results found" : "No team members found."}</div>`}
                     </div>
                 `)
             })}
@@ -1832,7 +1772,7 @@ function renderTeamView() {
 function renderAdminTeamProject(project, projectMap, userMap, index) {
     const projectTasks = adminState.tasks.filter((task) => String(task.project_id) === String(project.id));
     const members = buildAdminTeamRows(projectTasks, userMap);
-    const isExpanded = isAdminTeamProjectExpanded(project.id, index === 0 || adminTeamFilters.projectId !== "all" || Boolean(adminTeamFilters.searchTerm));
+    const isExpanded = isAdminTeamProjectExpanded(project.id, index === 0 || adminTeamFilters.projectId !== "all" || Boolean(adminState.searchTerm));
 
     return `
         <section class="admin-team-project-card ${isExpanded ? "expanded" : "collapsed"}">
@@ -1910,19 +1850,6 @@ function toggleAdminTeamProject(projectId) {
     const key = String(projectId || "");
     expandedAdminTeamProjects[key] = !isAdminTeamProjectExpanded(key, true);
     renderTeamView();
-}
-
-function setAdminTeamSearch(value) {
-    adminTeamFilters.searchTerm = String(value || "");
-    renderTeamView();
-
-    setTimeout(() => {
-        const input = document.getElementById("adminTeamSearch");
-        if (input) {
-            input.focus();
-            input.setSelectionRange(input.value.length, input.value.length);
-        }
-    }, 0);
 }
 
 function setAdminTeamProjectFilter(value) {
@@ -2154,25 +2081,10 @@ function renderUsersView() {
         (user) => [user.username, user.email, user.role]
     ).filter((user) => {
 
-        const localSearch =
-            String(adminUserFilters.searchTerm || "")
-                .trim()
-                .toLowerCase();
-
         const roleFilter =
             String(adminUserFilters.role || "all")
                 .trim()
                 .toLowerCase();
-
-        const haystack =
-            [user.username, user.email, user.role]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-
-        if (localSearch && !haystack.includes(localSearch)) {
-            return false;
-        }
 
         if (
             roleFilter !== "all" &&
@@ -2222,34 +2134,11 @@ function renderUsersView() {
 
                 header: renderCommonPageHeader(
                     "Users",
-                    "Manage users, roles, and access permissions from one consistent workspace.",
-                    `   
-                         <button class="action-btn common-action-btn admin-add-user-btn" onclick="openInviteModal()">
-                            <i class="fas fa-envelope"></i>
-                            Invite User
-                        </button>
-                        <button
-                            class="action-btn common-action-btn admin-add-user-btn"
-                            type="button"
-                            onclick="openAddUserModal()">
-
-                            <i class="fas fa-plus"></i>
-                            Add User
-                        </button>
-                    `
+                    "Manage users, roles, and access permissions from one consistent workspace."
                 ),
 
                 toolbar: `
                     <div class="common-toolbar">
-
-                        ${renderCommonSearchBox({
-                            id: "adminUserSearch",
-                            placeholder: "Search name, email, role...",
-                            value: adminUserFilters.searchTerm,
-                            oninput: "setAdminUserSearch(this)",
-                            ariaLabel: "Search users"
-                        })}
-
                         <select
                             class="common-filter-select"
                             onchange="setAdminUserRoleFilter(this.value)">
@@ -2276,12 +2165,24 @@ function renderUsersView() {
                         </select>
 
                         <button
-                            class="action-btn secondary-btn"
+                            class="action-btn common-action-btn secondary-btn"
                             type="button"
                             onclick="resetAdminUserFilters()">
 
                             <i class="fas fa-rotate-left"></i>
                             Reset
+                        </button>
+                        <button class="action-btn common-action-btn admin-add-user-btn" onclick="openInviteModal()">
+                            <i class="fas fa-envelope"></i>
+                            Invite User
+                        </button>
+                        <button
+                            class="action-btn common-action-btn admin-add-user-btn"
+                            type="button"
+                            onclick="openAddUserModal()">
+
+                            <i class="fas fa-plus"></i>
+                            Add User
                         </button>
 
                     </div>
@@ -2403,7 +2304,7 @@ function renderUsersView() {
                                     : `
                                         <tr>
                                             <td colspan="4" class="empty-state">
-                                                No users found.
+                                                ${adminState.searchTerm ? "No results found" : "No users found."}
                                             </td>
                                         </tr>
                                     `
@@ -2604,27 +2505,6 @@ function setAdminUserPage(page) {
     renderUsersView();
 }
 
-function setAdminUserSearch(inputOrValue) {
-    const isInputElement = inputOrValue && typeof inputOrValue === "object" && "value" in inputOrValue;
-    const value = isInputElement ? inputOrValue.value : inputOrValue;
-    const cursorStart = isInputElement ? inputOrValue.selectionStart : null;
-    const cursorEnd = isInputElement ? inputOrValue.selectionEnd : null;
-
-    adminUserFilters.searchTerm = value || "";
-    adminUserFilters.page = 1;
-    renderUsersView();
-
-    if (isInputElement) {
-        const nextInput = document.getElementById("adminUserSearch");
-        if (nextInput) {
-            nextInput.focus();
-            const nextStart = typeof cursorStart === "number" ? cursorStart : nextInput.value.length;
-            const nextEnd = typeof cursorEnd === "number" ? cursorEnd : nextStart;
-            nextInput.setSelectionRange(nextStart, nextEnd);
-        }
-    }
-}
-
 function setAdminUserRoleFilter(value) {
     adminUserFilters.role = value || "all";
     adminUserFilters.page = 1;
@@ -2632,7 +2512,6 @@ function setAdminUserRoleFilter(value) {
 }
 
 function resetAdminUserFilters() {
-    adminUserFilters.searchTerm = "";
     adminUserFilters.role = "all";
     adminUserFilters.page = 1;
     renderUsersView();
@@ -3763,24 +3642,10 @@ function renderActivityLogView() {
                 pageClass: "admin-module-page admin-activity-page",
                 header: renderCommonPageHeader(
                     "Activity Log",
-                    "Review workspace activity across users, projects, tasks, and files.",
-                    `
-                        <button class="action-btn common-action-btn export-btn" type="button" onclick="exportActivityLog()">
-                            <i class="fas fa-file-export"></i>
-                            Export
-                        </button>
-                    `
+                    "Review workspace activity across users, projects, tasks, and files."
                 ),
                 toolbar: `
                     <div class="common-toolbar admin-activity-log-toolbar">
-                        ${renderCommonSearchBox({
-                            id: "activityLogSearch",
-                            placeholder: "Search user, action, target, details...",
-                            value: "",
-                            oninput: "handleActivityLogFiltersChange()",
-                            ariaLabel: "Search activity log"
-                        })}
-
                         <select id="activityLogUserFilter" class="admin-filter-select common-filter-select" onchange="handleActivityLogFiltersChange()" aria-label="Filter activity log by user">
                         <option value="all">All Users</option>
                         </select>
@@ -3807,6 +3672,10 @@ function renderActivityLogView() {
                         <button class="action-btn common-action-btn secondary-btn" type="button" onclick="resetActivityLogFilters()">
                             <i class="fas fa-rotate-left"></i>
                             Reset
+                        </button>
+                        <button class="action-btn common-action-btn export-btn" type="button" onclick="exportActivityLog()">
+                            <i class="fas fa-file-export"></i>
+                            Export
                         </button>
                     </div>
                 `,
@@ -3856,7 +3725,7 @@ async function renderFilesView() {
     });
 
     const files = await res.json();
-    const searchValue = String(adminFileFilters.searchTerm || "").trim().toLowerCase();
+    const searchValue = String(adminState.searchTerm || "").trim().toLowerCase();
     const filteredFiles = (Array.isArray(files) ? files : [])
         .filter((file) => {
             if (!searchValue) return true;
@@ -3883,23 +3752,10 @@ async function renderFilesView() {
                 pageClass: "admin-module-page admin-files-page",
                 header: renderCommonPageHeader(
                     "Files",
-                    "Upload, sort, and manage shared files with the same reusable admin layout system.",
-                    `
-                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="triggerAdminFileUpload()">
-                            <i class="fas fa-upload"></i>
-                            Upload File
-                        </button>
-                    `
+                    "Upload, sort, and manage shared files with the same reusable admin layout system."
                 ),
                 toolbar: `
                     <div class="common-toolbar">
-                        ${renderCommonSearchBox({
-                            id: "adminFilesSearch",
-                            placeholder: "Search files, owners, categories, or task attachments...",
-                            value: adminFileFilters.searchTerm,
-                            oninput: "setAdminFileSearch(this.value)",
-                            ariaLabel: "Search files"
-                        })}
                         <select class="common-filter-select" onchange="setAdminFileCategoryFilter(this.value)" aria-label="Filter files by category">
                             <option value="all" ${adminFileFilters.category === "all" ? "selected" : ""}>All Categories</option>
                             <option value="documents" ${adminFileFilters.category === "documents" ? "selected" : ""}>Documents</option>
@@ -3917,6 +3773,10 @@ async function renderFilesView() {
                         <button class="action-btn common-action-btn secondary-btn" type="button" onclick="resetAdminFileFilters()">
                             <i class="fas fa-rotate-left"></i>
                             Reset
+                        </button>
+                        <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="triggerAdminFileUpload()">
+                            <i class="fas fa-upload"></i>
+                            Upload File
                         </button>
                     </div>
                 `,
@@ -3955,7 +3815,7 @@ async function renderFilesView() {
                                     </td>
                                 </tr>
                             `).join("") : `
-                                <tr><td colspan="8" class="empty-state">No files found</td></tr>
+                                <tr><td colspan="8" class="empty-state">${adminState.searchTerm ? "No results found" : "No files found"}</td></tr>
                             `}
                         </tbody>
                         </table>
@@ -4158,25 +4018,6 @@ function sortAdminFiles(a, b, sortKey) {
     return new Date(b.uploaded_at || 0) - new Date(a.uploaded_at || 0);
 }
 
-async function setAdminFileSearch(value) {
-    adminFileFilters.searchTerm = String(value || "").trim().toLowerCase();
-    adminFileFilters.page = 1;
-
-    // wait until files UI finishes rendering
-    await renderFilesView();
-
-    const input = document.getElementById("adminFilesSearch");
-
-    if (input) {
-        input.focus();
-
-        // restore text and cursor
-        input.value = adminFileFilters.searchTerm;
-        const pos = input.value.length;
-        input.setSelectionRange(pos, pos);
-    }
-}
-
 function setAdminFileCategoryFilter(value) {
     adminFileFilters.category = value || "all";
     adminFileFilters.page = 1;
@@ -4195,7 +4036,6 @@ function setAdminFilePage(page) {
 }
 
 function resetAdminFileFilters() {
-    adminFileFilters.searchTerm = "";
     adminFileFilters.category = "all";
     adminFileFilters.sort = "date-desc";
     adminFileFilters.page = 1;
@@ -6372,9 +6212,7 @@ window.adminUpdateTaskStatus = adminUpdateTaskStatus;
 window.addAdminTaskComment = addAdminTaskComment;
 window.downloadAdminTaskAttachment = downloadAdminTaskAttachment;
 window.toggleAdminTeamProject = toggleAdminTeamProject;
-window.setAdminTeamSearch = setAdminTeamSearch;
 window.setAdminTeamProjectFilter = setAdminTeamProjectFilter;
-window.setAdminFileSearch = setAdminFileSearch;
 window.setAdminFileCategoryFilter = setAdminFileCategoryFilter;
 window.setAdminFileSort = setAdminFileSort;
 window.setAdminFilePage = setAdminFilePage;
@@ -6412,7 +6250,6 @@ window.assignAdminProjectManager = assignAdminProjectManager;
 window.adminDeleteProject = adminDeleteProject;
 window.openAdminProjectWorkspace = openAdminProjectWorkspace;
 window.setAdminUserPage = setAdminUserPage;
-window.setAdminUserSearch = setAdminUserSearch;
 window.setAdminUserRoleFilter = setAdminUserRoleFilter;
 window.resetAdminUserFilters = resetAdminUserFilters;
 window.openInviteModal = openInviteModal;

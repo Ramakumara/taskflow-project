@@ -9,6 +9,25 @@ const realtimeState = {
     intentionallyClosed: false,
     connectionStatus: "disconnected",
 };
+const dashboardProjectCache = {
+    projects: [],
+    tasks: []
+};
+
+function getDashboardGlobalSearchTerm() {
+    return String(
+        document.getElementById("projectSearch")?.value ||
+        document.getElementById("adminSearch")?.value ||
+        document.getElementById("superSearch")?.value ||
+        ""
+    ).trim().toLowerCase();
+}
+
+function matchesDashboardGlobalSearch(values) {
+    const searchTerm = getDashboardGlobalSearchTerm();
+    if (!searchTerm) return true;
+    return values.some(value => String(value || "").toLowerCase().includes(searchTerm));
+}
 
 function getWebSocketUrl() {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
@@ -618,10 +637,23 @@ async function loadProjects() {
     });
     const tasks = await tres.json();
 
-    const list = document.getElementById("project-grid");
-    list.innerHTML = "";
+    dashboardProjectCache.projects = Array.isArray(projects) ? projects : [];
+    dashboardProjectCache.tasks = Array.isArray(tasks) ? tasks : [];
+    renderDashboardProjectCards(dashboardProjectCache.projects, dashboardProjectCache.tasks);
 
+    if (typeof loadDashboardSummary === "function") {
+        loadDashboardSummary();
+    }
+}
+
+function renderDashboardProjectCards(projects = dashboardProjectCache.projects, tasks = dashboardProjectCache.tasks) {
+    const role = sessionStorage.getItem("role");
+    const email = sessionStorage.getItem("email");
+    const list = document.getElementById("project-grid");
     if (!list) return;
+
+    list.innerHTML = "";
+    let visibleCount = 0;
 
     projects.forEach(p => {
 
@@ -633,11 +665,30 @@ async function loadProjects() {
 
         if (role === "user" && projectTasks.length === 0) return;
 
+        const managerLabel = getProjectManagerLabel(p);
+        const statusLabel = getProjectStatusLabel(p.status);
+
+        if (!matchesDashboardGlobalSearch([
+            p.name,
+            p.description,
+            managerLabel,
+            statusLabel,
+            formatProjectDateRange(p),
+            ...projectTasks.flatMap(task => [
+                task.title,
+                task.description,
+                task.status,
+                task.priority,
+                task.deadline,
+                Array.isArray(task.assigned_to) ? task.assigned_to.join(" ") : task.assigned_to
+            ])
+        ])) {
+            return;
+        }
+
         const card = document.createElement("div");
         card.className = "project-card-ui";
 
-        const managerLabel = getProjectManagerLabel(p);
-        const statusLabel = getProjectStatusLabel(p.status);
         const statusClass = getProjectStatusClass(p.status);
 
         card.innerHTML = `
@@ -686,10 +737,11 @@ async function loadProjects() {
         };
 
         list.appendChild(card);
+        visibleCount += 1;
     });
 
-    if (typeof loadDashboardSummary === "function") {
-        loadDashboardSummary();
+    if (!visibleCount) {
+        list.innerHTML = `<div class="empty-state">No results found</div>`;
     }
 }
 
@@ -1149,8 +1201,8 @@ function populateActivityLogActionFilter(logs) {
 }
 
 function getActivityLogFilteredEntries() {
-    const { search, user, action, startDate, endDate } = getActivityLogFilterElements();
-    const searchValue = String(search?.value || "").trim().toLowerCase();
+    const { user, action, startDate, endDate } = getActivityLogFilterElements();
+    const searchValue = typeof getDashboardGlobalSearchTerm === "function" ? getDashboardGlobalSearchTerm() : "";
     const userValue = String(user?.value || "all").trim().toLowerCase();
     const actionValue = String(action?.value || "all").trim().toLowerCase();
     const startValue = startDate?.value || "";
@@ -1211,7 +1263,7 @@ function renderActivityLogRows(logs) {
     const pageLogs = filteredLogs.slice(startIndex, startIndex + activityLogPageSize);
 
     if (!filteredLogs.length) {
-        body.innerHTML = `<tr><td colspan="4">No activity records match the current filters.</td></tr>`;
+        body.innerHTML = `<tr><td colspan="4">No results found</td></tr>`;
         if (pagination) pagination.innerHTML = "";
     } else {
         body.innerHTML = pageLogs.map(log => {
@@ -1260,8 +1312,7 @@ function handleActivityLogFiltersChange() {
 }
 
 function resetActivityLogFilters() {
-    const { search, user, action, startDate, endDate } = getActivityLogFilterElements();
-    if (search) search.value = "";
+    const { user, action, startDate, endDate } = getActivityLogFilterElements();
     if (user) user.value = "all";
     if (action) action.value = "all";
     if (startDate) startDate.value = "";
@@ -1723,17 +1774,34 @@ function loadProjectPage() {
 
 
 function handleProjectSearch(event) {
-    const searchValue = event.target.value.toLowerCase();
-    const projectCards = document.querySelectorAll(".project-card-ui");
-    
-    projectCards.forEach(card => {
-        const projectName = card.querySelector("h4")?.textContent.toLowerCase() || "";
-        if (projectName.includes(searchValue)) {
-            card.style.display = "";
-        } else {
-            card.style.display = "none";
+    if (event?.target) {
+        event.target.value = event.target.value || "";
+    }
+
+    if (typeof renderDashboardProjectCards === "function") {
+        renderDashboardProjectCards();
+    }
+    if (typeof renderDashboardTaskBoard === "function") {
+        dashboardTaskPage = 1;
+        renderDashboardTaskBoard();
+    }
+    if (typeof renderTeamWorkspace === "function") {
+        renderTeamWorkspace();
+    }
+    if (typeof handleActivityLogFiltersChange === "function") {
+        handleActivityLogFiltersChange();
+    }
+    if (typeof renderFiles === "function") {
+        filesPage = 1;
+        renderFiles();
+    }
+    if (typeof loadProjectWorkspace === "function") {
+        const workspaceView = document.getElementById("project-workspace-view");
+        if (workspaceView && !workspaceView.classList.contains("hidden")) {
+            projectWorkspaceTaskPage = 1;
+            loadProjectWorkspace();
         }
-    });
+    }
 }
 
 function handleTaskSearch(event) {
