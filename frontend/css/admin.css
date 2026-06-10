@@ -4128,33 +4128,35 @@ body {
 .admin-task-detail-grid > div {
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    gap: 8px;
-    min-height: 76px;
-    padding: 12px;
-    border: 1px solid #e6edf5;
-    border-radius: 10px;
-    background: #fbfdff;
-    overflow: hidden;
+    justify-content: center;
+    gap: 10px;
+    min-height: 90px;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    background: #ffffff;
+    transition: all 0.2s ease;
+}
+
+.admin-task-detail-grid > div:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
 
 .admin-task-detail-grid span {
-    display: block;
     color: #64748b;
-    font-size: 11px;
-    font-weight: 800;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 4px;
 }
 
 .admin-task-detail-grid strong {
-    margin-top: 0;
-    color: #172033;
-    display: flex;
-    align-items: center;
-    font-size: 12px;
-    line-height: 1.35;
-    font-weight: 500;
-    overflow-wrap: anywhere;
+    font-size: 14px;
+    font-weight: 600;
+    color: #0f172a;
 }
+
+
 
 .admin-task-detail-status-select {
     width: min(180px, 100%);

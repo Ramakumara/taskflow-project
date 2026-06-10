@@ -1434,10 +1434,12 @@ function renderAdminTaskAttachments(task) {
                 const storedName = typeof attachment === "string" ? attachment : (attachment?.stored_name || attachment?.name || "");
                 if (!storedName) return "";
                 return `
-                    <button class="admin-task-attachment-chip" type="button" onclick="downloadAdminTaskAttachment('${escapeHtml(task.id)}', '${escapeHtml(encodeURIComponent(storedName))}', '${escapeHtml(encodeURIComponent(name))}')">
+                    <a class="admin-task-attachment-link"
+                    href="javascript:void(0)"
+                    onclick="downloadAdminTaskAttachment('${escapeHtml(task.id)}', '${escapeHtml(encodeURIComponent(storedName))}', '${escapeHtml(encodeURIComponent(name))}')">
                         <i class="fas fa-paperclip"></i>
                         <span>${escapeHtml(name)}</span>
-                    </button>
+                    </a>
                 `;
             }).join("")}
         </div>
