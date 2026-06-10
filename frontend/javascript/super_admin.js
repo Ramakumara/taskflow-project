@@ -26,8 +26,19 @@ const superState = {
         taskStatus: "all",
         taskProject: "all",
         taskManager: "all",
+        taskSearch: "",
         auditAction: "all"
     }
+};
+const SUPER_NAV_TITLES = {
+    dashboard: "Dashboard",
+    admins: "Admins",
+    users: "Users",
+    projects: "Projects",
+    tasks: "Tasks",
+    analytics: "Reports",
+    audit: "Activity Logs",
+    settings: "Settings"
 };
 
 let superThemeMediaQuery = null;
@@ -106,6 +117,7 @@ function initializeSuperAdmin() {
     const username = sessionStorage.getItem("username") || "Super Admin";
     const welcome = document.getElementById("superWelcome");
     if (welcome) welcome.textContent = username;
+    updateSuperNavbar("dashboard");
     applySuperThemePreferences();
     bindSuperThemePreference();
     loadSuperView("dashboard");
@@ -117,7 +129,23 @@ function setSuperView(view) {
     document.querySelectorAll(".super-nav-item").forEach(item => {
         item.classList.toggle("active", item.dataset.view === view);
     });
+    updateSuperNavbar(view);
     loadSuperView(view);
+}
+
+function updateSuperNavbar(view) {
+    const title = SUPER_NAV_TITLES[view] || "Dashboard";
+    const titleEl = document.getElementById("navbarPageTitle");
+    const crumbEl = document.getElementById("navbarBreadcrumbCurrent");
+    if (titleEl) titleEl.textContent = title;
+    if (crumbEl) crumbEl.textContent = title;
+    if (window.history?.replaceState) {
+        const slug = String(view || "dashboard")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || "dashboard";
+        window.history.replaceState({ section: slug }, document.title, `${window.location.pathname}#${slug}`);
+    }
 }
 
 function handleSuperSearch(value) {
@@ -409,30 +437,29 @@ function renderTasks() {
     const page = paginateSuperItems("tasks", tasks);
     const managers = superState.users.filter(user => user.role === "manager");
     document.getElementById("superContent").innerHTML = `
-        ${pageHead(
-            "Global Task Monitoring",
-            "Monitor all work, filter by project, manager, status, and focus overdue tasks.",
-            "",
-            `
-                <div class="toolbar">
-                    <select onchange="setSuperFilter('taskProject', this.value)">
+        <div class="task-list-toolbar super-task-toolbar">
+            <label class="task-toolbar-search" for="superTaskSearch">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input id="superTaskSearch" type="search" placeholder="Search tasks..." value="${escapeSuper(superState.filters.taskSearch)}" oninput="setSuperFilter('taskSearch', this.value)">
+            </label>
+            <div class="task-toolbar-filter-group">
+                    <select class="task-toolbar-filter" onchange="setSuperFilter('taskProject', this.value)">
                         ${option("all", "All projects", superState.filters.taskProject)}
                         ${superState.projects.map(project => option(project.id, project.name || project.project_name, superState.filters.taskProject)).join("")}
                     </select>
-                    <select onchange="setSuperFilter('taskManager', this.value)">
+                    <select class="task-toolbar-filter" onchange="setSuperFilter('taskManager', this.value)">
                         ${option("all", "All managers", superState.filters.taskManager)}
                         ${managers.map(manager => option(manager.email, manager.username || manager.email, superState.filters.taskManager)).join("")}
                     </select>
-                    <select onchange="setSuperFilter('taskStatus', this.value)">
+                    <select class="task-toolbar-filter" onchange="setSuperFilter('taskStatus', this.value)">
                         ${option("all", "All status", superState.filters.taskStatus)}
                         ${option("Pending", "Pending", superState.filters.taskStatus)}
                         ${option("In Progress", "In Progress", superState.filters.taskStatus)}
                         ${option("Completed", "Completed", superState.filters.taskStatus)}
                         ${option("overdue", "Overdue only", superState.filters.taskStatus)}
                     </select>
-                </div>
-            `
-        )}
+            </div>
+        </div>
         <section class="stat-grid">
             ${statCard("Total Tasks", superState.taskAnalytics?.total_tasks || superState.tasks.length, "fa-list-check")}
             ${statCard("Completed", superState.taskAnalytics?.completed_tasks || 0, "fa-circle-check")}
@@ -596,8 +623,10 @@ function filteredProjects() {
 function filteredTasks() {
     return superState.tasks.filter(task => {
         const project = projectFor(task.project_id);
-        const haystack = [task.title, task.task_title, task.status, project?.name, project?.assigned_manager].join(" ").toLowerCase();
+        const haystack = [task.title, task.task_title, task.status, project?.name, project?.assigned_manager, (task.assigned_users || task.assigned_to || []).join(" ")].join(" ").toLowerCase();
+        const taskSearch = String(superState.filters.taskSearch || "").trim().toLowerCase();
         if (superState.search && !haystack.includes(superState.search)) return false;
+        if (taskSearch && !haystack.includes(taskSearch)) return false;
         if (superState.filters.taskProject !== "all" && String(task.project_id) !== String(superState.filters.taskProject)) return false;
         if (superState.filters.taskManager !== "all" && String(project?.assigned_manager || "").toLowerCase() !== superState.filters.taskManager.toLowerCase()) return false;
         if (superState.filters.taskStatus === "overdue") return isOverdueTask(task);

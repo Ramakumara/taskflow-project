@@ -16,6 +16,19 @@ const DASHBOARD_VIEW_IDS = [
     "project-workspace-view",
     "report-view"
 ];
+const DASHBOARD_NAV_TITLES = {
+    dashboard: "Dashboard",
+    overview: "Dashboard",
+    tasks: "Tasks",
+    team: "Team Members",
+    files: "Files",
+    "activity-log": "Activity Log",
+    report: "Reports",
+    calendar: "Calendar",
+    settings: "Settings",
+    profile: "My Profile",
+    project: "Projects"
+};
 const STATUS_COLOR_FALLBACKS = {
     pending: "#f59e0b",
     progress: "#2563eb",
@@ -76,6 +89,22 @@ function setActiveMenu(menuName) {
     const activeItem = document.querySelector(`[data-sidebar="${menuName}"]`);
     if (activeItem) {
         activeItem.classList.add('active');
+    }
+    updateDashboardNavbar(menuName);
+}
+
+function updateDashboardNavbar(menuName, titleOverride = "") {
+    const title = titleOverride || DASHBOARD_NAV_TITLES[menuName] || "Dashboard";
+    const titleEl = document.getElementById("navbarPageTitle");
+    const crumbEl = document.getElementById("navbarBreadcrumbCurrent");
+    if (titleEl) titleEl.textContent = title;
+    if (crumbEl) crumbEl.textContent = title;
+    if (window.history?.replaceState) {
+        const slug = String(menuName || title)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || "dashboard";
+        window.history.replaceState({ section: menuName || slug }, document.title, `${window.location.pathname}#${slug}`);
     }
 }
 
@@ -141,6 +170,7 @@ function goToSettings() {
 
 async function goToProfile() {
     setActiveMenu('');
+    updateDashboardNavbar("profile");
     showView('profile-view');
     await loadDashboardProfile();
 }
@@ -638,7 +668,7 @@ function populateDashboardTaskFilters(projects) {
 }
 
 function getFilteredDashboardTasks() {
-    const query = typeof getDashboardGlobalSearchTerm === "function" ? getDashboardGlobalSearchTerm() : "";
+    const query = String(document.getElementById("dashboardTaskSearch")?.value || "").trim().toLowerCase();
     const projectId = document.getElementById("taskProjectFilter")?.value || "all";
     const priorityFilter = document.getElementById("taskPriorityFilter")?.value || "all";
     const status = document.getElementById("taskStatusFilter")?.value || "all";
@@ -677,6 +707,11 @@ function getFilteredDashboardTasks() {
     });
 
     return filtered.sort((a, b) => compareDashboardTasks(a, b, sortValue));
+}
+
+function handleDashboardTaskSearchInput() {
+    dashboardTaskPage = 1;
+    renderDashboardTaskBoard();
 }
 
 function renderDashboardTaskBoard() {
@@ -2009,6 +2044,7 @@ async function loadTaskComments(taskId) {
 function showProjectWorkspace() {
     hideAllViews();
     document.getElementById('project-workspace-view').classList.remove('hidden');
+    updateDashboardNavbar("project");
 }
 
 let activityExportState = {

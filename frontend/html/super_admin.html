@@ -32,12 +32,21 @@
 
         <main class="super-main">
             <header class="super-topbar">
-                <label class="super-search" for="superSearch">
-                    <i class="fas fa-search"></i>
-                    <input id="superSearch" type="search" placeholder="Search..." oninput="handleSuperSearch(this.value)">
-                </label>
+                <div class="topbar-left">
+                    <div class="topbar-title-group">
+                        <nav class="topbar-breadcrumb" aria-label="Breadcrumb">
+                            <span>Home</span>
+                            <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                            <span id="navbarBreadcrumbCurrent">Dashboard</span>
+                        </nav>
+                        <h1 id="navbarPageTitle">Dashboard</h1>
+                    </div>
+                </div>
 
                 <div class="super-profile">
+                    <button class="icon-button super-notification-button" type="button" title="Notifications" aria-label="Notifications">
+                        <i class="fas fa-bell"></i>
+                    </button>
                     <span class="super-health-dot" id="superHealthDot"></span>
                     <span id="superWelcome">Super Admin</span>
                     <button class="icon-button" type="button" onclick="logoutFromSuperAdmin()" title="Logout" aria-label="Logout">

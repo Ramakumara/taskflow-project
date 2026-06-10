@@ -58,23 +58,6 @@ body.theme-dark .super-topbar {
     box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) !important;
 }
 
-body.super-theme-dark .super-search,
-body.theme-dark .super-search {
-    background: #111827 !important;
-    border-color: #2d3a50 !important;
-    color: #edf2f7 !important;
-}
-
-body.super-theme-dark .super-search input,
-body.theme-dark .super-search input {
-    color: #edf2f7 !important;
-}
-
-body.super-theme-dark .super-search input::placeholder,
-body.theme-dark .super-search input::placeholder {
-    color: #94a3b8 !important;
-}
-
 body.super-theme-dark .icon-button,
 body.theme-dark .icon-button {
     background: #111827 !important;
@@ -345,39 +328,6 @@ button {
     top: 0;
     z-index: 20;
     flex-shrink: 0;
-}
-
-.super-search {
-    width: min(420px, 100%);
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0 14px;
-    border: 1px solid #d8e1ee;
-    border-radius: 8px;
-    background: #ffffff;
-    color: #53627a;
-    box-shadow: none;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.super-search:focus-within {
-    border-color: rgba(32, 184, 100, 0.55);
-    box-shadow: 0 0 0 4px rgba(32, 184, 100, 0.1);
-}
-
-.super-search input {
-    width: 100%;
-    border: 0;
-    outline: 0;
-    background: transparent;
-    color: var(--heading);
-    font-size: 14px;
-}
-
-.super-search input::placeholder {
-    color: #8b94a5;
 }
 
 .super-profile {
@@ -1108,5 +1058,188 @@ button {
 
     .super-pagination-controls {
         justify-content: flex-end;
+    }
+}
+
+/* Reusable super admin navbar */
+.super-topbar {
+    min-height: 76px;
+    height: 76px;
+    padding: 0 26px 0 24px;
+    align-items: center;
+    background: #ffffff;
+    border-bottom: 1px solid #e5eaf2;
+    box-shadow: none;
+}
+
+.super-topbar .topbar-left {
+    min-width: 0;
+    flex: 1;
+}
+
+.super-topbar .topbar-title-group {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+.super-topbar .topbar-breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #667085;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.super-topbar .topbar-breadcrumb i {
+    color: #98a2b3;
+    font-size: 10px;
+}
+
+.super-topbar .topbar-title-group h1 {
+    margin: 0;
+    color: #172033;
+    font-size: 24px;
+    font-weight: 600;
+    line-height: 1.15;
+}
+
+.super-notification-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body.super-theme-dark .super-topbar .topbar-title-group h1,
+body.theme-dark .super-topbar .topbar-title-group h1 {
+    color: #f8fafc;
+}
+
+body.super-theme-dark .super-topbar .topbar-breadcrumb,
+body.theme-dark .super-topbar .topbar-breadcrumb {
+    color: #a8b3c7;
+}
+
+@media (max-width: 760px) {
+    .super-topbar {
+        min-height: 76px;
+        height: auto;
+        gap: 14px;
+    }
+
+    .super-topbar .topbar-title-group h1 {
+        font-size: 21px;
+    }
+}
+
+/* Compact task list toolbar */
+.super-content .task-list-toolbar {
+    width: 100%;
+    margin: 0 0 16px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+}
+
+.super-content .task-toolbar-search {
+    width: 260px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    border: 1px solid #d8e1ee;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #667085;
+}
+
+.super-content .task-toolbar-search:focus-within {
+    border-color: rgba(32, 184, 100, 0.5);
+    box-shadow: 0 0 0 3px rgba(32, 184, 100, 0.1);
+}
+
+.super-content .task-toolbar-search i {
+    font-size: 12px;
+}
+
+.super-content .task-toolbar-search input {
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #172033;
+    font-size: 13px;
+    box-shadow: none;
+}
+
+.super-content .task-toolbar-filter-group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    min-width: 0;
+}
+
+.super-content .task-list-toolbar .task-toolbar-filter {
+    flex: 0 0 136px;
+    width: 136px;
+    min-width: 136px;
+    max-width: 140px;
+    height: 36px;
+    min-height: 36px;
+    margin: 0;
+    padding: 0 10px;
+    border: 1px solid #d8e1ee;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #172033;
+    font-size: 13px;
+    font-weight: 650;
+    outline: 0;
+}
+
+body.super-theme-dark .super-content .task-toolbar-search,
+body.theme-dark .super-content .task-toolbar-search,
+body.super-theme-dark .super-content .task-list-toolbar .task-toolbar-filter,
+body.theme-dark .super-content .task-list-toolbar .task-toolbar-filter {
+    background: #111827;
+    border-color: #2d3a50;
+    color: #edf2f7;
+}
+
+body.super-theme-dark .super-content .task-toolbar-search input,
+body.theme-dark .super-content .task-toolbar-search input {
+    color: #edf2f7;
+}
+
+@media (max-width: 760px) {
+    .super-content .task-list-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .super-content .task-toolbar-search,
+    .super-content .task-list-toolbar .task-toolbar-filter {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        flex-basis: auto;
+    }
+
+    .super-content .task-toolbar-filter-group {
+        display: grid;
+        grid-template-columns: 1fr;
     }
 }

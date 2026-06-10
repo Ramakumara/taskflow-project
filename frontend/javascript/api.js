@@ -15,12 +15,7 @@ const dashboardProjectCache = {
 };
 
 function getDashboardGlobalSearchTerm() {
-    return String(
-        document.getElementById("projectSearch")?.value ||
-        document.getElementById("adminSearch")?.value ||
-        document.getElementById("superSearch")?.value ||
-        ""
-    ).trim().toLowerCase();
+    return "";
 }
 
 function matchesDashboardGlobalSearch(values) {
@@ -1776,37 +1771,6 @@ function loadProjectPage() {
         });
 }
 
-
-function handleProjectSearch(event) {
-    if (event?.target) {
-        event.target.value = event.target.value || "";
-    }
-
-    if (typeof renderDashboardProjectCards === "function") {
-        renderDashboardProjectCards();
-    }
-    if (typeof renderDashboardTaskBoard === "function") {
-        dashboardTaskPage = 1;
-        renderDashboardTaskBoard();
-    }
-    if (typeof renderTeamWorkspace === "function") {
-        renderTeamWorkspace();
-    }
-    if (typeof handleActivityLogFiltersChange === "function") {
-        handleActivityLogFiltersChange();
-    }
-    if (typeof renderFiles === "function") {
-        filesPage = 1;
-        renderFiles();
-    }
-    if (typeof loadProjectWorkspace === "function") {
-        const workspaceView = document.getElementById("project-workspace-view");
-        if (workspaceView && !workspaceView.classList.contains("hidden")) {
-            projectWorkspaceTaskPage = 1;
-            loadProjectWorkspace();
-        }
-    }
-}
 
 function handleTaskSearch(event) {
     const searchValue = event.target.value.toLowerCase();

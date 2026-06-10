@@ -43,6 +43,18 @@ const adminState = {
         attachments: []
     }
 };
+const ADMIN_NAV_TITLES = {
+    dashboard: "Dashboard",
+    projects: "Projects",
+    tasks: "Tasks",
+    team: "Team Members",
+    files: "Files",
+    users: "Users",
+    reports: "Reports",
+    activity: "Activity Log",
+    profile: "My Profile",
+    settings: "Settings"
+};
 const ADMIN_STATUS_COLOR_FALLBACKS = {
     pending: "#f59e0b",
     progress: "#2563eb",
@@ -77,6 +89,7 @@ const adminReportState = {
 const adminTaskFilters = {
     projectId: "all",
     status: "all",
+    search: "",
     page: 1,
     pageSize: 5,
     priority: "all",
@@ -199,6 +212,7 @@ function getTaskMemberStatusSearchText(task) {
 
 function initializeAdminDashboard() {
     setProfileAvatar();
+    updateAdminNavbar(adminState.currentSection);
     applyAdminSettingsPreferences();
     bindAdminThemePreference();
     startAdminNotificationClock();
@@ -268,19 +282,27 @@ function setProfileAvatar() {
     avatar.src = `https://ui-avatars.com/api/?name=${encoded}&background=16a34a&color=fff&bold=true`;
 }
 
-function handleAdminSearch(event) {
-    adminState.searchTerm = String(event?.target?.value || "").trim().toLowerCase();
-    adminTaskFilters.page = 1;
-    adminUserFilters.page = 1;
-    adminFileFilters.page = 1;
-    renderCurrentSection();
-}
-
 function setActiveNav(section) {
     adminState.currentSection = section;
     document.querySelectorAll(".nav-item").forEach((item) => {
         item.classList.toggle("active", item.dataset.section === section);
     });
+    updateAdminNavbar(section);
+}
+
+function updateAdminNavbar(section) {
+    const title = ADMIN_NAV_TITLES[section] || "Dashboard";
+    const titleEl = document.getElementById("navbarPageTitle");
+    const crumbEl = document.getElementById("navbarBreadcrumbCurrent");
+    if (titleEl) titleEl.textContent = title;
+    if (crumbEl) crumbEl.textContent = title;
+    if (window.history?.replaceState) {
+        const slug = String(section || "dashboard")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, "") || "dashboard";
+        window.history.replaceState({ section: slug }, document.title, `${window.location.pathname}#${slug}`);
+    }
 }
 
 function renderCurrentSection() {
@@ -1017,12 +1039,13 @@ function renderTasksView() {
         <div class="list-view task-management-view">
             ${renderCommonPageLayout({
                 pageClass: "admin-module-page admin-tasks-page",
-                header: renderCommonPageHeader(
-                    "Tasks",
-                    "Track assignments, due dates, and progress across your workspace.",
-                    "",
-                    adminTaskDetailOpen ? "" : `
-                        <div class="common-toolbar">
+                header: adminTaskDetailOpen ? "" : `
+                        <div class="task-list-toolbar admin-task-toolbar">
+                            <label class="task-toolbar-search" for="adminTaskSearch">
+                                <i class="fas fa-search" aria-hidden="true"></i>
+                                <input id="adminTaskSearch" type="search" placeholder="Search tasks..." value="${escapeHtml(adminTaskFilters.search)}" oninput="setAdminTaskSearch(this.value)">
+                            </label>
+                            <div class="task-toolbar-filter-group">
                             <select class="admin-task-filter common-filter-select" onchange="setAdminTaskProjectFilter(this.value)" aria-label="Filter tasks by project">
                                 <option value="all">All Projects</option>
                                 ${projectOptions}
@@ -1044,11 +1067,11 @@ function renderTasksView() {
                             </select>
                             <button class="action-btn common-action-btn admin-add-user-btn" type="button" onclick="openAdminTaskModal()">
                                 <i class="fas fa-plus"></i>
-                                Add Task
+                                    Create Task 
                             </button>
+                            </div>
                         </div>
-                    `
-                ),
+                    `,
                 content: renderCommonContentCard(`
                     <div class="admin-task-inbox-shell ${adminTaskDetailOpen ? "showing-detail" : ""}">
                         <div class="admin-task-inbox-left">
@@ -1081,14 +1104,17 @@ function renderTasksView() {
 }
 
 function getFilteredAdminTasks(stats = computeDashboardStats()) {
-    const searchedTasks = filterCollection(stats.filteredTasks, (task) => [
-        task.title,
-        task.description,
-        getTaskMemberStatusSearchText(task),
-        normalizeStatusLabel(task.status),
-        normalizeTaskPriority(task.priority),
-        stats.projectMap.get(String(task.project_id))?.name
-    ]);
+    const searchValue = String(adminTaskFilters.search || "").trim().toLowerCase();
+    const searchedTasks = searchValue
+        ? stats.filteredTasks.filter((task) => [
+            task.title,
+            task.description,
+            getTaskMemberStatusSearchText(task),
+            normalizeStatusLabel(task.status),
+            normalizeTaskPriority(task.priority),
+            stats.projectMap.get(String(task.project_id))?.name
+        ].some(value => String(value || "").toLowerCase().includes(searchValue)))
+        : stats.filteredTasks;
 
     return searchedTasks
         .filter((task) => {
@@ -1099,6 +1125,12 @@ function getFilteredAdminTasks(stats = computeDashboardStats()) {
             return true;
         })
         .sort((a, b) => compareAdminTasks(a, b, adminTaskFilters.sort));
+}
+
+function setAdminTaskSearch(value) {
+    adminTaskFilters.search = String(value || "");
+    adminTaskFilters.page = 1;
+    renderTasksView();
 }
 
 function renderAdminTaskCard(task, projectMap) {
@@ -6162,7 +6194,6 @@ document.addEventListener("taskflow:realtime", (event) => {
 });
 
 window.initializeAdminDashboard = initializeAdminDashboard;
-window.handleAdminSearch = handleAdminSearch;
 window.goToDashboard = goToDashboard;
 window.goToProjects = goToProjects;
 window.goToTasks = goToTasks;

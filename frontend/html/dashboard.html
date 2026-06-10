@@ -62,15 +62,13 @@
     <main class="dashboard-main main-panel">
         <header class="topbar">
             <div class="topbar-left">
-                <div class="topbar-search-group">
-                    <label class="search-box" for="projectSearch">
-                        <i class="fas fa-search"></i>
-                        <input id="projectSearch" type="text" placeholder="Search..." oninput="handleProjectSearch(event)">
-                    </label>
-                    <button id="dashboardHeaderTaskAddButton" class="task-add-btn topbar-task-add-btn" type="button" onclick="openDashboardTaskCreate()">
-                        <i class="fas fa-plus"></i>
-                        <span>Add Task</span>
-                    </button>
+                <div class="topbar-title-group">
+                    <nav class="topbar-breadcrumb" aria-label="Breadcrumb">
+                        <span>Home</span>
+                        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+                        <span id="navbarBreadcrumbCurrent">Dashboard</span>
+                    </nav>
+                    <h1 id="navbarPageTitle">Dashboard</h1>
                 </div>
             </div>
 
@@ -268,12 +266,12 @@
 
             <div id="tasks-view" class="hidden">
                 <section class="common-page-card tasks-page task-inbox-page">
-                    <div class="common-page-header">
-                        <div class="common-page-title">
-                            <h1>My Tasks</h1>
-                            <p>Track assignments, due dates, and progress across your workspace.</p>
-                        </div>
-                        <div id="taskToolbar" class="common-page-header-actions task-toolbar-filters common-toolbar-actions">
+                    <div id="taskToolbar" class="task-list-toolbar">
+                        <label class="task-toolbar-search" for="dashboardTaskSearch">
+                            <i class="fas fa-search" aria-hidden="true"></i>
+                            <input id="dashboardTaskSearch" type="search" placeholder="Search tasks..." oninput="handleDashboardTaskSearchInput()">
+                        </label>
+                        <div class="task-toolbar-filter-group">
                             <select id="taskProjectFilter" class="task-board-filter" onchange="handleDashboardTaskFiltersChange()" aria-label="Filter tasks by project">
                                 <option value="all">All Projects</option>
                             </select>
@@ -290,10 +288,6 @@
                                 <option value="week">Due This Week</option>
                                 <option value="none">No Due Date</option>
                             </select>
-                            <button id="taskAddButton" class="task-add-btn common-page-action" type="button" onclick="openDashboardTaskCreate()">
-                                <i class="fas fa-plus"></i>
-                                <span>Add Task</span>
-                            </button>
                         </div>
                     </div>
                     <div class="task-inbox-shell">

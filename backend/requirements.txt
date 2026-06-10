@@ -1,81 +1,85 @@
-Analyze the entire TaskFlow project.
-
-The Manager Dashboard UI has been rebuilt, but it does not match the Admin Dashboard UI. The layout, spacing, cards, typography, and overall appearance are different from the Admin Dashboard.
-
-Task:
-
-Use the Admin Dashboard as the exact UI reference and redesign the Manager Dashboard to match it completely.
+Redesign the entire top navigation/header area of the TaskFlow application.
 
 Requirements:
 
-- Do not change any functionality.
-- Do not change API calls.
-- Do not change routing.
-- Do not change permissions.
-- Do not change business logic.
-- Do not change database operations.
+1. Remove the global/main search box completely from the navbar.
+2. Keep only:
+   - Dynamic Page Title (left side)
+   - Notification Icon
+   - User Profile Section
+3. When a user clicks any sidebar menu item, automatically update the navbar title.
 
-Only update the HTML structure and CSS styling.
+Examples:
+- Dashboard → Navbar title = "Dashboard"
+- Tasks → Navbar title = "Tasks"
+- Projects → Navbar title = "Projects"
+- Team Members → Navbar title = "Team Members"
+- Reports → Navbar title = "Reports"
 
-Manager Dashboard must match Admin Dashboard in:
+4. Add breadcrumb navigation above the page title.
 
-1. Sidebar
-   - Same width
-   - Same spacing
-   - Same menu alignment
-   - Same active menu style
-   - Same hover effects
-   - Same icon size
-   - Same typography
+Examples:
+Dashboard
 
-2. Top Navigation
-   - Same search bar design
-   - Same button styling
-   - Same notification icon styling
-   - Same profile section styling
-   - Same height and spacing
+Home / Dashboard
 
-3. Dashboard Cards
-   - Same card design
-   - Same height
-   - Same padding
-   - Same shadows
-   - Same border radius
-   - Same typography
+Tasks
 
-4. Content Area
-   - Same container width
-   - Same spacing between sections
-   - Same responsive layout
-   - Remove excessive empty spaces
+Home / Tasks
 
-5. Tables
-   - Same table styling as Admin Dashboard
-   - Same header design
-   - Same row spacing
-   - Same pagination design
+Projects
 
-6. Filters
-   - Same filter toolbar layout
-   - Same search field design
-   - Same dropdown styling
-   - Same button styling
+Home / Projects
 
-7. Typography
-   - Use exactly the same font family
-   - Same font sizes
-   - Same font weights
-   - Same text colors
+5. Navbar Layout:
 
-8. Colors
-   - Use the Admin Dashboard color palette only.
-   - Do not introduce new colors.
+---------------------------------------------------------
+Home / Tasks
 
-9. CSS
-   - Reuse Admin Dashboard CSS classes wherever possible.
-   - Remove Manager-specific styles that conflict with Admin styles.
-   - Ensure Manager Dashboard inherits the Admin Dashboard design system.
+Tasks                    🔔 Notification    👤 Admin
+---------------------------------------------------------
 
-Expected Result:
+6. The page title must be generated dynamically based on the currently active sidebar module.
 
-The Manager Dashboard should look visually identical to the Admin Dashboard. Only the Manager-specific data and functionality should differ. A user should feel that both dashboards belong to the same application and use the same design system.
+7. Remove all unused search-related HTML, CSS, JavaScript, API calls, event listeners, and components associated with the old navbar search box.
+
+8. Ensure the navbar updates automatically without page refresh.
+
+9. Use a modern admin dashboard design similar to:
+- Jira
+- ClickUp
+- Asana
+- Linear
+
+10. Styling:
+- Clean white background
+- Height: 70px–80px
+- Subtle bottom border
+- No gradients
+- No large shadows
+- Responsive on mobile and desktop
+
+11. The active sidebar item should control:
+- Page Title
+- Breadcrumb
+- Browser URL (if routing exists)
+
+Example:
+
+Click Tasks
+
+Navbar:
+
+Home / Tasks
+
+Tasks
+
+Click Projects
+
+Navbar:
+
+Home / Projects
+
+Projects
+
+12. Refactor the existing navbar code to make it reusable for all modules throughout the application.
